@@ -38,9 +38,7 @@
 #include "hb.h"
 #include "hbffmpeg.h"
 #include "downmix.h"
-
-struct AVAudioConvert;
-typedef struct AVAudioConvert AVAudioConvert;
+#include "libavcodec/audioconvert.h"
 
 static void compute_frame_duration( hb_work_private_t *pv );
 static void flushDelayQueue( hb_work_private_t *pv );

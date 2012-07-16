@@ -7,9 +7,7 @@
 #include "hb.h"
 #include "hbffmpeg.h"
 #include "downmix.h"
-
-struct AVAudioConvert;
-typedef struct AVAudioConvert AVAudioConvert;
+#include "libavcodec/audioconvert.h"
 
 struct hb_work_private_s
 {
