@@ -407,9 +407,9 @@ static void hb_qsv_info_init(hb_qsv_info_t *qsv_info)
     if (qsv_info->minimum_version.Major != HB_QSV_MINVERSION_MAJOR ||
         qsv_info->minimum_version.Minor != HB_QSV_MINVERSION_MINOR)
     {
-        hb_error("hb_qsv_info_init: minimum version (%d.%d) was modified",
-                 qsv_info->minimum_version.Major,
-                 qsv_info->minimum_version.Minor);
+        hb_error("hb_qsv_info_init: minimum version (%d.%d) was modified (%d.%d)",
+                 HB_QSV_MINVERSION_MAJOR,         HB_QSV_MINVERSION_MINOR,
+                 qsv_info->minimum_version.Major, qsv_info->minimum_version.Minor);
     }
 }
 
