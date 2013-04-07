@@ -694,6 +694,7 @@ static void do_job( hb_job_t * job )
 #ifdef USE_QSV
     if (!hb_qsv_info_get(job->h)->qsv_available ||
         // FIXME: this depends on more than just the codec ID (resolution, bit depth, etc.)
+        //        maybe if (title->qsv_decoding_support == 1) (variable is set during scan)
         title->video_codec_param != AV_CODEC_ID_H264)
     {
         job->qsv_decoding = 0;

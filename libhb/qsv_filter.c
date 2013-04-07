@@ -84,6 +84,7 @@ static int filter_init( av_qsv_context* qsv, hb_filter_private_t * pv ){
     if (!pv->filtering_needed)
     {
         // FIXME ???
+        // FIXME: what if the video resolution chnages mid-stream?
         return 0;
     }
 
