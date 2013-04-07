@@ -691,6 +691,93 @@ static void do_job( hb_job_t * job )
         }
     }
 
+#ifdef USE_QSV
+    if (!hb_qsv_info_get(job->h)->qsv_available ||
+        // FIXME: this depends on more than just the codec ID (resolution, bit depth, etc.)
+        title->video_codec_param != AV_CODEC_ID_H264)
+    {
+        job->qsv_decoding = 0;
+    }
+
+    if (!job->qsv_decoding)
+    {
+        // do not use QSV for filtering unless we're using it for decoding too
+        job->qsv_filtering = 0;
+    }
+
+    if (job->qsv_filtering)
+    {
+        char *filter_str;
+        hb_filter_object_t *filter;
+
+        for (i = 0; i < hb_list_count(job->list_filter);)
+        {
+            filter = hb_list_item(job->list_filter, i);
+
+            if (filter->id == HB_FILTER_DEINTERLACE ||
+                filter->id == HB_FILTER_CROP_SCALE  ||
+                // FIXME: can we still do libhb framerate shaping without copying frame data?
+                filter->id == HB_FILTER_VFR)
+            {
+                // these filters can be performed by QSV, remove silently
+                hb_list_rem(job->list_filter, filter);
+                hb_filter_close(&filter);
+                continue;
+            }
+            else if (filter->id == HB_FILTER_ROTATE)
+            {
+                // validated filter, do nothing
+            }
+            else
+            {
+                // cannot be performed by QSV but not validated either
+                hb_log("do_job: QSV filtering enabled, removing unsupported filter %s",
+                       filter->name);
+                hb_list_rem(job->list_filter, filter);
+                hb_filter_close(&filter);
+                continue;
+            }
+            i++;
+        }
+
+        // add the main QSV filter
+        filter     = hb_filter_init(HB_FILTER_QSV);
+        filter_str = hb_strdup_printf("%d:%d:%d:%d:%d:%d:%d",
+                                      job->width, job->height,
+                                      job->crop[0], job->crop[1],
+                                      job->crop[2], job->crop[3],
+                                      job->deinterlace ? 1 : 0);
+        hb_add_filter(job, filter, filter_str);
+        free(filter_str);
+    }
+
+    if (job->qsv_decoding && job->vcodec == HB_VCODEC_QSV_H264)
+    {
+        hb_filter_object_t *filter;
+        int libhb_filters_present = 0;
+
+        for (i = 0; i < hb_list_count(job->list_filter); i++)
+        {
+            filter = hb_list_item(job->list_filter, i);
+
+            if (filter->id != HB_FILTER_QSV)
+            {
+                // not QSV, this is a libhb filter
+                libhb_filters_present = 1;
+                break;
+            }
+        }
+
+        if (libhb_filters_present)
+        {
+            filter = hb_filter_init(HB_FILTER_QSV_PRE);
+            hb_add_filter(job, filter, NULL);
+            filter = hb_filter_init(HB_FILTER_QSV_POST);
+            hb_add_filter(job, filter, NULL);
+        }
+    }
+#endif
+
     // Filters have an effect on settings.
     // So initialize the filters and update the job.
     if( job->list_filter && hb_list_count( job->list_filter ) )
@@ -710,94 +797,9 @@ static void do_job( hb_job_t * job )
         init.pfr_vrate = job->pfr_vrate;
         init.cfr = 0;
 
-        int is_vpp_interlace = 0;
-        int is_actual_crop_resize = 0;
-        if( job->vcodec == HB_VCODEC_QSV_H264 && title->video_codec_param == AV_CODEC_ID_H264)
-            for( i = 0; i < hb_list_count( job->list_filter ); i++){
-                hb_filter_object_t * filter = hb_list_item( job->list_filter, i );
-                if(filter->id == HB_FILTER_DEINTERLACE){
-                    if(filter->settings){
-                        if(!(strcmp( filter->settings, "32" )))
-                            is_vpp_interlace = 1;
-                    }
-                    else{
-                      // for QSV path - deinterlace from QSV is default, if not param(s) set
-                      is_vpp_interlace = 2;
-                    }
-                }
-                else
-                if( filter->id == HB_FILTER_QSV ){
-                    if( job->width  != job->title->width ||
-                        job->height != job->title->height ||
-                        job->crop[0] != 0 ||  job->crop[1] != 0 ||
-                        job->crop[2] != 0 ||  job->crop[3] != 0){
-                        is_actual_crop_resize = 1;
-                    }
-                }
-            }
-         int is_additional_vpp_function = is_actual_crop_resize;
-
         for( i = 0; i < hb_list_count( job->list_filter ); )
         {
             hb_filter_object_t * filter = hb_list_item( job->list_filter, i );
-
-            // to do not use QSV related if not handled from its decode
-            if( job->vcodec == HB_VCODEC_QSV_H264 )
-             // for now, only h.264 related stuff
-             if(title->video_codec_param != AV_CODEC_ID_H264){
-                if( filter->id == HB_FILTER_QSV_PRE  ||
-                    filter->id == HB_FILTER_QSV_POST ||
-                    filter->id == HB_FILTER_QSV ){
-                        hb_list_rem( job->list_filter, filter );
-                        hb_filter_close( &filter );
-                        continue;
-                }
-             }
-             else
-             if(title->video_codec_param == AV_CODEC_ID_H264){
-
-                // for QSV crop and scale taken as HW VPP
-                if( filter->id == HB_FILTER_CROP_SCALE  ||
-                    filter->id == HB_FILTER_VFR
-                    // to check and use with USER_VPP_FILTER, some should come from QSV/HW
-                    || filter->id == HB_FILTER_DETELECINE   // note: Table 3: Deinterlacing/Inverse Telecine Support in VPP, mediasdk-man.pdf
-                    || filter->id == HB_FILTER_DECOMB
-/*validated*/       ||(filter->id == HB_FILTER_DEINTERLACE && is_vpp_interlace)
-                    || filter->id == HB_FILTER_DEBLOCK
-                    || filter->id == HB_FILTER_DENOISE      // note: MFX_EXTBUFF_VPP_DENOISE
-                    || filter->id == HB_FILTER_RENDER_SUB
-/*validated*/ //    || filter->id == HB_FILTER_ROTATE       // validated,  note : it makes sense to have more local to Video Memory, OpenCL as an example
-                    || (filter->id == HB_FILTER_QSV && !is_additional_vpp_function )
-                    ){
-                        hb_list_rem( job->list_filter, filter );
-                        hb_filter_close( &filter );
-                        continue;
-                }
-
-                // only use if some filters are in between
-                if( filter->id == HB_FILTER_QSV_PRE  ||
-                    filter->id == HB_FILTER_QSV_POST){
-                    int to_use = 0;
-                    int x = 0;
-                    for(;x < hb_list_count( job->list_filter );x++){
-                        hb_filter_object_t * check_filter = hb_list_item( job->list_filter, x );
-                        if(check_filter->id > HB_FILTER_QSV_PRE && check_filter->id < HB_FILTER_QSV_POST &&
-                            // if original filter used - we need to wrap them into QSV pipeline
-                           ((check_filter->id == HB_FILTER_DEINTERLACE && !is_vpp_interlace) ||
-                             check_filter->id == HB_FILTER_ROTATE )){
-                            to_use = 1;
-                            break;
-                        }
-                    }
-
-                    if(!to_use)
-                    {
-                        hb_list_rem( job->list_filter, filter );
-                        hb_filter_close( &filter );
-                        continue;
-                    }
-                }
-             }
 
             if( filter->init( filter, &init ) )
             {

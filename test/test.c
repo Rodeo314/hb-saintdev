@@ -1562,11 +1562,6 @@ static int HandleEvents( hb_handle_t * h )
 
             hb_filter_object_t * filter;
 
-            if(vcodec == HB_VCODEC_QSV_H264)
-            {
-                job->vcodec = vcodec;
-            }
-
             /* Add selected filters */
             if( detelecine )
             {
@@ -1780,22 +1775,22 @@ static int HandleEvents( hb_handle_t * h )
             hb_add_filter( job, filter, filter_str );
             free( filter_str );
 
-            if(vcodec == HB_VCODEC_QSV_H264)
+#ifdef USE_QSV
+            if (vcodec == HB_VCODEC_QSV_H264)
             {
-
-                char * filter_str;
-                filter_str = hb_strdup_printf("%d:%d:%d:%d:%d:%d_dei:%s",
-                        job->width, job->height,
-                        job->crop[0], job->crop[1], job->crop[2], job->crop[3], deinterlace ? (deinterlace_opt ? deinterlace_opt: "-1") : "0" );
-                filter = hb_filter_init( HB_FILTER_QSV );
-                hb_add_filter( job, filter, filter_str );
-                free( filter_str );
-
-                filter = hb_filter_init( HB_FILTER_QSV_PRE );
-                hb_add_filter( job, filter, NULL );
-                filter = hb_filter_init( HB_FILTER_QSV_POST );
-                hb_add_filter( job, filter, NULL );
+                // we're using the QSV encoder
+                // allow decoding and filtering via QSV too
+                // TODO: let the user override this via an option
+                job->qsv_decoding  = 1;
+                job->qsv_filtering = 1;
             }
+            else
+            {
+                // do everything via libhb for now
+                job->qsv_decoding  = 0;
+                job->qsv_filtering = 0;
+            }
+#endif
 
 
             // Add framerate shaping filter
@@ -3289,11 +3284,7 @@ static void ShowHelp()
      "    -d, --deinterlace       Deinterlace video with yadif/mcdeint filter\n"
      "          <YM:FD:MM:QP>     (default 0:-1:-1:1)\n"
      "           or\n"
-     "          <fast/slow/slower");
-#ifdef USE_QSV
-     fprintf( out,"/qsv");
-#endif
-     fprintf( out, ">\n"
+     "          <fast/slow/slower/bob>\n"
      "    -5, --decomb            Selectively deinterlaces when it detects combing\n"
      "          <MO:ME:MT:ST:BT:BX:BY:MG:VA:LA:DI:ER:NO:MD:PP:FD>\n"
      "          (default: 7:2:6:9:80:16:16:10:20:20:4:2:50:24:1:-1)\n"
@@ -3865,10 +3856,6 @@ static int ParseOptions( int argc, char ** argv )
                     else if (!( strcmp( optarg, "bob" ) ))
                     {
                         deinterlace_opt = "15";
-                    }
-                    else if (!( strcmp( optarg, "qsv" ) ))
-                    {
-                        deinterlace_opt = "32";
                     }
                     else
                     {

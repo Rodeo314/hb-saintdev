@@ -461,6 +461,8 @@ struct hb_job_s
                                         //  to non-I frames).
 #ifdef USE_QSV
     av_qsv_context   *qsv;
+    int               qsv_decoding;  // whether usage of QSV hardware decoding  is allowed
+    int               qsv_filtering; // whether usage of QSV hardware filtering is allowed
 #endif
 
 #ifdef __LIBHB__

@@ -45,6 +45,7 @@ struct hb_filter_private_s
     int                 height_out;
     int                 crop[4];
     int                 deinterlace;
+    int                 filtering_needed;
 
     av_qsv_space           *vpp_space;
     av_qsv_config qsv_config;
@@ -79,6 +80,12 @@ static int filter_init( av_qsv_context* qsv, hb_filter_private_t * pv ){
     int i=0;
 
     if(!qsv) return 3;
+
+    if (!pv->filtering_needed)
+    {
+        // FIXME ???
+        return 0;
+    }
 
 
     if(!qsv->vpp_space){
@@ -293,15 +300,26 @@ static int hb_qsv_filter_init( hb_filter_object_t * filter,
 
     if (filter->settings != NULL)
     {
-        sscanf(filter->settings, "%d:%d:%d:%d:%d:%d_dei:%d",
+        sscanf(filter->settings, "%d:%d:%d:%d:%d:%d:%d",
                &pv->width_out, &pv->height_out,
                &pv->crop[0], &pv->crop[1], &pv->crop[2], &pv->crop[3],
                &pv->deinterlace);
     }
 
-    pv->deinterlace &= 32;
-
     pv->job = init->job;
+
+    if (pv->deinterlace                 ||
+        pv->width_in  != pv->width_out  ||
+        pv->height_in != pv->height_out ||
+        pv->crop[0] || pv->crop[1] || pv->crop[2] || pv->crop[3])
+    {
+        pv->filtering_needed = 1;
+    }
+    else
+    {
+        // no change to the video, skip filtering to improve performance
+        pv->filtering_needed = 0;
+    }
 
     // will be later as more params will be known
     // filter_init(pv->job->qsv, pv);
@@ -377,24 +395,29 @@ void qsv_filter_close( av_qsv_context* qsv, AV_QSV_STAGE_TYPE vpp_type ){
 static void hb_qsv_filter_close( hb_filter_object_t * filter )
 {
     int i = 0;
-    hb_filter_private_t * pv = filter->private_data;
+    hb_filter_private_t *pv = filter->private_data;
 
-    if ( !pv )
+    if (pv == NULL)
     {
         return;
     }
 
-    av_qsv_context* qsv = pv->job->qsv;
-    if(qsv && qsv->vpp_space && av_qsv_list_count(qsv->vpp_space) > 0){
-
-        // closing local stuff
-        qsv_filter_close(qsv,AV_QSV_VPP_DEFAULT);
-
-        // closing the commong stuff
-        av_qsv_context_clean(qsv);
+    if (pv->filtering_needed)
+    {
+        if (pv->job->qsv && pv->job->qsv->vpp_space &&
+            av_qsv_list_count(pv->job->qsv->vpp_space) > 0)
+        {
+            // closing local stuff
+            qsv_filter_close(pv->job->qsv, AV_QSV_VPP_DEFAULT);
+            
+            // closing the common stuff
+            // FIXME: why is this done here?
+            av_qsv_context_clean(pv->job->qsv);
+        }
     }
+
     hb_list_close(&pv->list);
-    free( pv );
+    free(pv);
     filter->private_data = NULL;
 }
 
@@ -462,19 +485,19 @@ static int hb_qsv_filter_work( hb_filter_object_t * filter,
                                hb_buffer_t ** buf_out )
 {
 
-    hb_filter_private_t * pv = filter->private_data;
-    hb_buffer_t * in = *buf_in;
-    hb_buffer_t * out = *buf_out;
-    int sts = 0;
+    hb_filter_private_t *pv = filter->private_data;
+    hb_buffer_t *out        = *buf_out;
+    hb_buffer_t *in         = *buf_in;
+    int sts                 = 0;
 
-    av_qsv_context* qsv = pv->job->qsv;
-
-    if ( !pv )
+    if (pv == NULL || !pv->filtering_needed)
     {
         *buf_out = in;
-        *buf_in = NULL;
+        *buf_in  = NULL;
         return HB_FILTER_OK;
     }
+
+    av_qsv_context *qsv = pv->job->qsv;
 
     while(1){
         int ret = filter_init(qsv,pv);
