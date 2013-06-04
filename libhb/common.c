@@ -208,7 +208,7 @@ static int hb_video_encoder_is_enabled(int encoder)
     {
 #ifdef USE_QSV
         case HB_VCODEC_QSV_H264:
-            return hb_qsv_info != NULL && hb_qsv_info->qsv_available;
+            return hb_qsv_available();
 #endif
 
         // the following encoders are always enabled

@@ -182,6 +182,9 @@ typedef struct hb_qsv_info_s
 
 /* Global Intel QSV information for use by the UIs */
 extern hb_qsv_info_t *hb_qsv_info;
+
+/* Whether QSV is available at all */
+int hb_qsv_available();
 #endif
 
 #ifdef __cplusplus

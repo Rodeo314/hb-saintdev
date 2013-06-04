@@ -543,6 +543,11 @@ static void hb_qsv_info_print()
         }
     }
 }
+
+int hb_qsv_available()
+{
+    return hb_qsv_info != NULL && hb_qsv_info->qsv_available;
+}
 #endif // USE_QSV
 
 /**

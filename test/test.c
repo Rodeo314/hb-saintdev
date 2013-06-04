@@ -3043,7 +3043,7 @@ static void ShowHelp()
     fprintf(out,
     "    -x, --encopts <string>  Specify advanced encoder options in the\n");
 #ifdef USE_QSV
-if (hb_qsv_info != NULL && hb_qsv_info->qsv_available)
+if (hb_qsv_available())
 {
     fprintf(out,
     "                            same style as mencoder (x264/qsv/ffmpeg only):");
@@ -3317,7 +3317,7 @@ else
      "    -d, --deinterlace       Deinterlace video with Libav, yadif or mcdeint\n"
      "          <fast/slow/slower/bob");
 #ifdef USE_QSV
-if (hb_qsv_info != NULL && hb_qsv_info->qsv_available)
+if (hb_qsv_available())
 {
     fprintf(out, "/qsv");
 }
@@ -3408,7 +3408,7 @@ if (hb_qsv_info != NULL && hb_qsv_info->qsv_available)
     );
 
 #ifdef USE_QSV
-if (hb_qsv_info != NULL && hb_qsv_info->qsv_available)
+if (hb_qsv_available())
 {
     fprintf( out,
     "### QSV Options, via --encopts=\"option1=value1:option2=value2\" -----------\n\n"
