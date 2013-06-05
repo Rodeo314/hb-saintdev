@@ -645,8 +645,10 @@ hb_handle_t * hb_init( int verbose, int update_check )
     /* libavcodec */
     hb_avcodec_init();
 
+#ifdef USE_QSV
     /* Intel Quick Sync Video */
     hb_qsv_info_print();
+#endif
 
     /* Start library thread */
     hb_log( "hb_init: starting libhb thread" );
@@ -752,8 +754,10 @@ hb_handle_t * hb_init_dl( int verbose, int update_check )
     /* libavcodec */
     hb_avcodec_init();
 
+#ifdef USE_QSV
     /* Intel Quick Sync Video */
     hb_qsv_info_print();
+#endif
 
     /* Start library thread */
     hb_log( "hb_init: starting libhb thread" );
