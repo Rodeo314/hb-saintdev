@@ -1051,9 +1051,9 @@ static int MP4Mux( hb_mux_object_t * m, hb_mux_data_t * mux_data,
         }
         else
         {
-            /* FIXME: QSV always uses this path, but this looks wrong because:
+            /* FIXME: QSV always uses this path, but:
              *
-             * what we do:
+             * what we do for x264/ffmpeg:
              * offset   = PTS[i] - DTS[i]
              * duration = DTS[i] - DTS[i - 1]
              *
@@ -1065,6 +1065,7 @@ static int MP4Mux( hb_mux_object_t * m, hb_mux_data_t * mux_data,
              * PTS[i] == ctts[i], DTS[i] == stts[i]
              * -> DTS[i] = DTS[i - 1] + duration
              * -> duration = DTS[i] - DTS[i - 1] (see above)
+             * so duration = PTS[i + 1] - PTS[i] looks wrong
              */
             // We're getting the frames in decode order but the timestamps are
             // for presentation so we have to use durations and effectively
