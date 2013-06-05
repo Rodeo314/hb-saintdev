@@ -520,7 +520,14 @@ static void hb_qsv_info_print()
         default:
             break;
     }
-    hb_log(" - hardware name:    %s", hb_qsv_info->cpu_name);
+
+    // skip leading whitespace to prettify
+    char *cpu_name = hb_qsv_info->cpu_name;
+    while (isspace(*cpu_name))
+    {
+        cpu_name++;
+    }
+    hb_log(" - hardware name:    %s", cpu_name);
 
     // if we have Quick Sync Video support, also print the details
     if (hb_qsv_info->qsv_available)
