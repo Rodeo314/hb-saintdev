@@ -1008,7 +1008,6 @@ static int MP4Mux( hb_mux_object_t * m, hb_mux_data_t * mux_data,
             }
         }
 
-        // FIXME: how about QSV???
         if( job->vcodec == HB_VCODEC_X264 || 
             ( job->vcodec & HB_VCODEC_FFMPEG_MASK ) )
         {
@@ -1052,6 +1051,21 @@ static int MP4Mux( hb_mux_object_t * m, hb_mux_data_t * mux_data,
         }
         else
         {
+            /* FIXME: QSV always uses this path, but this looks wrong because:
+             *
+             * what we do:
+             * offset   = PTS[i] - DTS[i]
+             * duration = DTS[i] - DTS[i - 1]
+             *
+             * what mp4v2 does:
+             * stts[i] = stts[i - 1] + duration
+             * ctts[i] = stts[i]     + offset
+             *
+             * thus:
+             * PTS[i] == ctts[i], DTS[i] == stts[i]
+             * -> DTS[i] = DTS[i - 1] + duration
+             * -> duration = DTS[i] - DTS[i - 1] (see above)
+             */
             // We're getting the frames in decode order but the timestamps are
             // for presentation so we have to use durations and effectively
             // compute a DTS.
