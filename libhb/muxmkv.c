@@ -38,6 +38,9 @@ struct hb_mux_data_s
     int       codec;
     int       subtitle;
     int       sub_format;
+
+    int frame_count;//debug
+    int track_id;//debug
 };
 
 static uint8_t * create_flac_header( uint8_t *data, int size )
@@ -246,6 +249,7 @@ static int MKVInit( hb_mux_object_t * m )
         audio->priv.mux_data = mux_data;
 
         mux_data->codec = audio->config.out.codec;
+        mux_data->track_id = i + 2;//debug
 
         memset(track, 0, sizeof(mk_TrackConfig));
         switch (audio->config.out.codec & HB_ACODEC_MASK)
@@ -561,6 +565,13 @@ static int MKVMux(hb_mux_object_t *m, hb_mux_data_t *mux_data, hb_buffer_t *buf)
             hb_buffer_close( &buf );
             return 0;
         }
+        fprintf(stderr,
+                "MuxTIM: video #%d PTS      %+012"PRId64"\n"
+                "        video #%d duration     %+08"PRId64"\n"
+                "        video #%d frame          %06d\n",
+                1, buf->s.start,
+                1, buf->s.stop - buf->s.start,
+                1, ++mux_data->frame_count);//debug
     }
     else if (mux_data->subtitle)
     {
@@ -604,6 +615,9 @@ static int MKVMux(hb_mux_object_t *m, hb_mux_data_t *mux_data, hb_buffer_t *buf)
             hb_buffer_close( &buf );
             return 0;
         }
+        fprintf(stderr,
+                "MuxTIM: audio #%d PTS %+012"PRId64" duration %+08"PRId64" frame %06d\n",
+                mux_data->track_id - 1, buf->s.start, (int64_t)buf->s.duration, ++mux_data->frame_count);//debug
     }
 
     if( mk_startFrame(m->file, mux_data->track) < 0)

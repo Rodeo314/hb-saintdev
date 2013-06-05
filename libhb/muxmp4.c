@@ -44,6 +44,8 @@ struct hb_mux_data_s
     // audio frame duration info
     int sample_rate;
     int samples_per_frame;
+
+    int frame_count;//debug
 };
 
 /* Tune video track chunk duration.
@@ -1069,6 +1071,17 @@ static int MP4Mux( hb_mux_object_t * m, hb_mux_data_t * mux_data,
             duration = 1000;
         }
         m->sum_dur += duration;
+        fprintf(stderr,
+                "MuxTIM: video #%d PTS      %+012"PRId64"\n"
+                "        video #%d DTS      %+012"PRId64"\n"
+                "        video #%d offset       %+08"PRId64"\n"
+                "        video #%d duration     %+08"PRId64"\n"
+                "        video #%d frame          %06d\n",
+                1, buf->s.start,
+                1, buf->s.renderOffset,
+                1, offset,
+                1, duration,
+                1, ++mux_data->frame_count);//debug
     }
     else
     {
@@ -1079,6 +1092,9 @@ static int MP4Mux( hb_mux_object_t * m, hb_mux_data_t * mux_data,
         else
             // frame size has to be computed
             duration = buf->s.duration * mux_data->sample_rate / 90000;
+        fprintf(stderr,
+                "MuxTIM: audio #%d PTS %+012"PRId64" duration %+08"PRId64" frame %06d\n",
+                mux_data->track - 1, buf->s.start, (int64_t)buf->s.duration, ++mux_data->frame_count);//debug
     }
 
     /* Here's where the sample actually gets muxed. */
@@ -1340,6 +1356,9 @@ static int MP4End( hb_mux_object_t * m )
                                     edit_amt,
                                     MP4GetTrackDuration(m->file, m->chapter_track), 0);
                 }
+            fprintf(stderr,
+                    "MuxTIM: inserting MP4 edit list with duration %"PRId64"\n",
+                    edit_amt);//debug
          }
 
         /*
