@@ -45,7 +45,10 @@ struct hb_mux_data_s
     int sample_rate;
     int samples_per_frame;
 
-    int frame_count;//debug
+//#define DEBUG_MP4_TS
+#ifdef  DEBUG_MP4_TS
+    int frame_count;
+#endif
 };
 
 /* Tune video track chunk duration.
@@ -1071,6 +1074,7 @@ static int MP4Mux( hb_mux_object_t * m, hb_mux_data_t * mux_data,
             duration = 1000;
         }
         m->sum_dur += duration;
+#ifdef  DEBUG_MP4_TS
         fprintf(stderr,
                 "MuxTIM: video #%d PTS      %+012"PRId64"\n"
                 "        video #%d DTS      %+012"PRId64"\n"
@@ -1081,7 +1085,8 @@ static int MP4Mux( hb_mux_object_t * m, hb_mux_data_t * mux_data,
                 1, buf->s.renderOffset,
                 1, offset,
                 1, duration,
-                1, ++mux_data->frame_count);//debug
+                1, ++mux_data->frame_count);
+#endif
     }
     else
     {
@@ -1092,9 +1097,11 @@ static int MP4Mux( hb_mux_object_t * m, hb_mux_data_t * mux_data,
         else
             // frame size has to be computed
             duration = buf->s.duration * mux_data->sample_rate / 90000;
+#ifdef  DEBUG_MP4_TS
         fprintf(stderr,
                 "MuxTIM: audio #%d PTS %+012"PRId64" duration %+08"PRId64" frame %06d\n",
-                mux_data->track - 1, buf->s.start, (int64_t)buf->s.duration, ++mux_data->frame_count);//debug
+                mux_data->track - 1, buf->s.start, (int64_t)buf->s.duration, ++mux_data->frame_count);
+#endif
     }
 
     /* Here's where the sample actually gets muxed. */
@@ -1356,9 +1363,11 @@ static int MP4End( hb_mux_object_t * m )
                                     edit_amt,
                                     MP4GetTrackDuration(m->file, m->chapter_track), 0);
                 }
+#ifdef  DEBUG_MP4_TS
             fprintf(stderr,
-                    "MuxTIM: inserting MP4 edit list with duration %"PRId64"\n",
-                    edit_amt);//debug
+                    "MuxTIM: video #1: inserting MP4 edit list with duration %"PRId64"\n",
+                    edit_amt);
+#endif
          }
 
         /*
