@@ -90,6 +90,7 @@ hb_work_object_t hb_encqsv =
 };
 
 #define SPSPPS_SIZE     1024
+#define DEBUG_QSV_TS    // check timestamp-related issues
 
 struct hb_work_private_s
 {
@@ -123,6 +124,10 @@ struct hb_work_private_s
     mfxU16  extbrc;
     mfxExtCodingOption2  qsv_coding_option2_config;
     int     mbbrx_param_idx;
+
+#ifdef  DEBUG_QSV_TS
+    int64_t last_frame_pts;
+#endif
 };
 
 extern char* get_codec_id(hb_work_private_t *pv);
@@ -640,6 +645,10 @@ int encqsvInit( hb_work_object_t * w, hb_job_t * job )
         return -1;
     }
 
+#ifdef  DEBUG_QSV_TS
+    pv->last_frame_pts = (int64_t)0;
+#endif
+
     return 0;
 }
 
@@ -922,6 +931,21 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
                 else{
                     av_qsv_dts_pop(qsv);
                 }
+
+#ifdef  DEBUG_QSV_TS
+            // if Baseline, check that PTS increases monotonically
+            if (pv->codec_profile == MFX_PROFILE_AVC_BASELINE)
+            {
+                // if the frames reach the muxer in that order, something is very wrong
+                if (pv->last_frame_pts && pv->last_frame_pts >= buf->s.start)
+                {
+                    hb_error("encqsvWork: Baseline but frame %d last_pts %+012"PRId64" >= frame %d buf->s.start %+012"PRId64"",
+                             pv->frames_out, pv->last_frame_pts,
+                             pv->frames_out + 1, buf->s.start);
+                }
+            }
+            pv->last_frame_pts = buf->s.start;
+#endif
 
                 // shift for fifo
                 if(pv->async_depth){
