@@ -1008,8 +1008,13 @@ static int MP4Mux( hb_mux_object_t * m, hb_mux_data_t * mux_data,
             }
         }
 
-        if( job->vcodec == HB_VCODEC_X264 || 
-            ( job->vcodec & HB_VCODEC_FFMPEG_MASK ) )
+#if 0
+        if ((job->vcodec & HB_VCODEC_H264_MASK) ||
+            (job->vcodec & HB_VCODEC_FFMPEG_MASK))
+#else
+        if ((job->vcodec == HB_VCODEC_X264) ||
+            (job->vcodec  & HB_VCODEC_FFMPEG_MASK))
+#endif
         {
             // x264 supplies us with DTS
             if ( m->delay_buf )
