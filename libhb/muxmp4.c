@@ -1066,6 +1066,10 @@ static int MP4Mux( hb_mux_object_t * m, hb_mux_data_t * mux_data,
              * -> DTS[i] = DTS[i - 1] + duration
              * -> duration = DTS[i] - DTS[i - 1] (see above)
              * so duration = PTS[i + 1] - PTS[i] looks wrong
+             *
+             * also, since we only provide a sum of durations and not a timecode,
+             * if buf->s.stop != PTS[i + 1], all following samples' PTS and DTS
+             * will be shifted by (PTS[i + 1] - buf->s.stop)...
              */
             // We're getting the frames in decode order but the timestamps are
             // for presentation so we have to use durations and effectively
