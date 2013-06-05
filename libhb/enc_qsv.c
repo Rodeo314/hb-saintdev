@@ -90,7 +90,7 @@ hb_work_object_t hb_encqsv =
 };
 
 #define SPSPPS_SIZE     1024
-#define DEBUG_QSV_TS    // check timestamp-related issues
+//#define DEBUG_QSV_TS    // check timestamp-related issues
 
 struct hb_work_private_s
 {
