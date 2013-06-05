@@ -4204,6 +4204,7 @@ static int ParseOptions( int argc, char ** argv )
                 min_title_duration = strtol( optarg, NULL, 0 );
                 break;
             case QSV_BASELINE:
+#ifdef USE_QSV
                 if (hb_qsv_available())
                 {
                     /* XXX: for testing workarounds */
@@ -4224,6 +4225,7 @@ static int ParseOptions( int argc, char ** argv )
                             hb_qsv_info->minimum_version.Minor;
                     }
                 }
+#endif
                 break;
             default:
                 fprintf( stderr, "unknown option (%s)\n", argv[cur_optind] );
