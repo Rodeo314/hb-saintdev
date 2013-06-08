@@ -97,7 +97,6 @@ struct hb_work_private_s
     hb_esconfig_t  *config;
     uint32_t       frames_in;
     uint32_t       frames_out;
-    int64_t        last_frame_dts; // check for monotonically increasing DTS
 
     mfxExtCodingOptionSPSPPS    *sps_pps;
 
@@ -584,7 +583,6 @@ int encqsvInit( hb_work_object_t * w, hb_job_t * job )
     pv->delayed_processing = hb_list_init();
     pv->frames_in = 0;
     pv->frames_out = 0;
-    pv->last_frame_dts = INT64_MIN;
 
     pv->job = job;
     pv->config = w->config;
