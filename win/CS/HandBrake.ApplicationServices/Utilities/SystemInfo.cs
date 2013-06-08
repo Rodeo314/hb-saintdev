@@ -79,6 +79,35 @@ namespace HandBrake.ApplicationServices.Utilities
         }
 
         /// <summary>
+        /// Gets a value indicating whether is snb.
+        /// </summary>
+        public static bool IsSandyBridge
+        {
+            get
+            {
+                string cpu = GetCpuCount.ToString();
+                if (cpu.Contains("Intel"))
+                {
+                    Match match = Regex.Match(cpu, "([0-9]{2})");
+                    if (match.Success)
+                    {
+                        string cpuId = match.Groups[0].ToString();
+                        int cpuNumber;
+                        if (int.TryParse(cpuId, out cpuNumber))
+                        {
+                            if (cpuNumber > 2000 && cpuNumber < 3000)
+                            {
+                                return true;
+                            }
+                        }
+                    }
+                }
+
+                return false;
+            }
+        }
+
+        /// <summary>
         /// Gets the System screen size information.
         /// </summary>
         /// <returns>System.Windows.Forms.Scree</returns>

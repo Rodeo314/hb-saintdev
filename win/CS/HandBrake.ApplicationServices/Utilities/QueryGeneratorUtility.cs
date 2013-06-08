@@ -953,35 +953,18 @@ namespace HandBrake.ApplicationServices.Utilities
                 {
                     string qsvPreset;
 
-                    if (SystemInfo.IsHswOrNewer)
+                    switch (task.QsvPreset)
                     {
-                        switch (task.QsvPreset)
-                        {
-                            case QsvPreset.Speed:
-                                qsvPreset = "6";
-                                break;
-                            case QsvPreset.Balanced:
-                                qsvPreset = "4";
-                                break;
-                            default:
-                                qsvPreset = "2";
-                                break;
-                        }
-                    }
-                    else
-                    {
-                        switch (task.QsvPreset)
-                        {
-                            case QsvPreset.Speed:
-                                qsvPreset = "4";
-                                break;
-                            case QsvPreset.Balanced:
-                                qsvPreset = "2";
-                                break;
-                            default:
-                                qsvPreset = "2";
-                                break;
-                        }
+                        case QsvPreset.Speed:
+                            qsvPreset = "6";
+                            break;
+                        case QsvPreset.Quality:
+                            qsvPreset = "2";
+                            break;
+                        case QsvPreset.Balanced:
+                        default:
+                            qsvPreset = "4";
+                            break;
                     }
 
                     query += string.IsNullOrEmpty(task.AdvancedEncoderOptions)

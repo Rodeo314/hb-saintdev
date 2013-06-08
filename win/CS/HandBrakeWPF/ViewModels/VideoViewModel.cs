@@ -960,7 +960,11 @@ namespace HandBrakeWPF.ViewModels
                 this.X264PresetValue = preset.Task.VideoEncoder == VideoEncoder.X264
                                            ? (int)preset.Task.X264Preset
                                            : (int)x264Preset.Medium;
-                this.H264Profile = preset.Task.VideoEncoder == VideoEncoder.X264 ? preset.Task.H264Profile : x264Profile.None;
+                this.H264Profile = preset.Task.VideoEncoder == VideoEncoder.X264
+                                        ? preset.Task.H264Profile
+                                        : preset.Task.VideoEncoder == VideoEncoder.QuickSync && SystemInfo.IsSandyBridge
+                                               ? x264Profile.Baseline // we have no DTS on Sandy Bridge, so B-frames in MP4 won't work
+                                               : x264Profile.None;
                 this.X264Tune = preset.Task.VideoEncoder == VideoEncoder.X264 ? preset.Task.X264Tune : x264Tune.None;
                 this.H264Level = preset.Task.VideoEncoder == VideoEncoder.X264 ? preset.Task.H264Level : "Auto";
                 this.FastDecode = preset.Task.VideoEncoder == VideoEncoder.X264 && preset.Task.FastDecode;
@@ -968,7 +972,7 @@ namespace HandBrakeWPF.ViewModels
 
                 this.QsvPresetValue = preset.Task.VideoEncoder == VideoEncoder.QuickSync
                                            ? (int)preset.Task.QsvPreset
-                                           : SystemInfo.IsHswOrNewer ? (int)QsvPreset.Quality : (int)QsvPreset.Balanced;
+                                           : (int)QsvPreset.Balanced;
 
                 this.UseAdvancedTab = !string.IsNullOrEmpty(preset.Task.AdvancedEncoderOptions) && this.ShowAdvancedTab;
             }

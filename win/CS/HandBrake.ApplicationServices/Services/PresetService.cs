@@ -534,16 +534,21 @@ namespace HandBrake.ApplicationServices.Services
 
             preset.Task.VideoEncoder = VideoEncoder.QuickSync;
             preset.Task.Quality = 20;
-            preset.Task.AdvancedEncoderOptions =
-                "gop-ref-dist=4:gop-pic-size=32:async-depth=4";
+            preset.Task.AdvancedEncoderOptions = "gop-ref-dist=4:gop-pic-size=32:async-depth=4";
+            preset.Task.H264Profile = SystemInfo.IsSandyBridge
+                                               ? x264Profile.Baseline // we have no DTS on Sandy Bridge, so B-frames in MP4 won't work
+                                               : x264Profile.None;
             preset.Task.AudioTracks = new ObservableCollection<AudioTrack>();
-            preset.Task.AudioTracks.Add(new AudioTrack { Bitrate = 160, Encoder = AudioEncoder.Faac, MixDown = Mixdown.DolbyProLogicII});
+            // FAAC is slow and can be a bottleneck with QSV
+            preset.Task.AudioTracks.Add(new AudioTrack {Bitrate = 160, Encoder = AudioEncoder.ffaac, MixDown = Mixdown.DolbyProLogicII});
             preset.Task.Anamorphic = Anamorphic.Loose;
-            preset.Task.QsvPreset = SystemInfo.IsHswOrNewer ? QsvPreset.Quality : QsvPreset.Balanced;
+            preset.Task.QsvPreset = QsvPreset.Balanced; // FIXME
             preset.Task.FramerateMode = FramerateMode.CFR;
             preset.Task.TwoPass = false;
             preset.Task.TurboFirstPass = false;
             preset.Task.OutputFormat = OutputFormat.Mp4;
+            // CQP 20 can result in pretty large files
+            preset.Task.LargeFile = 1;
             preset.Task.VideoEncodeRateType = VideoEncodeRateType.ConstantQuality;
             
             return preset;
