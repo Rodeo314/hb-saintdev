@@ -97,6 +97,7 @@ struct hb_work_private_s
     hb_esconfig_t  *config;
     uint32_t       frames_in;
     uint32_t       frames_out;
+    int64_t        last_frame_dts; // check for monotonically increasing DTS
 
     mfxExtCodingOptionSPSPPS    *sps_pps;
 
@@ -583,6 +584,7 @@ int encqsvInit( hb_work_object_t * w, hb_job_t * job )
     pv->delayed_processing = hb_list_init();
     pv->frames_in = 0;
     pv->frames_out = 0;
+    pv->last_frame_dts = INT64_MIN;
 
     pv->job = job;
     pv->config = w->config;
@@ -924,7 +926,25 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
                 buf->s.start = buf->s.renderOffset = task->bs->TimeStamp;
                 buf->s.stop  = buf->s.start + duration;
                 if (hb_qsv_info->features & HB_QSV_FEATURE_DECODE_TIMESTAMPS)
+                {
                     buf->s.renderOffset = task->bs->DecodeTimeStamp;
+                    /*
+                     * PTS may decrease due to frame reordering.
+                     * But since we have to mux the output frames in decoding
+                     * order, DTS must always be >= the previous value.
+                     *
+                     * See ISO/IEC 14496-15:2004(E),
+                     * Advanced Video Coding (AVC) file format
+                     * 5.3.9 Decoding time (DTS) and composition time (CTS)
+                     */
+                    if (buf->s.renderOffset < pv->last_frame_dts)
+                    {
+                        hb_log("encQSVWork: frame %d DTS %"PRId64" < frame %d DTS %"PRId64"",
+                               pv->frames_out + 1, buf->s.renderOffset,
+                               pv->frames_out,     pv->last_frame_dts);
+                    }
+                    pv->last_frame_dts = buf->s.renderOffset;
+                }
 
 #if 0 // enable once tested
                 // the init_delay if the difference between the first DTS and 0, if any
