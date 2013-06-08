@@ -946,14 +946,6 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
                     pv->last_frame_dts = buf->s.renderOffset;
                 }
 
-#if 0 // enable once tested
-                // the init_delay if the difference between the first DTS and 0, if any
-                if (!w->config->h264.init_delay && buf->s.renderOffset < 0)
-                {
-                     w->config->h264.init_delay = -buf->s.renderOffset;
-                }
-#endif
-
                 if(pv->qsv_config.gop_ref_dist > 1)
                     pv->qsv_config.gop_ref_dist--;
                 else{
