@@ -1056,6 +1056,15 @@ static int MP4Mux( hb_mux_object_t * m, hb_mux_data_t * mux_data,
         }
         else
         {
+            /*
+             * We use this code path for QSV H.264, but this is incorrect.
+             *
+             * mp4v2 uses 'duration' for CTTS(n), it's NOT the frame duration.
+             *
+             * See ISO/IEC 14496-12:2008(E),
+             * ISO base media file format
+             * 8.6.1.2 Decoding Time to Sample Box
+             */
             // We're getting the frames in decode order but the timestamps are
             // for presentation so we have to use durations and effectively
             // compute a DTS.
