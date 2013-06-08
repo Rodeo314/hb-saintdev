@@ -1008,8 +1008,13 @@ static int MP4Mux( hb_mux_object_t * m, hb_mux_data_t * mux_data,
             }
         }
 
+#if 0 // enable once out-of-order DTS issue is fixed
+        if ((job->vcodec & HB_VCODEC_H264_MASK) ||
+            (job->vcodec & HB_VCODEC_FFMPEG_MASK))
+#else
         if ((job->vcodec == HB_VCODEC_X264) ||
             (job->vcodec  & HB_VCODEC_FFMPEG_MASK))
+#endif
         {
             // x264 supplies us with DTS
             if ( m->delay_buf )
@@ -1051,6 +1056,26 @@ static int MP4Mux( hb_mux_object_t * m, hb_mux_data_t * mux_data,
         }
         else
         {
+            /*
+             * We use this code path for QSV H.264, but this is incorrect.
+             *
+             * mp4v2 does:
+             * STTS(n+1) = duration
+             * CTTS(n+1) = offset
+             *
+             * We then have the following DTS and PTS:
+             * DTS(n+1) = DT(n+1) = DT(n)   + STTS(n)
+             * PTS(n+1) = CT(n+1) = DT(n+1) + CTTS(n+1)
+             *
+             * Here 'duration' is the DTS difference, NOT the frame duration!
+             *
+             * This is why we need m->delay_buf above.
+             *
+             * See:
+             * ISO/IEC 14496-12:2008(E), ISO base media file format
+             *  - 8.6.1.2 Decoding Time to Sample Box
+             *  - 8.6.1.3 Composition Time to Sample Box
+             */
             // We're getting the frames in decode order but the timestamps are
             // for presentation so we have to use durations and effectively
             // compute a DTS.
