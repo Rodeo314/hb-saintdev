@@ -100,9 +100,6 @@ struct hb_work_private_s
     uint32_t       frames_in;
     uint32_t       frames_out;
     int64_t        last_frame_dts; // check for monotonically increasing DTS
-#ifdef CHECK_INPUT_PTS
-    uint64_t       last_input_pts; // check for monotonically increasing input PTS
-#endif
 
     mfxExtCodingOptionSPSPPS    *sps_pps;
 
@@ -590,10 +587,6 @@ int encqsvInit( hb_work_object_t * w, hb_job_t * job )
     pv->frames_in = 0;
     pv->frames_out = 0;
     pv->last_frame_dts = INT64_MIN;
-#ifdef CHECK_INPUT_PTS
-    pv->last_input_pts = (uint64_t)0;
-#endif
-
     pv->job = job;
     pv->config = w->config;
     av_qsv_context *qsv = job->qsv;
@@ -804,17 +797,28 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
                 work_surface = stage->out.p_surface;
             }
 #ifdef CHECK_INPUT_PTS
+            static int64_t  last_input_pts =  (int64_t)0;
+            static uint32_t last_frame_ord = (uint32_t)0;
+#if 0 // verbosity off
             hb_log("encQSVWork: input frame %d entering encoder with order %"PRIu32" and PTS %"PRIu64"",
                    pv->frames_in + 1,
-                   work_surface->Data.FrameOrder + 1,
+                   work_surface->Data.FrameOrder,
                    work_surface->Data.TimeStamp);
-            if (work_surface->Data.TimeStamp < pv->last_input_pts)
+#endif
+            if (last_input_pts > work_surface->Data.TimeStamp)
             {
-                hb_log("encQSVWork: input frame %d PTS %"PRIu64" < input frame %d PTS %"PRIu64"",
+                hb_log("encQSVWork: input frame %d PTS %"PRIu64" < input frame %d PTS %"PRIu64" (in->s.start %"PRId64")",
                        pv->frames_in + 1, work_surface->Data.TimeStamp,
-                       pv->frames_in,     pv->last_input_pts);
+                       pv->frames_in,     last_input_pts, in->s.start);
             }
-            pv->last_input_pts = work_surface->Data.TimeStamp;
+            if (last_frame_ord && last_frame_ord > work_surface->Data.FrameOrder)
+            {
+                hb_log("encQSVWork: input frame %d order %"PRIu32" < input frame %d order %"PRIu32"",
+                       pv->frames_in + 1, work_surface->Data.FrameOrder,
+                       pv->frames_in,     last_frame_ord, in->s.start);
+            }
+            last_input_pts = work_surface->Data.TimeStamp;
+            last_frame_ord = work_surface->Data.FrameOrder;
 #endif
         }
         else{
