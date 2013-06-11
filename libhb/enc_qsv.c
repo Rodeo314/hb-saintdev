@@ -90,6 +90,8 @@ hb_work_object_t hb_encqsv =
 };
 
 #define SPSPPS_SIZE     1024
+#define CHECK_INPUT_PTS // check input timestamps for errors
+//#define LOG_OUTPUT_FRAMETYPE // log output frame type(s)
 
 struct hb_work_private_s
 {
@@ -98,7 +100,7 @@ struct hb_work_private_s
     uint32_t       frames_in;
     uint32_t       frames_out;
     int64_t        last_frame_dts; // check for monotonically increasing DTS
-#if 1
+#ifdef CHECK_INPUT_PTS
     uint64_t       last_input_pts; // check for monotonically increasing input PTS
 #endif
 
@@ -588,7 +590,7 @@ int encqsvInit( hb_work_object_t * w, hb_job_t * job )
     pv->frames_in = 0;
     pv->frames_out = 0;
     pv->last_frame_dts = INT64_MIN;
-#if 1
+#ifdef CHECK_INPUT_PTS
     pv->last_input_pts = (uint64_t)0;
 #endif
 
@@ -801,16 +803,11 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
                 stage = av_qsv_get_last_stage( received_item );
                 work_surface = stage->out.p_surface;
             }
-#if 1
+#ifdef CHECK_INPUT_PTS
             hb_log("encQSVWork: input frame %d entering encoder with order %"PRIu32" and PTS %"PRIu64"",
                    pv->frames_in + 1,
                    work_surface->Data.FrameOrder + 1,
                    work_surface->Data.TimeStamp);
-            if (work_surface->Data.FrameOrder < pv->frames_in)
-            {
-                hb_log("encQSVWork: input frame %d has order %"PRIu32"",
-                       pv->frames_in + 1, work_surface->Data.FrameOrder + 1);
-            }
             if (work_surface->Data.TimeStamp < pv->last_input_pts)
             {
                 hb_log("encQSVWork: input frame %d PTS %"PRIu64" < input frame %d PTS %"PRIu64"",
@@ -949,7 +946,6 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
                 // renderOffset -> DTS
                 buf->s.start = buf->s.renderOffset = task->bs->TimeStamp;
                 buf->s.stop  = buf->s.start + duration;
-#if 0
                 if (hb_qsv_info->features & HB_QSV_FEATURE_DECODE_TIMESTAMPS)
                 {
                     buf->s.renderOffset = task->bs->DecodeTimeStamp;
@@ -972,9 +968,8 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
                     }
                     pv->last_frame_dts = buf->s.renderOffset;
                 }
-#endif
 
-#if 1
+#ifdef LOG_OUTPUT_FRAMETYPE
             char frame_types[16] = "";
             char *type = frame_types;
             if (task->bs->FrameType & MFX_FRAMETYPE_IDR)
@@ -1002,30 +997,8 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
                 type += sprintf(type, "%s", type > frame_types ? " " : "");
                 type += sprintf(type, "%s", "ref");
             }
-            hb_log("encQSVWork: output frame %d with DTS %"PRId64" and type %s",
-                   pv->frames_out + 1, buf->s.renderOffset, frame_types);
-            if (hb_qsv_info->features & HB_QSV_FEATURE_DECODE_TIMESTAMPS)
-            {
-                buf->s.renderOffset = task->bs->DecodeTimeStamp;
-                /*
-                 * PTS may decrease due to frame reordering.
-                 * But since we have to mux the output frames in decoding
-                 * order, DTS must always be >= the previous value.
-                 *
-                 * See:
-                 * ISO/IEC 14496-15:2004(E), Advanced Video Coding (AVC) file format
-                 *  - 5.3.9 Decoding time (DTS) and composition time (CTS)
-                 * ISO/IEC 14496-12:2008(E), ISO base media file format
-                 *  - 8.6.1.2 Decoding Time to Sample Box
-                 */
-                if (buf->s.renderOffset < pv->last_frame_dts)
-                {
-                    hb_log("encQSVWork: output frame %d DTS %"PRId64" < output frame %d DTS %"PRId64"",
-                           pv->frames_out + 1, buf->s.renderOffset,
-                           pv->frames_out,     pv->last_frame_dts);
-                }
-                pv->last_frame_dts = buf->s.renderOffset;
-            }
+            hb_log("encQSVWork: output frame %d with DTS %"PRId64" PTS %"PRId64" and type %s",
+                   pv->frames_out + 1, buf->s.renderOffset, buf->s.start, frame_types);
 #endif
 
 #if 0 // enable once out-of-order DTS issue is fixed
