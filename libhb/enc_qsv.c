@@ -90,7 +90,7 @@ hb_work_object_t hb_encqsv =
 };
 
 #define SPSPPS_SIZE     1024
-#define CHECK_INPUT_PTS // check input timestamps for errors
+//#define CHECK_INPUT_PTS // check input timestamps for errors
 //#define LOG_OUTPUT_FRAMETYPE // log output frame type(s)
 
 struct hb_work_private_s
@@ -953,6 +953,7 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
                 if (hb_qsv_info->features & HB_QSV_FEATURE_DECODE_TIMESTAMPS)
                 {
                     buf->s.renderOffset = task->bs->DecodeTimeStamp;
+#if 0
                     /*
                      * PTS may decrease due to frame reordering.
                      * But since we have to mux the output frames in decoding
@@ -970,6 +971,7 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
                                pv->frames_out + 1, buf->s.renderOffset,
                                pv->frames_out,     pv->last_frame_dts);
                     }
+#endif
                     pv->last_frame_dts = buf->s.renderOffset;
                 }
 
