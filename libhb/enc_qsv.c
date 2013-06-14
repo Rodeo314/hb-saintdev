@@ -795,9 +795,9 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
                 work_surface = stage->out.p_surface;
             }
 #if 1
-            fprintf(stderr,
-                    " input frame %6d with PTS %+10"PRId64" and order %"PRIu32"\n",
-                    pv->frames_in, (int64_t)work_surface->Data.TimeStamp,
+            fprintf(stderr, " input frame %6d with PTS %+10"PRId64"\n",
+                    pv->frames_in, (int64_t)work_surface->Data.TimeStamp);
+            fprintf(stderr, " >with order %6"PRIu32"\n",
                     work_surface->Data.FrameOrder);
 #endif
         }
