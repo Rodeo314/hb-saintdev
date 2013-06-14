@@ -90,8 +90,6 @@ hb_work_object_t hb_encqsv =
 };
 
 #define SPSPPS_SIZE     1024
-//#define CHECK_INPUT_PTS // check input timestamps for errors
-//#define LOG_OUTPUT_FRAMETYPE // log output frame type(s)
 
 struct hb_work_private_s
 {
@@ -796,29 +794,11 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
                 stage = av_qsv_get_last_stage( received_item );
                 work_surface = stage->out.p_surface;
             }
-#ifdef CHECK_INPUT_PTS
-            static int64_t  last_input_pts =  (int64_t)0;
-            static uint32_t last_frame_ord = (uint32_t)0;
-#if 0 // verbosity off
-            hb_log("encQSVWork: input frame %d entering encoder with order %"PRIu32" and PTS %"PRIu64"",
-                   pv->frames_in + 1,
-                   work_surface->Data.FrameOrder,
-                   work_surface->Data.TimeStamp);
-#endif
-            if (last_input_pts > work_surface->Data.TimeStamp)
-            {
-                hb_log("encQSVWork: input frame %d PTS %"PRIu64" < input frame %d PTS %"PRIu64" (in->s.start %"PRId64")",
-                       pv->frames_in + 1, work_surface->Data.TimeStamp,
-                       pv->frames_in,     last_input_pts, in->s.start);
-            }
-            if (last_frame_ord && last_frame_ord > work_surface->Data.FrameOrder)
-            {
-                hb_log("encQSVWork: input frame %d order %"PRIu32" < input frame %d order %"PRIu32"",
-                       pv->frames_in + 1, work_surface->Data.FrameOrder,
-                       pv->frames_in,     last_frame_ord, in->s.start);
-            }
-            last_input_pts = work_surface->Data.TimeStamp;
-            last_frame_ord = work_surface->Data.FrameOrder;
+#if 1
+            fprintf(stderr,
+                    " input frame %6d with PTS %+10"PRId64" and order %"PRIu32"\n",
+                    pv->frames_in, (int64_t)work_surface->Data.TimeStamp,
+                    work_surface->Data.FrameOrder);
 #endif
         }
         else{
@@ -953,7 +933,6 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
                 if (hb_qsv_info->features & HB_QSV_FEATURE_DECODE_TIMESTAMPS)
                 {
                     buf->s.renderOffset = task->bs->DecodeTimeStamp;
-#if 0
                     /*
                      * PTS may decrease due to frame reordering.
                      * But since we have to mux the output frames in decoding
@@ -968,14 +947,13 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
                     if (buf->s.renderOffset < pv->last_frame_dts)
                     {
                         hb_log("encQSVWork: frame %d DTS %"PRId64" < frame %d DTS %"PRId64"",
-                               pv->frames_out + 1, buf->s.renderOffset,
-                               pv->frames_out,     pv->last_frame_dts);
+                               pv->frames_out,     buf->s.renderOffset,
+                               pv->frames_out - 1, pv->last_frame_dts);
                     }
-#endif
                     pv->last_frame_dts = buf->s.renderOffset;
                 }
 
-#ifdef LOG_OUTPUT_FRAMETYPE
+#if 1
             char frame_types[16] = "";
             char *type = frame_types;
             if (task->bs->FrameType & MFX_FRAMETYPE_IDR)
@@ -1003,8 +981,9 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
                 type += sprintf(type, "%s", type > frame_types ? " " : "");
                 type += sprintf(type, "%s", "ref");
             }
-            hb_log("encQSVWork: output frame %d with DTS %"PRId64" PTS %"PRId64" and type %s",
-                   pv->frames_out + 1, buf->s.renderOffset, buf->s.start, frame_types);
+            fprintf(stderr,
+                    "output frame %6d with PTS %+10"PRId64" DTS %+10"PRId64" and type %s\n",
+                    pv->frames_out, buf->s.start, buf->s.renderOffset, frame_types);
 #endif
 
 #if 0 // enable once out-of-order DTS issue is fixed

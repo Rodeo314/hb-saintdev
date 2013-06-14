@@ -398,6 +398,18 @@ static hb_buffer_t *nal_encode( hb_work_object_t *w, x264_picture_t *pic_out,
         w->config->h264.init_delay = -pic_out->i_dts;
     }
 
+#if 1
+    static int     frames_out     = 0;         // XXX: only works from the CLI
+    static int64_t last_frame_dts = INT64_MIN; // XXX: only works from the CLI
+    if (buf->s.renderOffset < last_frame_dts)
+    {
+        hb_log("encx264Work: frame %d DTS %"PRId64" < frame %d DTS %"PRId64"",
+               frames_out,     buf->s.renderOffset,
+               frames_out - 1, last_frame_dts);
+    }
+    last_frame_dts = buf->s.renderOffset;
+#endif
+
     /* Encode all the NALs we were given into buf.
        NOTE: This code assumes one video frame per NAL (but there can
              be other stuff like SPS and/or PPS). If there are multiple
@@ -498,6 +510,34 @@ static hb_buffer_t *nal_encode( hb_work_object_t *w, x264_picture_t *pic_out,
         // no video - discard the buf
         hb_buffer_close( &buf );
     }
+#if 1
+    const char *frame_types;
+    switch (pic_out->i_type)
+    {
+        case X264_TYPE_IDR:
+            frame_types = "IDR I ref";
+            break;
+        case X264_TYPE_I:
+            frame_types = "I ref";
+            break;
+        case X264_TYPE_P:
+            frame_types = "P ref"; // easier comparison: QSV seems to flag all Ps as refs
+            break;
+        case X264_TYPE_BREF:
+            frame_types = "B ref";
+            break;
+        case X264_TYPE_B:
+            frame_types = "B";
+            break;
+        default:
+            frame_types = "unknown";
+            break;
+    }
+    fprintf(stderr,
+            "output frame %6d with PTS %+10"PRId64" DTS %+10"PRId64" and type %s\n",
+            frames_out, buf->s.start, buf->s.renderOffset, frame_types);
+    ++frames_out;
+#endif
     return buf;
 }
 
@@ -614,6 +654,11 @@ int encx264Work( hb_work_object_t * w, hb_buffer_t ** buf_in,
         *buf_in = NULL;
         return HB_WORK_DONE;
     }
+
+#if 1
+    fprintf(stderr, " input frame %6d with PTS %+10"PRId64"\n",
+            pv->frames_in, in->s.start);
+#endif
 
     // Not EOF - encode the packet & wrap it in a NAL
     ++pv->frames_in;

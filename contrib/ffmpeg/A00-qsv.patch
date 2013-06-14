@@ -1737,10 +1737,10 @@ index 0000000..5202537
 +    if (frame_length || current_size == 0) {
 +
 +        qsv_decode->bs.TimeStamp = avpkt->pts;
-+        av_log(avctx, AV_LOG_QUIET,
++        av_log(avctx, AV_LOG_DEBUG,
 +               " frame %d:  qsv_decode->bs.TimeStamp = avpkt->pts (%"PRIu64" = %"PRId64")\n",
 +               ++frame_num, qsv_decode->bs.TimeStamp,  avpkt->pts);
-+        av_log(avctx, AV_LOG_QUIET,
++        av_log(avctx, AV_LOG_DEBUG,
 +               " frame %d:  picture->pkt_pts %"PRId64" picture->pts %"PRId64"\n",
 +               frame_num+1, picture->pkt_pts,          picture->pts);
 +
@@ -1868,12 +1868,12 @@ index 0000000..5202537
 +            }
 +        }
 +
-+        av_log(avctx, AV_LOG_QUIET,
++        av_log(avctx, AV_LOG_DEBUG,
 +               " pict  %d: picture->pkt_pts %"PRId64" picture->pts %"PRId64"\n",
 +               pict_num+1, picture->pkt_pts,          picture->pts);
 +        picture->pkt_pts            = AV_NOPTS_VALUE;
 +        picture->pts                = avpkt->pts;
-+        av_log(avctx, AV_LOG_QUIET,
++        av_log(avctx, AV_LOG_DEBUG,
 +               " pict  %d: picture->pts = avpkt->pts (%"PRId64" = %"PRId64")\n",
 +               ++pict_num, picture->pts,  avpkt->pts);
 +
