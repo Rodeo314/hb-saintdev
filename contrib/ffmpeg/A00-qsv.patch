@@ -1233,10 +1233,10 @@ index 0000000..52378cf
 +#endif                          //AVCODEC_QSV_H
 diff --git a/libavcodec/qsv_h264.c b/libavcodec/qsv_h264.c
 new file mode 100644
-index 0000000..5202537
+index 0000000..b923fb5
 --- /dev/null
 +++ b/libavcodec/qsv_h264.c
-@@ -0,0 +1,973 @@
+@@ -0,0 +1,966 @@
 +/* ********************************************************************* *\
 +
 +Copyright (C) 2013 Intel Corporation.  All rights reserved.
@@ -1633,8 +1633,8 @@ index 0000000..5202537
 +static int qsv_decode_frame(AVCodecContext * avctx, void *data,
 +                            int *data_size, AVPacket * avpkt)
 +{
-+    static int frame_num = (int)0;
-+    static int  pict_num = (int)0;
++    static int src_frames = 0;
++    static int dst_frames = 0;
 +    mfxStatus sts = MFX_ERR_NONE;
 +    av_qsv_context *qsv = avctx->priv_data;
 +    av_qsv_space *qsv_decode;
@@ -1737,12 +1737,7 @@ index 0000000..5202537
 +    if (frame_length || current_size == 0) {
 +
 +        qsv_decode->bs.TimeStamp = avpkt->pts;
-+        av_log(avctx, AV_LOG_DEBUG,
-+               " frame %d:  qsv_decode->bs.TimeStamp = avpkt->pts (%"PRIu64" = %"PRId64")\n",
-+               ++frame_num, qsv_decode->bs.TimeStamp,  avpkt->pts);
-+        av_log(avctx, AV_LOG_DEBUG,
-+               " frame %d:  picture->pkt_pts %"PRId64" picture->pts %"PRId64"\n",
-+               frame_num+1, picture->pkt_pts,          picture->pts);
++        src_frames++;
 +
 +        //not a drain
 +        if ((current_size || qsv_decode->bs.DataLength))
@@ -1868,21 +1863,19 @@ index 0000000..5202537
 +            }
 +        }
 +
-+        av_log(avctx, AV_LOG_DEBUG,
-+               " pict  %d: picture->pkt_pts %"PRId64" picture->pts %"PRId64"\n",
-+               pict_num+1, picture->pkt_pts,          picture->pts);
-+        picture->pkt_pts            = AV_NOPTS_VALUE;
-+        picture->pts                = avpkt->pts;
-+        av_log(avctx, AV_LOG_DEBUG,
-+               " pict  %d: picture->pts = avpkt->pts (%"PRId64" = %"PRId64")\n",
-+               ++pict_num, picture->pts,  avpkt->pts);
++        picture->pkt_pts = AV_NOPTS_VALUE;
++        picture->pts     = new_stage->out.p_surface->Data.TimeStamp;
++        av_log(NULL, AV_LOG_QUIET,
++               "Frame %d out %"PRIu64", frame %d in %"PRId64"/%"PRId64"\n",
++               dst_frames++, new_stage->out.p_surface->Data.TimeStamp,
++               src_frames, avpkt->pts, avpkt->dts);
 +
-+        picture->repeat_pict        = (qsv_decode->m_mfxVideoParam.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_FIELD_REPEATED);
-+        picture->interlaced_frame   = !(qsv_decode->m_mfxVideoParam.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PROGRESSIVE);
-+        picture->top_field_first    = (qsv_decode->m_mfxVideoParam.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_FIELD_TFF);
-+
-+        // since we do not know it yet from MSDK, let's do just a simple way for now
-+        picture->key_frame          = (avctx->frame_number == 0) ? 1 : 0;
++        picture->repeat_pict      = !!(qsv_decode->m_mfxVideoParam.mfx.FrameInfo.PicStruct &
++                                       MFX_PICSTRUCT_FIELD_REPEATED);
++        picture->interlaced_frame =  !(qsv_decode->m_mfxVideoParam.mfx.FrameInfo.PicStruct &
++                                       MFX_PICSTRUCT_PROGRESSIVE);
++        picture->top_field_first  = !!(qsv_decode->m_mfxVideoParam.mfx.FrameInfo.PicStruct &
++                                       MFX_PICSTRUCT_FIELD_TFF);
 +
 +        if (qsv_decode->m_mfxVideoParam.IOPattern == MFX_IOPATTERN_OUT_SYSTEM_MEMORY) {
 +            picture->data[0]        = new_stage->out.p_surface->Data.Y;
