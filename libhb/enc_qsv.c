@@ -794,7 +794,7 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
                 stage = av_qsv_get_last_stage( received_item );
                 work_surface = stage->out.p_surface;
             }
-#if 1
+#if 0
             fprintf(stderr, " input frame %6d with PTS %+10"PRId64"\n",
                     pv->frames_in, (int64_t)work_surface->Data.TimeStamp);
             fprintf(stderr, " >with order %6"PRIu32"\n",
@@ -953,7 +953,7 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
                     pv->last_frame_dts = buf->s.renderOffset;
                 }
 
-#if 1
+#if 0
             char frame_types[16] = "";
             char *type = frame_types;
             if (task->bs->FrameType & MFX_FRAMETYPE_IDR)
