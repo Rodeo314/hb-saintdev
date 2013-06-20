@@ -685,7 +685,7 @@ int encqsvInit( hb_work_object_t * w, hb_job_t * job )
 
     pv->is_vpp_present = 0;
 
-    // set this correcttly so that we read or generate DTS when necessary
+    // if we don't set this correctly, we won't read/generate DTS when necessary
     pv->bfrm_delay = profile == PROFILE_BASELINE ? 0 : BFRM_DELAY_MAX;
 
     return 0;
@@ -850,7 +850,8 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
              * 1 -> ipts0 - ipts1, ipts1 - ipts1, ipts1, ipts2...
              * 2 -> ipts0 - ipts2, ipts1 - ipts2, ipts2 - ipts2, ipts1, ipts2...
              */
-            if (pv->bfrm_delay)
+            if (pv->bfrm_delay && !(hb_qsv_info->features &
+                                    HB_QSV_FEATURE_DECODE_TIMESTAMPS))
             {
                 if (pv->frames_in <= pv->bfrm_delay)
                 {
