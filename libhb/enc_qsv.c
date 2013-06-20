@@ -1054,11 +1054,14 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
                     }
                 }
 #if 1
-                // let's warn if we may instruct the decoder to decode frames too late
+                // XXX: for testing only
+                // let's warn if our DTS differs too much from the QSV one
                 // allow for a difference of 1 half-frame at 120 frames per second
-                if (buf->s.renderOffset > task->bs->DecodeTimeStamp + 375)
+                if (pv->bfrm_workaround &&
+                    (buf->s.renderOffset > task->bs->DecodeTimeStamp + 375 ||
+                     buf->s.renderOffset < task->bs->DecodeTimeStamp - 375))
                 {
-                    hb_log("encQSVWork: frame %d DTS %"PRId64" > QSV-recommended DTS %"PRId64"",
+                    hb_log("encQSVWork: frame %d DTS %"PRId64" != QSV-recommended DTS %"PRId64"",
                            pv->frames_out, buf->s.renderOffset, task->bs->DecodeTimeStamp);
                 }
 #endif
