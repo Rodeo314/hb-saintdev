@@ -102,6 +102,7 @@ struct hb_work_private_s
 #define BFRM_DELAY_MAX 2 // for B-pyramid
     // DTS generation (when MSDK < 1.6)
     int            bfrm_delay;
+    int            bfrm_workaround;
     int64_t        init_pts[BFRM_DELAY_MAX + 1];
     hb_list_t     *list_dts;
 
@@ -465,8 +466,10 @@ int qsv_enc_init( av_qsv_context* qsv, hb_work_private_t * pv ){
         }
     }
     // sanitize
-    pv->bfrm_delay = FFMAX(pv->bfrm_delay, 0);
-    pv->bfrm_delay = FFMIN(pv->bfrm_delay, BFRM_DELAY_MAX);
+    pv->bfrm_delay      = FFMAX(pv->bfrm_delay, 0);
+    pv->bfrm_delay      = FFMIN(pv->bfrm_delay, BFRM_DELAY_MAX);
+    pv->bfrm_workaround = pv->bfrm_delay && !(hb_qsv_info->features &
+                                              HB_QSV_FEATURE_DECODE_TIMESTAMPS);
 
     // width must be a multiple of 16
     // height must be a multiple of 16 in case of frame picture and a multiple of 32 in case of progressive
@@ -686,7 +689,9 @@ int encqsvInit( hb_work_object_t * w, hb_job_t * job )
     pv->is_vpp_present = 0;
 
     // if we don't set this correctly, we won't read/generate DTS when necessary
-    pv->bfrm_delay = profile == PROFILE_BASELINE ? 0 : BFRM_DELAY_MAX;
+    pv->bfrm_delay      = profile == PROFILE_BASELINE ? 0 : BFRM_DELAY_MAX;
+    pv->bfrm_workaround = pv->bfrm_delay && !(hb_qsv_info->features &
+                                              HB_QSV_FEATURE_DECODE_TIMESTAMPS);
 
     return 0;
 }
@@ -850,8 +855,7 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
              * 1 -> ipts0 - ipts1, ipts1 - ipts1, ipts1, ipts2...
              * 2 -> ipts0 - ipts2, ipts1 - ipts2, ipts2 - ipts2, ipts1, ipts2...
              */
-            if (pv->bfrm_delay && !(hb_qsv_info->features &
-                                    HB_QSV_FEATURE_DECODE_TIMESTAMPS))
+            if (pv->bfrm_delay && pv->bfrm_workaround)
             {
                 if (pv->frames_in <= pv->bfrm_delay)
                 {
@@ -1032,7 +1036,7 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
             buf->s.stop  = buf->s.start + duration;
             if (pv->bfrm_delay)
             {
-                if (hb_qsv_info->features & HB_QSV_FEATURE_DECODE_TIMESTAMPS)
+                if (!pv->bfrm_workaround)
                 {
                     buf->s.renderOffset = task->bs->DecodeTimeStamp;
                 }
