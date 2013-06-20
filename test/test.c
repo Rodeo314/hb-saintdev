@@ -4208,8 +4208,7 @@ static int ParseOptions( int argc, char ** argv )
                 if (hb_qsv_available())
                 {
                     /* XXX: for testing workarounds */
-                    hb_qsv_info->features     = 0;
-                    hb_qsv_info->cpu_platform = HB_CPU_PLATFORM_UNSPECIFIED;
+                    hb_qsv_info->features = 0;
                     if (hb_qsv_info->hardware_available)
                     {
                         hb_qsv_info->hardware_version.Major =
