@@ -984,6 +984,36 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
 
                 if(task->bs->FrameType & MFX_FRAMETYPE_REF ) buf->s.flags      = HB_FRAME_REF;
 
+#if 1
+            char frame_types[16] = "";
+            char *type = frame_types;
+            if (task->bs->FrameType & MFX_FRAMETYPE_IDR)
+            {
+                type += sprintf(type, "%s", type > frame_types ? " " : "");
+                type += sprintf(type, "%s", "IDR");
+            }
+            if (task->bs->FrameType & MFX_FRAMETYPE_I)
+            {
+                type += sprintf(type, "%s", type > frame_types ? " " : "");
+                type += sprintf(type, "%s", "I");
+            }
+            if (task->bs->FrameType & MFX_FRAMETYPE_P)
+            {
+                type += sprintf(type, "%s", type > frame_types ? " " : "");
+                type += sprintf(type, "%s", "P");
+            }
+            if (task->bs->FrameType & MFX_FRAMETYPE_B)
+            {
+                type += sprintf(type, "%s", type > frame_types ? " " : "");
+                type += sprintf(type, "%s", "B");
+            }
+            if (task->bs->FrameType & MFX_FRAMETYPE_REF)
+            {
+                type += sprintf(type, "%s", type > frame_types ? " " : "");
+                type += sprintf(type, "%s", "ref");
+            }
+#endif
+
                 parse_nalus(task->bs->Data + task->bs->DataOffset,task->bs->DataLength, buf, pv->frames_out);
 
                 if ( last_buf == NULL )
@@ -1019,6 +1049,15 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
                         buf->s.renderOffset = hb_qsv_pop_next_dts(pv->list_dts);
                     }
                 }
+#if 1
+                // let's warn if we may instruct the decoder to decode frames too late
+                // allow for a difference of 1 half-frame at 120 frames per second
+                if (buf->s.renderOffset > task->bs->DecodeTimeStamp + 375)
+                {
+                    hb_log("encQSVWork: frame %d DTS %"PRId64" > QSV-recommended DTS %"PRId64"",
+                           pv->frames_out, buf->s.renderOffset, task->bs->DecodeTimeStamp);
+                }
+#endif
             }
             /*
              * PTS may decrease due to frame reordering.
@@ -1040,37 +1079,16 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
             pv->last_frame_dts = buf->s.renderOffset;
 
 #if 0
-            char frame_types[16] = "";
-            char *type = frame_types;
-            if (task->bs->FrameType & MFX_FRAMETYPE_IDR)
-            {
-                type += sprintf(type, "%s", type > frame_types ? " " : "");
-                type += sprintf(type, "%s", "IDR");
-            }
-            if (task->bs->FrameType & MFX_FRAMETYPE_I)
-            {
-                type += sprintf(type, "%s", type > frame_types ? " " : "");
-                type += sprintf(type, "%s", "I");
-            }
-            if (task->bs->FrameType & MFX_FRAMETYPE_P)
-            {
-                type += sprintf(type, "%s", type > frame_types ? " " : "");
-                type += sprintf(type, "%s", "P");
-            }
-            if (task->bs->FrameType & MFX_FRAMETYPE_B)
-            {
-                type += sprintf(type, "%s", type > frame_types ? " " : "");
-                type += sprintf(type, "%s", "B");
-            }
-            if (task->bs->FrameType & MFX_FRAMETYPE_REF)
-            {
-                type += sprintf(type, "%s", type > frame_types ? " " : "");
-                type += sprintf(type, "%s", "ref");
-            }
             fprintf(stderr,
                     "output frame %6d with PTS %+10"PRId64" DTS %+10"PRId64" and type %s\n",
                     pv->frames_out, buf->s.start, buf->s.renderOffset, frame_types);
 #endif
+#if 1
+            fprintf(stderr,
+                    "output frame %6d with PTS %+10"PRId64" DTS %+10"PRId64" QSV-DTS %+10"PRId64" and type %s\n",
+                    pv->frames_out, buf->s.start, buf->s.renderOffset, task->bs->DecodeTimeStamp, frame_types);
+#endif
+            
 
             /*
              * In the MP4 container, DT(0) = STTS(0) = 0.
