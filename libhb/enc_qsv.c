@@ -464,6 +464,12 @@ int qsv_enc_init( av_qsv_context* qsv, hb_work_private_t * pv ){
             pv->bfrm_delay = FFMIN(pv->bfrm_delay,
                                    qsv_encode->m_mfxVideoParam.mfx.GopPicSize - 2);
         }
+        if (qsv->impl                 != MFX_IMPL_SOFTWARE &&
+            hb_qsv_info->cpu_platform != HB_CPU_PLATFORM_INTEL_HSW)
+        {
+            // older hardware versions don't have B-pyramid
+            pv->bfrm_delay = FFMIN(pv->bfrm_delay, 1);
+        }
     }
     // sanitize
     pv->bfrm_delay      = FFMAX(pv->bfrm_delay, 0);
