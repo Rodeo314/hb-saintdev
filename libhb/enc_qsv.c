@@ -99,6 +99,12 @@ struct hb_work_private_s
     uint32_t       frames_out;
     int64_t        last_frame_dts; // check for monotonically increasing DTS
 
+#define BFRM_DELAY_MAX 2 // for B-pyramid
+    // DTS generation (when MSDK < 1.6)
+    int            bfrm_delay;
+    int64_t        init_pts[BFRM_DELAY_MAX + 1];
+    hb_list_t     *list_dts;
+
     mfxExtCodingOptionSPSPPS    *sps_pps;
 
     int codec_profile;
@@ -127,6 +133,35 @@ struct hb_work_private_s
 };
 
 extern char* get_codec_id(hb_work_private_t *pv);
+
+// DTS generation (when MSDK < 1.6)
+static void hb_qsv_add_new_dts(hb_list_t *list, int64_t new_dts)
+{
+    if (list != NULL)
+    {
+        int64_t *item = malloc(sizeof(int64_t));
+        if (item != NULL)
+        {
+            *item = new_dts;
+            hb_list_add(list, item);
+        }
+    }
+}
+static int64_t hb_qsv_pop_next_dts(hb_list_t *list)
+{
+    int64_t next_dts = INT64_MIN;
+    if (list != NULL && hb_list_count(list) > 0)
+    {
+        int64_t *item = hb_list_item(list, 0);
+        if (item != NULL)
+        {
+            next_dts = *item;
+            hb_list_rem(list, item);
+            free(item);
+        }
+    }
+    return next_dts;
+}
 
 int qsv_enc_init( av_qsv_context* qsv, hb_work_private_t * pv ){
     mfxStatus sts;
@@ -415,6 +450,24 @@ int qsv_enc_init( av_qsv_context* qsv, hb_work_private_t * pv ){
        qsv_encode->m_mfxVideoParam.mfx.GopPicSize,
        qsv_encode->m_mfxVideoParam.mfx.NumRefFrame);
 
+    if (pv->bfrm_delay)
+    {
+        // check whether B-frames are actually used
+        if (qsv_encode->m_mfxVideoParam.mfx.GopRefDist > 0)
+        {
+            pv->bfrm_delay = FFMIN(pv->bfrm_delay,
+                                   qsv_encode->m_mfxVideoParam.mfx.GopRefDist - 1);
+        }
+        if (qsv_encode->m_mfxVideoParam.mfx.GopPicSize > 0)
+        {
+            pv->bfrm_delay = FFMIN(pv->bfrm_delay,
+                                   qsv_encode->m_mfxVideoParam.mfx.GopPicSize - 2);
+        }
+    }
+    // sanitize
+    pv->bfrm_delay = FFMAX(pv->bfrm_delay, 0);
+    pv->bfrm_delay = FFMIN(pv->bfrm_delay, BFRM_DELAY_MAX);
+
     // width must be a multiple of 16
     // height must be a multiple of 16 in case of frame picture and a multiple of 32 in case of progressive
     qsv_encode->m_mfxVideoParam.mfx.FrameInfo.Width  =  AV_QSV_ALIGN16(qsv_encode->m_mfxVideoParam.mfx.FrameInfo.CropW);
@@ -590,6 +643,9 @@ int encqsvInit( hb_work_object_t * w, hb_job_t * job )
     av_qsv_context *qsv = job->qsv;
     av_qsv_space* qsv_encode = 0;
 
+    // DTS generation (when MSDK < 1.6)
+    pv->list_dts = hb_list_init();
+
     pv->codec_level = MFX_LEVEL_AVC_3;
     if(job->h264_level){
         int i = 0;
@@ -629,26 +685,8 @@ int encqsvInit( hb_work_object_t * w, hb_job_t * job )
 
     pv->is_vpp_present = 0;
 
-    // FIXME: please let this be temporary
-    // note: MKV only has PTS so it's unaffected
-    if ((job->mux & HB_MUX_MASK_MP4)  &&
-        (profile != PROFILE_BASELINE) &&
-        (hb_qsv_info->features & HB_QSV_FEATURE_DECODE_TIMESTAMPS) == 0)
-    {
-        if (hb_qsv_info->cpu_platform == HB_CPU_PLATFORM_INTEL_SNB)
-        {
-            // hardware is too old, updating the driver won't help
-            hb_error("encqsvInit: MediaSDK < 1.6, B-frames in MP4 container not supported;"
-                     " please try newer hardware, use the MKV container or Baseline profile");
-        }
-        else
-        {
-            hb_error("encqsvInit: MediaSDK < 1.6, B-frames in MP4 container not supported;"
-                     " please update your driver, use the MKV container or Baseline profile");
-        }
-        *job->die = 1;
-        return -1;
-    }
+    // set this correcttly so that we read or generate DTS when necessary
+    pv->bfrm_delay = profile == PROFILE_BASELINE ? 0 : BFRM_DELAY_MAX;
 
     return 0;
 }
@@ -732,6 +770,14 @@ void encqsvClose( hb_work_object_t * w )
         av_freep(&pv->sps_pps);
     }
 
+    while (pv->list_dts != NULL && hb_list_count(pv->list_dts) > 0)
+    {
+        int64_t *item = hb_list_item(pv->list_dts, 0);
+        hb_list_rem(pv->list_dts, item);
+        free(item);
+    }
+    hb_list_close(&pv->list_dts);
+
     free( pv );
     w->private_data = NULL;
 }
@@ -794,6 +840,29 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
                 stage = av_qsv_get_last_stage( received_item );
                 work_surface = stage->out.p_surface;
             }
+
+            /*
+             * Generate output DTS based on input PTS.
+             *
+             * Depends on the B-frame delay:
+             *
+             * 0 -> ipts0, ipts1, ipts2...
+             * 1 -> ipts0 - ipts1, ipts1 - ipts1, ipts1, ipts2...
+             * 2 -> ipts0 - ipts2, ipts1 - ipts2, ipts2 - ipts2, ipts1, ipts2...
+             */
+            if (pv->bfrm_delay)
+            {
+                if (pv->frames_in <= pv->bfrm_delay)
+                {
+                    pv->init_pts[pv->frames_in] = work_surface->Data.TimeStamp;
+                }
+                if (pv->frames_in)
+                {
+                    hb_qsv_add_new_dts(pv->list_dts,
+                                       work_surface->Data.TimeStamp);
+                }
+            }
+
 #if 0
             fprintf(stderr, " input frame %6d with PTS %+10"PRId64"\n",
                     pv->frames_in, (int64_t)work_surface->Data.TimeStamp);
@@ -922,36 +991,52 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
                     last_buf->next = buf;
                 last_buf = buf;
 
-                // simple for now but check on TimeStampCalc from MSDK
-                int64_t duration  = ((double)qsv_encode->m_mfxVideoParam.mfx.FrameInfo.FrameRateExtD /
-                                     (double)qsv_encode->m_mfxVideoParam.mfx.FrameInfo.FrameRateExtN) * 90000.;
+            // simple for now but check on TimeStampCalc from MSDK
+            int64_t duration  = ((double)qsv_encode->m_mfxVideoParam.mfx.FrameInfo.FrameRateExtD /
+                                 (double)qsv_encode->m_mfxVideoParam.mfx.FrameInfo.FrameRateExtN) * 90000.;
 
-                // start        -> PTS
-                // renderOffset -> DTS
-                buf->s.start = buf->s.renderOffset = task->bs->TimeStamp;
-                buf->s.stop  = buf->s.start + duration;
+            // start        -> PTS
+            // renderOffset -> DTS
+            buf->s.start = buf->s.renderOffset = task->bs->TimeStamp;
+            buf->s.stop  = buf->s.start + duration;
+            if (pv->bfrm_delay)
+            {
                 if (hb_qsv_info->features & HB_QSV_FEATURE_DECODE_TIMESTAMPS)
                 {
                     buf->s.renderOffset = task->bs->DecodeTimeStamp;
-                    /*
-                     * PTS may decrease due to frame reordering.
-                     * But since we have to mux the output frames in decoding
-                     * order, DTS must always be >= the previous value.
-                     *
-                     * See:
-                     * ISO/IEC 14496-15:2004(E), Advanced Video Coding (AVC) file format
-                     *  - 5.3.9 Decoding time (DTS) and composition time (CTS)
-                     * ISO/IEC 14496-12:2008(E), ISO base media file format
-                     *  - 8.6.1.2 Decoding Time to Sample Box
-                     */
-                    if (buf->s.renderOffset < pv->last_frame_dts)
-                    {
-                        hb_log("encQSVWork: frame %d DTS %"PRId64" < frame %d DTS %"PRId64"",
-                               pv->frames_out,     buf->s.renderOffset,
-                               pv->frames_out - 1, pv->last_frame_dts);
-                    }
-                    pv->last_frame_dts = buf->s.renderOffset;
                 }
+                else
+                {
+                    // MSDK API < 1.6, so generate our own DTS
+                    if (pv->frames_out <= pv->bfrm_delay)
+                    {
+                        buf->s.renderOffset = (pv->init_pts[pv->frames_out] -
+                                               pv->init_pts[pv->bfrm_delay]);
+                    }
+                    else
+                    {
+                        buf->s.renderOffset = hb_qsv_pop_next_dts(pv->list_dts);
+                    }
+                }
+            }
+            /*
+             * PTS may decrease due to frame reordering.
+             * But since we have to mux the output frames in decoding
+             * order, DTS must always be >= the previous value.
+             *
+             * See:
+             * ISO/IEC 14496-15:2004(E), Advanced Video Coding (AVC) file format
+             *  - 5.3.9 Decoding time (DTS) and composition time (CTS)
+             * ISO/IEC 14496-12:2008(E), ISO base media file format
+             *  - 8.6.1.2 Decoding Time to Sample Box
+             */
+            if (buf->s.renderOffset < pv->last_frame_dts)
+            {
+                hb_log("encQSVWork: frame %d DTS %"PRId64" < frame %d DTS %"PRId64"",
+                       pv->frames_out,     buf->s.renderOffset,
+                       pv->frames_out - 1, pv->last_frame_dts);
+            }
+            pv->last_frame_dts = buf->s.renderOffset;
 
 #if 0
             char frame_types[16] = "";
@@ -986,27 +1071,25 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
                     pv->frames_out, buf->s.start, buf->s.renderOffset, frame_types);
 #endif
 
-#if 0 // enable once out-of-order DTS issue is fixed
-                /*
-                 * In the MP4 container, DT(0) = STTS(0) = 0.
-                 *
-                 * Which gives us:
-                 * CT(0) = CTTS(0) + STTS(0) = CTTS(0) = PTS(0) - DTS(0)
-                 * When DTS(0) < PTS(0), we then have:
-                 * CT(0) > 0 for video, but not audio (breaks A/V sync).
-                 *
-                 * This is typically solved by writing an edit list shifting
-                 * video samples by the initial delay, PTS(0) - DTS(0).
-                 *
-                 * See:
-                 * ISO/IEC 14496-12:2008(E), ISO base media file format
-                 *  - 8.6.1.2 Decoding Time to Sample Box
-                 */
-                if (!w->config->h264.init_delay && buf->s.renderOffset < 0)
-                {
-                     w->config->h264.init_delay = -buf->s.renderOffset;
-                }
-#endif
+            /*
+             * In the MP4 container, DT(0) = STTS(0) = 0.
+             *
+             * Which gives us:
+             * CT(0) = CTTS(0) + STTS(0) = CTTS(0) = PTS(0) - DTS(0)
+             * When DTS(0) < PTS(0), we then have:
+             * CT(0) > 0 for video, but not audio (breaks A/V sync).
+             *
+             * This is typically solved by writing an edit list shifting
+             * video samples by the initial delay, PTS(0) - DTS(0).
+             *
+             * See:
+             * ISO/IEC 14496-12:2008(E), ISO base media file format
+             *  - 8.6.1.2 Decoding Time to Sample Box
+             */
+            if (w->config->h264.init_delay == 0 && buf->s.renderOffset < 0)
+            {
+                w->config->h264.init_delay = -buf->s.renderOffset;
+            }
 
                 if(pv->qsv_config.gop_ref_dist > 1)
                     pv->qsv_config.gop_ref_dist--;
