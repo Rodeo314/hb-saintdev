@@ -850,6 +850,7 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
                 received_item = in->qsv_details.qsv_atom;
                 stage = av_qsv_get_last_stage( received_item );
                 work_surface = stage->out.p_surface;
+                work_surface->Data.TimeStamp = in->s.start;
             }
 
             /*

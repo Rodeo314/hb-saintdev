@@ -107,8 +107,51 @@ struct hb_work_private_s
     hb_audio_resample_t *resample;
 #ifdef USE_QSV
     av_qsv_config   qsv_config;
+    hb_list_t      *qsv_list_pts;
+    int             qsv_decode;
 #endif
 };
+
+#ifdef USE_QSV
+// PTS preservation
+static void hb_qsv_add_new_pts(hb_list_t *list, int64_t new_pts)
+{
+    int index;
+    int64_t *cur_item, *new_item;
+    if (list != NULL)
+    {
+        int64_t *new_item = malloc(sizeof(int64_t));
+        if (new_item != NULL)
+        {
+            *new_item = new_pts;
+            for (index = 0; index < hb_list_count(list); index++)
+            {
+                cur_item = hb_list_item(list, index);
+                if (cur_item != NULL && *cur_item > *new_item)
+                {
+                    break;
+                }
+            }
+            hb_list_insert(list, index, new_item);
+        }
+    }
+}
+static int64_t hb_qsv_pop_next_pts(hb_list_t *list)
+{
+    int64_t next_pts = AV_NOPTS_VALUE;
+    if (list != NULL && hb_list_count(list) > 0)
+    {
+        int64_t *item = hb_list_item(list, 0);
+        if (item != NULL)
+        {
+            next_pts = *item;
+            hb_list_rem(list, item);
+            free(item);
+        }
+    }
+    return next_pts;
+}
+#endif
 
 static void decodeAudio( hb_audio_t * audio, hb_work_private_t *pv, uint8_t *data, int size, int64_t pts );
 static hb_buffer_t *link_buf_list( hb_work_private_t *pv );
@@ -305,6 +348,18 @@ static void closePrivData( hb_work_private_t ** ppv )
         {
             hb_list_empty( &pv->list );
         }
+#ifdef USE_QSV
+        if (pv->qsv_decode && pv->qsv_list_pts != NULL)
+        {
+            while (hb_list_count(pv->qsv_list_pts) > 0)
+            {
+                int64_t *item = hb_list_item(pv->qsv_list_pts, 0);
+                hb_list_rem(pv->qsv_list_pts, item);
+                free(item);
+            }
+            hb_list_close(&pv->qsv_list_pts);
+        }
+#endif
         hb_audio_resample_free(pv->resample);
         free( pv );
     }
@@ -827,12 +882,36 @@ static int decodeFrame( hb_work_object_t *w, uint8_t *data, int size, int sequen
             pv->qsv_config.impl_requested         = MFX_IMPL_AUTO | MFX_IMPL_VIA_ANY; // practically means : Hardware acceleration via any supported OS supported OS infrastructure
             qsv_from_first_frame = 1;
         }
+    if (pv->qsv_decode && data != NULL)
+    {
+        hb_qsv_add_new_pts(pv->qsv_list_pts,
+                           avp.pts != AV_NOPTS_VALUE ? avp.pts : pv->pts_next);
+        #if 0
+        static int src_frames = 0;
+        fprintf(stderr,
+                "Decoding frame %6d with PTS %+10"PRId64" (guessed %+10lf)\n",
+                src_frames++, avp.pts, pv->pts_next);
+        #endif
+    }
 #endif
 
     if ( avcodec_decode_video2( pv->context, &frame, &got_picture, &avp ) < 0 )
     {
         ++pv->decode_errors;
     }
+
+#ifdef USE_QSV
+    if (pv->qsv_decode && got_picture)
+    {
+        frame.pkt_pts = hb_qsv_pop_next_pts(pv->qsv_list_pts);
+        #if 0
+        static int dst_frames = 0;
+        fprintf(stderr,
+                "Decoded frame %6d with PTS %+10"PRId64" (guessed %+10lf)\n",
+                dst_frames++, frame.pkt_pts, pv->pts_next);
+        #endif
+    }
+#endif
 
 #ifdef USE_QSV
     if( qsv_from_first_frame &&
@@ -1113,7 +1192,9 @@ static int decavcodecvInit( hb_work_object_t * w, hb_job_t * job )
         if (job != NULL && job->vcodec == HB_VCODEC_QSV_H264 &&
             w->codec_param == AV_CODEC_ID_H264)
         {
-            codec = avcodec_find_decoder_by_name("h264_qsv");
+            pv->qsv_decode   = 1;
+            pv->qsv_list_pts = hb_list_init();
+            codec            = avcodec_find_decoder_by_name("h264_qsv");
             // parse QSV options before decoding
             // FIXME: why do we need this here?
             // FIXME: job->advanced_opts should not be used for decoder options
