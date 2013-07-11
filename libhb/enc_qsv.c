@@ -437,6 +437,86 @@ int qsv_enc_init( av_qsv_context* qsv, hb_work_private_t * pv ){
     else
         hb_log("qsv: RateControlMethod:%s TargetKbps:%d",rc_method , qsv_encode->m_mfxVideoParam.mfx.TargetKbps );
 
+#if 1
+    const char *color = NULL;
+    int         prfid = -1;
+
+    // Intel Quick Sync Video Technology on Intel Iris Graphics
+    // and Intel HD Graphics family - Flexible Transcode Performance and Quality
+    // Table 1. Evolution of Low-level Target Usage Definition.
+    switch (hb_qsv_info->cpu_platform)
+    {
+        case HB_CPU_PLATFORM_INTEL_HSW:
+        {
+            switch (qsv_encode->m_mfxVideoParam.mfx.TargetUsage)
+            {
+                case 1: // best quality?
+                    color = "extremely light brown";
+                    prfid = 1;
+                    break;
+                case 2:
+                    color = "very light brown";
+                    prfid = 2;
+                    break;
+                case 3:
+                    color = "light brown";
+                    prfid = 3;
+                    break;
+                case 4: // balanced?
+                    color = "medium brown";
+                    prfid = 4;
+                    break;
+                case 5:
+                    color = "dark brown";
+                    prfid = 5;
+                    break;
+                case 6:
+                    color = "dark blue";
+                    prfid = 6;
+                    break;
+                case 7: // best speed?
+                    color = "medium blue";
+                    prfid = 7;
+                    break;
+                default:
+                    break;
+            }
+            break;
+        }
+
+        case HB_CPU_PLATFORM_INTEL_SNB:
+        case HB_CPU_PLATFORM_INTEL_IVB:
+        {
+            switch (qsv_encode->m_mfxVideoParam.mfx.TargetUsage)
+            {
+                case 1:
+                case 2:
+                case 3:
+                case 4: // best quality?
+                    color = "dark blue";
+                    prfid = 6;
+                    break;
+                case 5:
+                case 6: // balanced?
+                    color = "medium blue";
+                    prfid = 7;
+                    break;
+                case 7: // best speed?
+                    color = "light blue";
+                    prfid = 8;
+                    break;
+                default:
+                    break;
+            }
+            break;
+        }
+
+        default:
+            break;
+    }
+    hb_log("qsv: performance: color is %s, compression is %d", color, prfid);
+#endif
+
     hb_log("qsv: TargetUsage:%d AsyncDepth:%d", qsv_encode->m_mfxVideoParam.mfx.TargetUsage,qsv_encode->m_mfxVideoParam.AsyncDepth);
     qsv_encode->m_mfxVideoParam.mfx.FrameInfo.FrameRateExtN    = job->vrate;
     qsv_encode->m_mfxVideoParam.mfx.FrameInfo.FrameRateExtD    = job->vrate_base;
