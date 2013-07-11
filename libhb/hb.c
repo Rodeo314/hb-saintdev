@@ -479,7 +479,15 @@ static int hb_qsv_info_init()
         }
         if (hb_qsv_info->cpu_platform == HB_CPU_PLATFORM_INTEL_HSW)
         {
-            hb_qsv_info->capabilities |= HB_QSV_CAP_BPYRAMID;
+            if (HB_QSV_MIN_HARDWARE(1, 6)) // redundant but helps with alignment
+            {
+                hb_qsv_info->capabilities |= HB_QSV_CAP_BPYRAMID;
+            }
+            if (HB_QSV_MIN_HARDWARE(1, 7))
+            {
+                hb_qsv_info->capabilities |= HB_QSV_CAP_LA_RATEC;
+                hb_qsv_info->capabilities |= HB_QSV_CAP_TRELLISQ;
+            }
         }
     }
     else
