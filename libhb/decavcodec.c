@@ -108,11 +108,14 @@ struct hb_work_private_s
 #ifdef USE_QSV
     av_qsv_config   qsv_config;
     int             qsv_decode;
+#define USE_QSV_PTS_WORKAROUND // work around out-of-order output timestamps
+#ifdef  USE_QSV_PTS_WORKAROUND
     hb_list_t      *qsv_pts_list;
+#endif
 #endif
 };
 
-#ifdef USE_QSV
+#ifdef USE_QSV_PTS_WORKAROUND
 // save/restore PTS if the decoder may not attach the right PTS to the frame
 static void hb_av_add_new_pts(hb_list_t *list, int64_t new_pts)
 {
@@ -350,7 +353,7 @@ static void closePrivData( hb_work_private_t ** ppv )
             hb_list_empty( &pv->list );
         }
         hb_audio_resample_free(pv->resample);
-#ifdef USE_QSV
+#if defined(USE_QSV) && defined(USE_QSV_PTS_WORKAROUND)
         if (pv->qsv_decode && pv->qsv_pts_list != NULL)
 
         {
@@ -884,6 +887,8 @@ static int decodeFrame( hb_work_object_t *w, uint8_t *data, int size, int sequen
             pv->qsv_config.impl_requested         = MFX_IMPL_AUTO_ANY|MFX_IMPL_VIA_ANY;
             qsv_from_first_frame = 1;
         }
+#endif
+#if defined(USE_QSV) && defined(USE_QSV_PTS_WORKAROUND)
     /*
      * The MediaSDK decoder will return decoded frames in the correct order,
      * but *sometimes* with the incorrect timestamp assigned to them.
@@ -907,6 +912,8 @@ static int decodeFrame( hb_work_object_t *w, uint8_t *data, int size, int sequen
         pv->job && pv->video_codec_opened > 0 && pv->job->vcodec == HB_VCODEC_QSV_H264 && w->codec_param == AV_CODEC_ID_H264 ){
         pv->job->qsv = pv->context->priv_data;
     }
+#endif
+#if defined(USE_QSV) && defined(USE_QSV_PTS_WORKAROUND)
     if (pv->qsv_decode && got_picture)
     {
         // we got a decoded frame, restore the lowest available PTS
@@ -1186,8 +1193,10 @@ static int decavcodecvInit( hb_work_object_t * w, hb_job_t * job )
         if (job != NULL && job->vcodec == HB_VCODEC_QSV_H264 &&
             w->codec_param == AV_CODEC_ID_H264)
         {
-            pv->qsv_decode   = 1;
+#ifdef USE_QSV_PTS_WORKAROUND
             pv->qsv_pts_list = hb_list_init();
+#endif
+            pv->qsv_decode = 1;
             codec = avcodec_find_decoder_by_name("h264_qsv");
             // parse QSV options before decoding
             // FIXME: why do we need this here?
@@ -1260,8 +1269,10 @@ static int decavcodecvInit( hb_work_object_t * w, hb_job_t * job )
         if (job != NULL && job->vcodec == HB_VCODEC_QSV_H264 &&
             w->codec_param == AV_CODEC_ID_H264)
         {
-            pv->qsv_decode   = 1;
+#ifdef USE_QSV_PTS_WORKAROUND
             pv->qsv_pts_list = hb_list_init();
+#endif
+            pv->qsv_decode = 1;
             codec = avcodec_find_decoder_by_name("h264_qsv");
         }
         else
@@ -1416,8 +1427,10 @@ static int decavcodecvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
         if (pv->job != NULL && pv->job->vcodec == HB_VCODEC_QSV_H264 &&
             w->codec_param == AV_CODEC_ID_H264)
         {
-            pv->qsv_decode   = 1;
+#ifdef USE_QSV_PTS_WORKAROUND
             pv->qsv_pts_list = hb_list_init();
+#endif
+            pv->qsv_decode = 1;
             codec = avcodec_find_decoder_by_name( "h264_qsv" );
         }
         else
