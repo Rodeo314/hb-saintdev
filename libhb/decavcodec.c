@@ -820,7 +820,7 @@ static int decodeFrame( hb_work_object_t *w, uint8_t *data, int size, int sequen
             pv->job->vcodec == HB_VCODEC_QSV_H264 && pv->job->title->video_codec_param == AV_CODEC_ID_H264 ){
             pv->context->hwaccel_context          = &pv->qsv_config;
             pv->qsv_config.io_pattern             = MFX_IOPATTERN_OUT_OPAQUE_MEMORY;
-            if (hb_qsv_info->capabilities & HB_QSV_CAP_CODEC_LOOKAHEAD)
+            if (hb_qsv_info->capabilities & HB_QSV_CAP_OPTION2_LOOKAHEAD)
                 pv->qsv_config.additional_buffers     = 160; // LA might need more surfaces
             else
             pv->qsv_config.additional_buffers     = 64; // FIFO_LARGE for now
@@ -1159,7 +1159,7 @@ static int decavcodecvInit( hb_work_object_t * w, hb_job_t * job )
         if(job && job->vcodec == HB_VCODEC_QSV_H264 ){
             pv->context->hwaccel_context          = &pv->qsv_config;
             pv->qsv_config.io_pattern             = MFX_IOPATTERN_OUT_OPAQUE_MEMORY;
-            if (hb_qsv_info->capabilities & HB_QSV_CAP_CODEC_LOOKAHEAD)
+            if (hb_qsv_info->capabilities & HB_QSV_CAP_OPTION2_LOOKAHEAD)
                 pv->qsv_config.additional_buffers     = 160;
             else
             pv->qsv_config.additional_buffers     = 64;
@@ -1207,7 +1207,7 @@ static int decavcodecvInit( hb_work_object_t * w, hb_job_t * job )
         if(job && job->vcodec == HB_VCODEC_QSV_H264 ){
             pv->context->hwaccel_context              = &pv->qsv_config;
             pv->qsv_config.io_pattern             = MFX_IOPATTERN_OUT_OPAQUE_MEMORY;
-            if (hb_qsv_info->capabilities & HB_QSV_CAP_CODEC_LOOKAHEAD)
+            if (hb_qsv_info->capabilities & HB_QSV_CAP_OPTION2_LOOKAHEAD)
                 pv->qsv_config.additional_buffers     = 160;
             else
             pv->qsv_config.additional_buffers     = 64;

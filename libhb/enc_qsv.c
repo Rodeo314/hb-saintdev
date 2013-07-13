@@ -401,7 +401,7 @@ int qsv_enc_init( av_qsv_context* qsv, hb_work_private_t * pv ){
         hb_error("wrong parameters setting");
     }
 
-    if (hb_qsv_info->capabilities & HB_QSV_CAP_CODEC_LOOKAHEAD)
+    if (hb_qsv_info->capabilities & HB_QSV_CAP_OPTION2_LOOKAHEAD)
     {
         int use_la = 0;
 
@@ -427,7 +427,7 @@ int qsv_enc_init( av_qsv_context* qsv, hb_work_private_t * pv ){
     }
 
     // version-specific encoder options
-    if (hb_qsv_info->capabilities & HB_QSV_CAP_CODEC_OPTIONS_2)
+    if (hb_qsv_info->capabilities & HB_QSV_CAP_OPTION2_BRC)
     {
         if ((entry = hb_dict_get(qsv_opts_dict, QSV_NAME_mbbrc)) != NULL && entry->value != NULL)
         {
@@ -445,7 +445,7 @@ int qsv_enc_init( av_qsv_context* qsv, hb_work_private_t * pv ){
     }
 
 
-    if (hb_qsv_info->capabilities & HB_QSV_CAP_CODEC_LOOKAHEAD)
+    if (hb_qsv_info->capabilities & HB_QSV_CAP_OPTION2_LOOKAHEAD)
         if ((entry = hb_dict_get(qsv_opts_dict, QSV_NAME_lookaheaddepth)) != NULL && entry->value != NULL)
             pv->la_depth = atoi(entry->value);
         else
@@ -687,7 +687,7 @@ int qsv_enc_init( av_qsv_context* qsv, hb_work_private_t * pv ){
     pv->bfrm_delay = FFMAX(pv->bfrm_delay, 0);
     // check whether we need to generate DTS ourselves (MSDK API < 1.6 or VFR)
     pv->bfrm_workaround = job->cfr != 1 || !(hb_qsv_info->capabilities &
-                                             HB_QSV_CAP_MSDK_1_6);
+                                             HB_QSV_CAP_BITSTREAM_DTS);
     if (pv->bfrm_delay && pv->bfrm_workaround)
     {
         pv->bfrm_workaround = 1;
@@ -1144,9 +1144,9 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
                 else
                 {
                     // MSDK API < 1.6 or VFR, so generate our own DTS
-                    if ((pv->frames_out == 0)                             &&
-                        (hb_qsv_info->capabilities & HB_QSV_CAP_MSDK_1_6) &&
-                        (hb_qsv_info->capabilities & HB_QSV_CAP_BPYRAMID))
+                    if ((pv->frames_out == 0)                                  &&
+                        (hb_qsv_info->capabilities & HB_QSV_CAP_BITSTREAM_DTS) &&
+                        (hb_qsv_info->capabilities & HB_QSV_CAP_H264_BPYRAMID))
                     {
                         // with B-pyramid, the delay may be more than 1 frame,
                         // so compute the actual delay based on the initial DTS

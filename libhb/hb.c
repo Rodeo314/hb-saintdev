@@ -472,33 +472,30 @@ static int hb_qsv_info_init()
     // we only use software as a fallback, so check hardware first
     if (hb_qsv_info->hardware_available)
     {
+        if (HB_QSV_MIN_HARDWARE(1, 6))
+        {
+            hb_qsv_info->capabilities |= HB_QSV_CAP_OPTION2_BRC;
+            hb_qsv_info->capabilities |= HB_QSV_CAP_BITSTREAM_DTS;
+        }
         if (HB_QSV_MIN_HARDWARE(1, 7))
         {
             if (hb_qsv_info->cpu_platform == HB_CPU_PLATFORM_INTEL_HSW)
             {
-                hb_qsv_info->capabilities |= HB_QSV_CAP_CODEC_LOOKAHEAD;
+                hb_qsv_info->capabilities |= HB_QSV_CAP_OPTION2_LOOKAHEAD;
             }
         }
-        if (HB_QSV_MIN_HARDWARE(1, 6))
-        {
-            hb_qsv_info->capabilities |= HB_QSV_CAP_DECODE_TIMESTAMPS;
-            hb_qsv_info->capabilities |= HB_QSV_CAP_CODEC_OPTIONS_2;
-            hb_qsv_info->capabilities |= HB_QSV_CAP_MSDK_1_6;
-        }
-
         if (hb_qsv_info->cpu_platform == HB_CPU_PLATFORM_INTEL_HSW)
         {
-            hb_qsv_info->capabilities |= HB_QSV_CAP_BPYRAMID;
+            hb_qsv_info->capabilities |= HB_QSV_CAP_H264_BPYRAMID;
         }
     }
     else if (hb_qsv_info->software_available)
     {
         if (HB_QSV_MIN_SOFTWARE(1, 6))
         {
-            hb_qsv_info->capabilities |= HB_QSV_CAP_DECODE_TIMESTAMPS;
-            hb_qsv_info->capabilities |= HB_QSV_CAP_CODEC_OPTIONS_2;
-            hb_qsv_info->capabilities |= HB_QSV_CAP_BPYRAMID;
-            hb_qsv_info->capabilities |= HB_QSV_CAP_MSDK_1_6;
+            hb_qsv_info->capabilities |= HB_QSV_CAP_OPTION2_BRC;
+            hb_qsv_info->capabilities |= HB_QSV_CAP_BITSTREAM_DTS;
+            hb_qsv_info->capabilities |= HB_QSV_CAP_H264_BPYRAMID;
         }
     }
 

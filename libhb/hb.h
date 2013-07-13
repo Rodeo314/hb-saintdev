@@ -162,11 +162,10 @@ typedef struct hb_qsv_info_s
 
     // supported version-specific or hardware-specific capabilities
     int capabilities;
-#define HB_QSV_CAP_DECODE_TIMESTAMPS 1 << 0 // support of DecodeTimeStamp
-#define HB_QSV_CAP_CODEC_OPTIONS_2   1 << 1 // support of mfxExtCodingOption2
-#define HB_QSV_CAP_CODEC_LOOKAHEAD   1 << 2 // support of LookAhead
-#define HB_QSV_CAP_BPYRAMID          1 << 3
-#define HB_QSV_CAP_MSDK_1_6          1 << 31
+#define HB_QSV_CAP_H264_BPYRAMID     1 << 0 // H.264: reference B-frames
+#define HB_QSV_CAP_BITSTREAM_DTS     1 << 1 // mfxBitStream: DecodeTimeStamp
+#define HB_QSV_CAP_OPTION2_BRC       1 << 2 // mfxExtCodingOption2: MBBRC/ExtBRC
+#define HB_QSV_CAP_OPTION2_LOOKAHEAD 1 << 3 // mfxExtCodingOption2: LookAhead
 
     // if a feature depends on the cpu generation
     enum
