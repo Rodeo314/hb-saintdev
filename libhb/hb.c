@@ -370,7 +370,7 @@ static int hb_qsv_info_init()
         return (hb_qsv_info == NULL);
     init_done = 1;
 
-    hb_qsv_info = malloc(sizeof(*hb_qsv_info));
+    hb_qsv_info = calloc(sizeof(*hb_qsv_info),1);
     if (hb_qsv_info == NULL)
     {
         hb_error("hb_qsv_info_init: malloc failure");
@@ -440,7 +440,6 @@ static int hb_qsv_info_init()
     }
 
     mfxSession session;
-    hb_qsv_info->capabilities          = 0;
     hb_qsv_info->minimum_version.Major = HB_QSV_MINVERSION_MAJOR;
     hb_qsv_info->minimum_version.Minor = HB_QSV_MINVERSION_MINOR;
     hb_qsv_info->software_available    = hb_qsv_info->hardware_available = 0;
@@ -473,21 +472,33 @@ static int hb_qsv_info_init()
     // we only use software as a fallback, so check hardware first
     if (hb_qsv_info->hardware_available)
     {
+        if (HB_QSV_MIN_HARDWARE(1, 7))
+        {
+            if (hb_qsv_info->cpu_platform == HB_CPU_PLATFORM_INTEL_HSW)
+            {
+                hb_qsv_info->capabilities |= HB_QSV_CAP_CODEC_LOOKAHEAD;
+            }
+        }
         if (HB_QSV_MIN_HARDWARE(1, 6))
         {
+            hb_qsv_info->capabilities |= HB_QSV_CAP_DECODE_TIMESTAMPS;
+            hb_qsv_info->capabilities |= HB_QSV_CAP_CODEC_OPTIONS_2;
             hb_qsv_info->capabilities |= HB_QSV_CAP_MSDK_1_6;
         }
+
         if (hb_qsv_info->cpu_platform == HB_CPU_PLATFORM_INTEL_HSW)
         {
             hb_qsv_info->capabilities |= HB_QSV_CAP_BPYRAMID;
         }
     }
-    else
+    else if (hb_qsv_info->software_available)
     {
         if (HB_QSV_MIN_SOFTWARE(1, 6))
         {
-            hb_qsv_info->capabilities |= HB_QSV_CAP_MSDK_1_6;
+            hb_qsv_info->capabilities |= HB_QSV_CAP_DECODE_TIMESTAMPS;
+            hb_qsv_info->capabilities |= HB_QSV_CAP_CODEC_OPTIONS_2;
             hb_qsv_info->capabilities |= HB_QSV_CAP_BPYRAMID;
+            hb_qsv_info->capabilities |= HB_QSV_CAP_MSDK_1_6;
         }
     }
 
