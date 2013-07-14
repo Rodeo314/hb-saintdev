@@ -1118,6 +1118,12 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
 
                 if(task->bs->FrameType & MFX_FRAMETYPE_REF ) buf->s.flags      = HB_FRAME_REF;
 
+            if ((task->bs->FrameType & MFX_FRAMETYPE_B) &&
+                (task->bs->FrameType & MFX_FRAMETYPE_REF))
+            {
+                hb_log("B PYRAMID!!!");
+            }
+
                 parse_nalus(task->bs->Data + task->bs->DataOffset,task->bs->DataLength, buf, pv->frames_out);
 
                 if ( last_buf == NULL )
@@ -1145,8 +1151,7 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
                 {
                     // MSDK API < 1.6 or VFR, so generate our own DTS
                     if ((pv->frames_out == 0)                                  &&
-                        (hb_qsv_info->capabilities & HB_QSV_CAP_BITSTREAM_DTS) &&
-                        (hb_qsv_info->capabilities & HB_QSV_CAP_H264_BPYRAMID))
+                        (hb_qsv_info->capabilities & HB_QSV_CAP_BITSTREAM_DTS))
                     {
                         // with B-pyramid, the delay may be more than 1 frame,
                         // so compute the actual delay based on the initial DTS
@@ -1157,6 +1162,7 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
                                            (duration / 2)) / duration);
                         pv->bfrm_delay = FFMAX(pv->bfrm_delay, 1);
                         pv->bfrm_delay = FFMIN(pv->bfrm_delay, BFRM_DELAY_MAX);
+                        hb_log("B FRAME DELAY is %d", pv->bfrm_delay);
                     }
                     /*
                      * Generate VFR-compatible output DTS based on input PTS.
