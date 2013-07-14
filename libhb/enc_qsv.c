@@ -1379,7 +1379,7 @@ void qsv_param_set_defaults(av_qsv_config *config)
         config->async_depth   = AV_QSV_ASYNC_DEPTH_DEFAULT;
         config->target_usage  = MFX_TARGETUSAGE_BEST_QUALITY + 1;
         config->num_ref_frame = 0;  // set automatically by MSDK
-        config->gop_ref_dist  = 4;  // multiple of 4: B-pyramid
+        config->gop_ref_dist  = 4;  // power of 2, >= 4: B-pyramid
         config->gop_pic_size  = -1; // set automatically based on framerate
     }
 }
