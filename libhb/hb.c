@@ -481,6 +481,7 @@ static int hb_qsv_info_init()
         {
             if (hb_qsv_info->cpu_platform == HB_CPU_PLATFORM_INTEL_HSW)
             {
+                hb_qsv_info->capabilities |= HB_QSV_CAP_OPTION2_TRELLIS;
                 hb_qsv_info->capabilities |= HB_QSV_CAP_OPTION2_LOOKAHEAD;
             }
         }

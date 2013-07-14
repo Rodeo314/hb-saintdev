@@ -142,6 +142,9 @@ struct hb_work_private_s
 
     // lookahead
     mfxU16  la_depth;
+
+    // trellis
+    mfxU16 trellis;
 };
 
 extern char* get_codec_id(hb_work_private_t *pv);
@@ -418,6 +421,45 @@ int qsv_enc_init( av_qsv_context* qsv, hb_work_private_t * pv ){
         }
     }
 
+    if (hb_qsv_info->capabilities & HB_QSV_CAP_OPTION2_TRELLIS)
+    {
+        int trellis = -1;
+        entry = hb_dict_get(qsv_opts_dict, QSV_NAME_trellis);
+        if (entry != NULL && entry->value != NULL)
+        {
+            trellis = atoi(entry->value) & 0x7;
+        }
+        if (trellis >= 0)
+        {
+            pv->trellis = 0;
+            if (trellis & 0x1)
+            {
+                pv->trellis |= MFX_TRELLIS_I;
+            }
+            if (trellis & 0x2)
+            {
+                pv->trellis |= MFX_TRELLIS_P;
+            }
+            if (trellis & 0x4)
+            {
+                pv->trellis |= MFX_TRELLIS_B;
+            }
+            if (!pv->trellis)
+            {
+                pv->trellis = MFX_TRELLIS_OFF;
+            }
+        }
+        else
+        {
+            // set my MSDK
+            pv->trellis = MFX_TRELLIS_UNKNOWN;
+        }
+    }
+    else
+    {
+        pv->trellis = MFX_TRELLIS_UNKNOWN;
+    }
+
     if (pv->qsv_config.gop_pic_size < 0)
     {
         // set the keyframe interval based on the framerate
@@ -505,6 +547,38 @@ int qsv_enc_init( av_qsv_context* qsv, hb_work_private_t * pv ){
        qsv_encode->m_mfxVideoParam.mfx.GopRefDist,
        qsv_encode->m_mfxVideoParam.mfx.GopPicSize,
        qsv_encode->m_mfxVideoParam.mfx.NumRefFrame);
+
+    if (hb_qsv_info->capabilities & HB_QSV_CAP_OPTION2_TRELLIS)
+    {
+        char trellis[13]; // strlen("I/P/B frames") + 1
+        if (pv->trellis == MFX_TRELLIS_UNKNOWN)
+        {
+            sprintf(trellis, "%s", "Auto");
+        }
+        else if (pv->trellis == MFX_TRELLIS_OFF)
+        {
+            sprintf(trellis, "%s", "Off");
+        }
+        else
+        {
+            int i = 0;
+            if (pv->trellis & MFX_TRELLIS_I)
+            {
+                i += sprintf(trellis + i, "%s", "I/");
+            }
+            if (pv->trellis & MFX_TRELLIS_P)
+            {
+                i += sprintf(trellis + i, "%s", "P/");
+            }
+            if (pv->trellis & MFX_TRELLIS_B)
+            {
+                i += sprintf(trellis + i, "%s", "B/");
+            }
+            // overwrite trailing "/"
+            sprintf(trellis + i - !!i, "%s", " frames");
+        }
+        hb_log("qsv: Trellis Quantization: %s", trellis);
+    }
 
     // width must be a multiple of 16
     // height must be a multiple of 16 in case of frame picture and a multiple of 32 in case of progressive
@@ -605,13 +679,15 @@ int qsv_enc_init( av_qsv_context* qsv, hb_work_private_t * pv ){
             qsv_encode->ext_opaque_alloc.In.Type        = qsv_encode->request[0].Type;
         }
 
-        if (pv->mbbrc || pv->extbrc || qsv_encode->m_mfxVideoParam.mfx.RateControlMethod == MFX_RATECONTROL_LA)
+        if (pv->mbbrc || pv->extbrc || pv->trellis != MFX_TRELLIS_UNKNOWN ||
+            qsv_encode->m_mfxVideoParam.mfx.RateControlMethod == MFX_RATECONTROL_LA)
         {
             pv->qsv_coding_option2_config.Header.BufferId  = MFX_EXTBUFF_CODING_OPTION2;
             pv->qsv_coding_option2_config.Header.BufferSz  = sizeof(mfxExtCodingOption2);
             pv->qsv_coding_option2_config.MBBRC            = pv->mbbrc << 4;
                                                             // default is off
             pv->qsv_coding_option2_config.ExtBRC           = pv->extbrc == 0 ? MFX_CODINGOPTION_OFF : pv->extbrc << 4;
+            pv->qsv_coding_option2_config.Trellis          = pv->trellis;
             pv->qsv_coding_option2_config.LookAheadDepth   = pv->la_depth;
 
             // reset if out of the ranges
@@ -633,6 +709,7 @@ int qsv_enc_init( av_qsv_context* qsv, hb_work_private_t * pv ){
             if( pv->mbbrx_param_idx ){
                 pv->qsv_coding_option2_config.MBBRC     = MFX_CODINGOPTION_UNKNOWN;
                 pv->qsv_coding_option2_config.ExtBRC    = MFX_CODINGOPTION_OFF;
+                pv->qsv_coding_option2_config.Trellis   = MFX_TRELLIS_UNKNOWN;
                 pv->qsv_coding_option2_config.LookAheadDepth    = 0;
                     pv->mbbrx_param_idx = 0;
             }
@@ -1333,43 +1410,62 @@ void parse_nalus(uint8_t *nal_inits, size_t length, hb_buffer_t *buf, uint32_t f
         }
 }
 
-int qsv_param_parse( av_qsv_config* config, const char *name, const char *value){
-    int ret = QSV_PARAM_OK;
-
-    if(!config)
+int qsv_param_parse(av_qsv_config *config, const char *name, const char *value)
+{
+    if (config == NULL)
+    {
         return QSV_PARAM_BAD_CONFIG;
+    }
+    if (name == NULL)
+    {
+        return QSV_PARAM_BAD_NAME;
+    }
+    if (value == NULL)
+    {
+        return QSV_PARAM_BAD_VALUE;
+    }
+    if (!strcmp(name, QSV_NAME_async_depth))
+    {
+        config->async_depth = FFMAX(atoi(value), 0);
+        return QSV_PARAM_OK;
+    }
+    if (!strcmp(name, QSV_NAME_target_usage))
+    {
+        config->target_usage = FFMAX(atoi(value), 0);
+        return QSV_PARAM_OK;
+    }
+    if (!strcmp(name, QSV_NAME_num_ref_frame))
+    {
+        config->num_ref_frame = FFMAX(atoi(value), 0);
+        return QSV_PARAM_OK;
+    }
+    if (!strcmp(name, QSV_NAME_gop_ref_dist))
+    {
+        config->gop_ref_dist = FFMAX(FFMIN(atoi(value), 32), 0);
+        return QSV_PARAM_OK;
+    }
+    if (!strcmp(name, QSV_NAME_gop_pic_size))
+    {
+        config->gop_pic_size = FFMAX(atoi(value), 0);
+        return QSV_PARAM_OK;
+    }
+    if (!strcmp(name, QSV_NAME_vbv_bufsize)    ||
+        !strcmp(name, QSV_NAME_vbv_maxrate)    ||
+        !strcmp(name, QSV_NAME_vbv_init)       ||
+        !strcmp(name, QSV_NAME_mbbrc)          ||
+        !strcmp(name, QSV_NAME_extbrc)         ||
+        !strcmp(name, QSV_NAME_cqp_offset_i)   ||
+        !strcmp(name, QSV_NAME_cqp_offset_p)   ||
+        !strcmp(name, QSV_NAME_cqp_offset_b)   ||
+        !strcmp(name, QSV_NAME_lookaheaddepth) ||
+        !strcmp(name, QSV_NAME_lookahead)      ||
+        !strcmp(name, QSV_NAME_trellis))
+    {
+        // handled later
+        return QSV_PARAM_OK;
+    }
 
-    if(!strcmp(name,QSV_NAME_async_depth))
-        config->async_depth = FFMAX( atoi(value),0 );
-    else
-    if(!strcmp(name,QSV_NAME_target_usage))
-        config->target_usage = FFMAX( atoi(value),0 );
-    else
-    if(!strcmp(name,QSV_NAME_num_ref_frame))
-        config->num_ref_frame = FFMAX( atoi(value),0 );
-    else
-    if(!strcmp(name,QSV_NAME_gop_ref_dist))
-        config->gop_ref_dist = FFMAX( FFMIN(atoi(value),32),0 );
-    else
-    if(!strcmp(name,QSV_NAME_gop_pic_size))
-        config->gop_pic_size = FFMAX(atoi(value),0);
-    else
-    if(!strcmp(name,QSV_NAME_vbv_bufsize) ||
-       !strcmp(name,QSV_NAME_vbv_maxrate) ||
-       !strcmp(name,QSV_NAME_vbv_init)    ||
-       !strcmp(name,QSV_NAME_mbbrc)       ||
-       !strcmp(name,QSV_NAME_extbrc)      ||
-       !strcmp(name,QSV_NAME_cqp_offset_i)      ||
-       !strcmp(name,QSV_NAME_cqp_offset_p)      ||
-       !strcmp(name,QSV_NAME_cqp_offset_b)      ||
-       !strcmp(name,QSV_NAME_lookaheaddepth)    ||
-       !strcmp(name,QSV_NAME_lookahead)
-       )
-        ret = QSV_PARAM_OK;
-    else
-        ret = QSV_PARAM_BAD_NAME;
-
-    return ret;
+    return QSV_PARAM_BAD_NAME;
 }
 
 void qsv_param_set_defaults(av_qsv_config *config)

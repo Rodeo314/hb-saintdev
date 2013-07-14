@@ -3511,6 +3511,11 @@ if (hb_qsv_available())
     "                            encoder analyzes before encoding. Valid value\n"
     "                            range is from 10 to 100 inclusive.\n"
     "                            Default is 40\n"
+    "        - trellis           Enable trellis quantization for I-frames (1),\n"
+    "          <number>          P-frames (2), and B-frames (4).\n"
+    "                            trellis=7 enables trellis quantization for all frames.\n"
+    "                            trellis=0 disables trellis quantization for all frames.\n"
+    "                            Default is -1 (set by MSDK).\n"
     "\n"
     );
 }

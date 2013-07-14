@@ -52,6 +52,7 @@ void parse_nalus( uint8_t *nal_inits, size_t length, hb_buffer_t *buf, uint32_t 
 #define QSV_NAME_cqp_offset_b   "cqp-offset-b"
 #define QSV_NAME_lookaheaddepth "lookahead-depth"
 #define QSV_NAME_lookahead      "lookahead"
+#define QSV_NAME_trellis        "trellis"
 
 typedef enum {
     QSV_PARAM_OK            = 0,
