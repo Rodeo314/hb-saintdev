@@ -38,48 +38,23 @@
     return [fDisplayX264Options stringValue];
 }
 
-- (NSString *) optionsStringLavc
-{
-    return [fDisplayLavcOptions stringValue];
-}
-
 - (void) setOptions: (NSString *)string
 {
     [fDisplayX264Options setStringValue:string];
     [self X264AdvancedOptionsSet:nil];
 }
 
-- (void) setLavcOptions: (NSString *)string
-{
-    [fDisplayLavcOptions setStringValue:string];
-}
-
 - (void) setHidden: (BOOL) hide
 {
     if(hide)
     {
-        [fOptionsBox setContentView:fEmptyView];
-    }
-    else
-    {
-        [fOptionsBox setContentView:fX264optView];
-    }
-    return;
-}
-
-- (void) setLavcOptsEnabled: (BOOL) lavc
-{
-    if(lavc)
-    {
-        [fDisplayLavcOptions setHidden:NO];
-        [fDisplayLavcOptionsLabel setHidden:NO];
-        [fDisplayTheoraOptionsLabel setHidden:YES];
-    }
-    else
-    {
-        [fDisplayLavcOptions setHidden:YES];
-        [fDisplayLavcOptionsLabel setHidden:YES];
+        [fOptionsBox   setContentView:fEmptyView];
         [fDisplayTheoraOptionsLabel setHidden:NO];
+    }
+    else
+    {
+        [fOptionsBox  setContentView:fX264optView];
+        [fDisplayTheoraOptionsLabel setHidden:YES];
     }
     return;
 }

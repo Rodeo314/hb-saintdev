@@ -2613,7 +2613,10 @@ fWorkingCount = 0;
     }
     
     /* FFmpeg (lavc) Option String */
-    [queueFileJob setObject:[fAdvancedOptions optionsStringLavc] forKey:@"lavcOption"];
+    if ([[fVidEncoderPopUp selectedItem] tag] & HB_VCODEC_FFMPEG_MASK)
+    {
+        [queueFileJob setObject:[self x264OptionExtra] forKey:@"lavcOption"];
+    }
 
 	[queueFileJob setObject:[NSNumber numberWithInt:[[fVidQualityMatrix selectedCell] tag] + 1] forKey:@"VideoQualityType"];
 	[queueFileJob setObject:[fVidBitrateField stringValue] forKey:@"VideoAvgBitrate"];
@@ -3020,7 +3023,6 @@ fWorkingCount = 0;
     
     /* video encoder */
     [fVidEncoderPopUp selectItemWithTitle:[queueToApply objectForKey:@"VideoEncoder"]];
-    [fAdvancedOptions setLavcOptions:     [queueToApply objectForKey:@"lavcOption"]];
     /* advanced x264 options */
     if ([[queueToApply objectForKey:@"x264UseAdvancedOptions"] intValue])
     {
@@ -3049,6 +3051,11 @@ fWorkingCount = 0;
         // disable the advanced panel and update the widgets
         [fX264UseAdvancedOptionsCheck setState:NSOffState];
         [self updateX264Widgets:nil];
+    }
+
+    if ([[fVidEncoderPopUp selectedItem] tag] & HB_VCODEC_FFMPEG_MASK)
+    {
+        [self setX264OptionExtra:[queueToApply objectForKey:@"lavcOption"]];
     }
     
     /* Lets run through the following functions to get variables set there */
@@ -5112,7 +5119,6 @@ the user is using "Custom" settings by determining the sender*/
     int videoEncoder = [[fVidEncoderPopUp selectedItem] tag];
     
     /* hide everything then show only what's relevant for the new encoder */
-    [fAdvancedOptions                     setLavcOptsEnabled:NO];
     [fAdvancedOptions                             setHidden:YES];
     [fX264UseAdvancedOptionsCheck                 setHidden:YES];
     [fX264PresetsSlider                           setHidden:YES];
@@ -5148,11 +5154,17 @@ the user is using "Custom" settings by determining the sender*/
             [fDisplayX264PresetsAdditonalOptionsLabel     setHidden:NO];
             [fDisplayX264PresetsUnparseTextField          setHidden:NO];
             [fX264PresetsBox                              setHidden:NO];
+            [fDisplayX264PresetsAdditonalOptionsLabel
+             setStringValue:@"Additional options:"];
             break;
 
         case HB_VCODEC_FFMPEG_MPEG2:
         case HB_VCODEC_FFMPEG_MPEG4:
-            [fAdvancedOptions setLavcOptsEnabled:YES];
+            [fDisplayX264PresetsAdditonalOptionsTextField setHidden:NO];
+            [fDisplayX264PresetsAdditonalOptionsLabel     setHidden:NO];
+            [fX264PresetsBox                              setHidden:NO];
+            [fDisplayX264PresetsAdditonalOptionsLabel
+             setStringValue:@"libavcodec options:"];
             break;
 
         default:
@@ -6533,13 +6545,17 @@ return YES;
             }
         }
         
-        if ([chosenPreset objectForKey:@"lavcOption"])
+        if ([[fVidEncoderPopUp selectedItem] tag] & HB_VCODEC_FFMPEG_MASK)
         {
-            [fAdvancedOptions setLavcOptions:[chosenPreset objectForKey:@"lavcOption"]];
-        }
-        else
-        {
-            [fAdvancedOptions setLavcOptions:@""];   
+            if ([chosenPreset objectForKey:@"lavcOption"])
+            {
+                [self setX264OptionExtra:[chosenPreset
+                                          objectForKey:@"lavcOption"]];
+            }
+            else
+            {
+                [self setX264OptionExtra:@""];
+            }
         }
         
         /* Lets run through the following functions to get variables set there */
@@ -7181,7 +7197,10 @@ return YES;
         }
 
         /* FFmpeg (lavc) Option String */
-        [preset setObject:[fAdvancedOptions optionsStringLavc] forKey:@"lavcOption"];
+        if ([[fVidEncoderPopUp selectedItem] tag] & HB_VCODEC_FFMPEG_MASK)
+        {
+            [preset setObject:[self x264OptionExtra] forKey:@"lavcOption"];
+        }
         
         /* though there are actually only 0 - 1 types available in the ui we need to map to the old 0 - 2
          * set of indexes from when we had 0 == Target , 1 == Abr and 2 == Constant Quality for presets

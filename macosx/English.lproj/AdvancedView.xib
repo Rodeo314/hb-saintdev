@@ -1571,7 +1571,7 @@
 						<object class="NSTextFieldCell" key="NSCell" id="168605488">
 							<int key="NSCellFlags">67239424</int>
 							<int key="NSCellFlags2">138412032</int>
-							<string key="NSContents">HandBrake Does Not Support Advanced Theora Options</string>
+							<string key="NSContents">Advanced Panel not available for this video encoder</string>
 							<reference key="NSSupport" ref="755377161"/>
 							<reference key="NSControlView" ref="1067360024"/>
 							<reference key="NSBackgroundColor" ref="1006136775"/>
