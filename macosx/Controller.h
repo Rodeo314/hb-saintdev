@@ -491,12 +491,12 @@ BOOL                        fIsDragging;
 // x264 system methods
 - (NSString*) x264Preset;
 - (NSString*) x264Tune;
-- (NSString*) x264OptionExtra;
+- (NSString*) advancedOptions;
 - (NSString*) h264Profile;
 - (NSString*) h264Level;
 - (void)      setX264Preset:            (NSString*) x264Preset;
 - (void)      setX264Tune:              (NSString*) x264Tune;
-- (void)      setX264OptionExtra:       (NSString*) x264OptionExtra;
+- (void)      setAdvancedOptions:       (NSString*) advancedOptions;
 - (void)      setH264Profile:           (NSString*) h264Profile;
 - (void)      setH264Level:             (NSString*) h264Level;
 - (IBAction)  x264PresetsSliderChanged: (id)        sender;

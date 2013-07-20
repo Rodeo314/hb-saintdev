@@ -2607,7 +2607,7 @@ fWorkingCount = 0;
         [queueFileJob setObject:[NSNumber numberWithInt:0] forKey: @"x264UseAdvancedOptions"];
         [queueFileJob setObject:[self x264Preset]          forKey: @"x264Preset"];
         [queueFileJob setObject:[self x264Tune]            forKey: @"x264Tune"];
-        [queueFileJob setObject:[self x264OptionExtra]     forKey: @"x264OptionExtra"];
+        [queueFileJob setObject:[self advancedOptions]     forKey: @"x264OptionExtra"];
         [queueFileJob setObject:[self h264Profile]         forKey: @"h264Profile"];
         [queueFileJob setObject:[self h264Level]           forKey: @"h264Level"];
     }
@@ -2615,7 +2615,7 @@ fWorkingCount = 0;
     /* FFmpeg (lavc) Option String */
     if ([[fVidEncoderPopUp selectedItem] tag] & HB_VCODEC_FFMPEG_MASK)
     {
-        [queueFileJob setObject:[self x264OptionExtra] forKey:@"lavcOption"];
+        [queueFileJob setObject:[self advancedOptions] forKey:@"lavcOption"];
     }
 
 	[queueFileJob setObject:[NSNumber numberWithInt:[[fVidQualityMatrix selectedCell] tag] + 1] forKey:@"VideoQualityType"];
@@ -3031,7 +3031,7 @@ fWorkingCount = 0;
         // preset does not use the x264 preset system, reset the widgets
         [self setX264Preset:     nil];
         [self setX264Tune:       nil];
-        [self setX264OptionExtra:[queueToApply objectForKey:@"x264Option"]];
+        [self setAdvancedOptions:[queueToApply objectForKey:@"x264Option"]];
         [self setH264Profile:    nil];
         [self setH264Level:      nil];
         // enable the advanced panel and update the widgets
@@ -3043,7 +3043,7 @@ fWorkingCount = 0;
         // we are using the x264 preset system
         [self setX264Preset:     [queueToApply objectForKey:@"x264Preset"]];
         [self setX264Tune:       [queueToApply objectForKey:@"x264Tune"]];
-        [self setX264OptionExtra:[queueToApply objectForKey:@"x264OptionExtra"]];
+        [self setAdvancedOptions:[queueToApply objectForKey:@"x264OptionExtra"]];
         [self setH264Profile:    [queueToApply objectForKey:@"h264Profile"]];
         [self setH264Level:      [queueToApply objectForKey:@"h264Level"]];
         // preset does not use the advanced panel, reset it
@@ -3055,7 +3055,7 @@ fWorkingCount = 0;
 
     if ([[fVidEncoderPopUp selectedItem] tag] & HB_VCODEC_FFMPEG_MASK)
     {
-        [self setX264OptionExtra:[queueToApply objectForKey:@"lavcOption"]];
+        [self setAdvancedOptions:[queueToApply objectForKey:@"lavcOption"]];
     }
     
     /* Lets run through the following functions to get variables set there */
@@ -3373,7 +3373,7 @@ fWorkingCount = 0;
             {
                 x264_tune = [tmpString UTF8String];
             }
-            if ([(tmpString = [self x264OptionExtra]) length])
+            if ([(tmpString = [self advancedOptions]) length])
             {
                 advanced_opts = [tmpString UTF8String];
             }
@@ -5606,7 +5606,7 @@ the user is using "Custom" settings by determining the sender*/
     return x264Tune;
 }
 
-- (NSString*) x264OptionExtra
+- (NSString*) advancedOptions
 {
     return [fDisplayAdvancedOptionsTextField stringValue];
 }
@@ -5679,14 +5679,14 @@ the user is using "Custom" settings by determining the sender*/
     }
 }
 
-- (void) setX264OptionExtra: (NSString*)x264OptionExtra
+- (void) setAdvancedOptions: (NSString*)advancedOptions
 {
-    if (!x264OptionExtra)
+    if (!advancedOptions)
     {
         [fDisplayAdvancedOptionsTextField setStringValue:@""];
         return;
     }
-    [fDisplayAdvancedOptionsTextField setStringValue:x264OptionExtra];
+    [fDisplayAdvancedOptionsTextField setStringValue:advancedOptions];
 }
 
 - (void) setH264Profile: (NSString*)h264Profile
@@ -5758,7 +5758,7 @@ the user is using "Custom" settings by determining the sender*/
     {
         x264_tune = [tmpString UTF8String];
     }
-    if ([(tmpString = [self x264OptionExtra]) length])
+    if ([(tmpString = [self advancedOptions]) length])
     {
         advanced_opts = [tmpString UTF8String];
     }
@@ -6552,12 +6552,12 @@ return YES;
                 {
                     /* we set the advanced options string here if applicable */
                     [fAdvancedOptions setOptions:        [chosenPreset objectForKey:@"x264Option"]];
-                    [self             setX264OptionExtra:[chosenPreset objectForKey:@"x264Option"]];
+                    [self             setAdvancedOptions:[chosenPreset objectForKey:@"x264Option"]];
                 }
                 else
                 {
                     [fAdvancedOptions setOptions:        @""];
-                    [self             setX264OptionExtra:nil];
+                    [self             setAdvancedOptions:nil];
                 }
                 /* preset does not use the x264 preset system, reset the widgets */
                 [self setX264Preset: nil];
@@ -6576,7 +6576,7 @@ return YES;
                  */
                 [self setX264Preset:     [chosenPreset objectForKey:@"x264Preset"]];
                 [self setX264Tune:       [chosenPreset objectForKey:@"x264Tune"]];
-                [self setX264OptionExtra:[chosenPreset objectForKey:@"x264OptionExtra"]];
+                [self setAdvancedOptions:[chosenPreset objectForKey:@"x264OptionExtra"]];
                 [self setH264Profile:    [chosenPreset objectForKey:@"h264Profile"]];
                 [self setH264Level:      [chosenPreset objectForKey:@"h264Level"]];
                 /* preset does not use the advanced panel, reset it */
@@ -6591,12 +6591,11 @@ return YES;
         {
             if ([chosenPreset objectForKey:@"lavcOption"])
             {
-                [self setX264OptionExtra:[chosenPreset
-                                          objectForKey:@"lavcOption"]];
+                [self setAdvancedOptions:[chosenPreset objectForKey:@"lavcOption"]];
             }
             else
             {
-                [self setX264OptionExtra:@""];
+                [self setAdvancedOptions:@""];
             }
         }
         
@@ -7220,7 +7219,7 @@ return YES;
             [preset setObject:[NSNumber numberWithInt:0] forKey:@"x264UseAdvancedOptions"];
             [preset setObject:[self x264Preset]          forKey:@"x264Preset"];
             [preset setObject:[self x264Tune]            forKey:@"x264Tune"];
-            [preset setObject:[self x264OptionExtra]     forKey:@"x264OptionExtra"];
+            [preset setObject:[self advancedOptions]     forKey:@"x264OptionExtra"];
             [preset setObject:[self h264Profile]         forKey:@"h264Profile"];
             [preset setObject:[self h264Level]           forKey:@"h264Level"];
             /*
@@ -7241,7 +7240,7 @@ return YES;
         /* FFmpeg (lavc) Option String */
         if ([[fVidEncoderPopUp selectedItem] tag] & HB_VCODEC_FFMPEG_MASK)
         {
-            [preset setObject:[self x264OptionExtra] forKey:@"lavcOption"];
+            [preset setObject:[self advancedOptions] forKey:@"lavcOption"];
         }
         
         /* though there are actually only 0 - 1 types available in the ui we need to map to the old 0 - 2
