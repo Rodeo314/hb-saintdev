@@ -74,8 +74,8 @@ BOOL                        fIsDragging;
     IBOutlet NSPopUpButton       * fH264LevelPopUp;
     IBOutlet NSTextField         * fH264LevelPopUpLabel;
     IBOutlet NSButton            * fX264FastDecodeCheck;
-    IBOutlet NSTextField         * fDisplayX264PresetsAdditonalOptionsTextField;
-    IBOutlet NSTextField         * fDisplayX264PresetsAdditonalOptionsLabel;
+    IBOutlet NSTextField         * fDisplayAdvancedOptionsLabel;
+    IBOutlet NSTextField         * fDisplayAdvancedOptionsTextField;
     // Text Field to show the expanded opts from unparse()
     IBOutlet NSTextField         * fDisplayX264PresetsUnparseTextField;
     char                         * fX264PresetsUnparsedUTF8String;

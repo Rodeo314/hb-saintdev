@@ -7116,7 +7116,7 @@ AAMAAAABAAEAAAFTAAMAAAAEAAAFwgAAAAAACAAIAAgACAABAAEAAQABA</bytes>
 				</object>
 				<object class="IBConnectionRecord">
 					<object class="IBOutletConnection" key="connection">
-						<string key="label">fDisplayX264PresetsAdditonalOptionsTextField</string>
+						<string key="label">fDisplayAdvancedOptionsTextField</string>
 						<reference key="source" ref="2258723"/>
 						<reference key="destination" ref="487526549"/>
 					</object>
@@ -7180,7 +7180,7 @@ AAMAAAABAAEAAAFTAAMAAAAEAAAFwgAAAAAACAAIAAgACAABAAEAAQABA</bytes>
 				</object>
 				<object class="IBConnectionRecord">
 					<object class="IBOutletConnection" key="connection">
-						<string key="label">fDisplayX264PresetsAdditonalOptionsLabel</string>
+						<string key="label">fDisplayAdvancedOptionsLabel</string>
 						<reference key="source" ref="2258723"/>
 						<reference key="destination" ref="796460997"/>
 					</object>
@@ -12593,8 +12593,8 @@ AAMAAAABAAEAAAFTAAMAAAAEAAAFwgAAAAAACAAIAAgACAABAAEAAQABA</bytes>
 							<string>fChapterTable</string>
 							<string>fChapterTableNameColumn</string>
 							<string>fCreateChapterMarkers</string>
-							<string>fDisplayX264PresetsAdditonalOptionsLabel</string>
-							<string>fDisplayX264PresetsAdditonalOptionsTextField</string>
+							<string>fDisplayAdvancedOptionsLabel</string>
+							<string>fDisplayAdvancedOptionsTextField</string>
 							<string>fDisplayX264PresetsUnparseTextField</string>
 							<string>fDstBrowseButton</string>
 							<string>fDstFile1Field</string>
@@ -12810,8 +12810,8 @@ AAMAAAABAAEAAAFTAAMAAAAEAAAFwgAAAAAACAAIAAgACAABAAEAAQABA</bytes>
 							<string>fChapterTable</string>
 							<string>fChapterTableNameColumn</string>
 							<string>fCreateChapterMarkers</string>
-							<string>fDisplayX264PresetsAdditonalOptionsLabel</string>
-							<string>fDisplayX264PresetsAdditonalOptionsTextField</string>
+							<string>fDisplayAdvancedOptionsLabel</string>
+							<string>fDisplayAdvancedOptionsTextField</string>
 							<string>fDisplayX264PresetsUnparseTextField</string>
 							<string>fDstBrowseButton</string>
 							<string>fDstFile1Field</string>
@@ -12960,11 +12960,11 @@ AAMAAAABAAEAAAFTAAMAAAAEAAAFwgAAAAAACAAIAAgACAABAAEAAQABA</bytes>
 								<string key="candidateClassName">NSButton</string>
 							</object>
 							<object class="IBToOneOutletInfo">
-								<string key="name">fDisplayX264PresetsAdditonalOptionsLabel</string>
+								<string key="name">fDisplayAdvancedOptionsLabel</string>
 								<string key="candidateClassName">NSTextField</string>
 							</object>
 							<object class="IBToOneOutletInfo">
-								<string key="name">fDisplayX264PresetsAdditonalOptionsTextField</string>
+								<string key="name">fDisplayAdvancedOptionsTextField</string>
 								<string key="candidateClassName">NSTextField</string>
 							</object>
 							<object class="IBToOneOutletInfo">
