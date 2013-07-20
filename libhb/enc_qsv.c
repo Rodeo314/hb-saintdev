@@ -462,11 +462,17 @@ int qsv_enc_init( av_qsv_context* qsv, hb_work_private_t * pv ){
 
     if (pv->qsv_config.gop_pic_size < 0)
     {
-        // set the keyframe interval based on the framerate
-        // ensure it's a multiple of gop-ref-dist to enable B-pyramid
-        int mult = pv->qsv_config.gop_ref_dist > 0 ? pv->qsv_config.gop_ref_dist : 1;
         int rate = (int)((double)job->vrate / (double)job->vrate_base + 0.5);
-        pv->qsv_config.gop_pic_size = ((5 * rate + mult) / mult) * mult;
+        if (qsv_encode->m_mfxVideoParam.mfx.RateControlMethod == MFX_RATECONTROL_CQP)
+        {
+            // ensure B-pyramid is enabled for CQP on Haswell
+            pv->qsv_config.gop_pic_size = 32;
+        }
+        else
+        {
+            // set the keyframe interval based on the framerate
+            pv->qsv_config.gop_pic_size = 5 * rate + 1;
+        }
     }
 
     // version-specific encoder options
