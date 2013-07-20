@@ -49,12 +49,12 @@
     if(hide)
     {
         [fOptionsBox   setContentView:fEmptyView];
-        [fDisplayTheoraOptionsLabel setHidden:NO];
+        [fAdvPanelNotAvailableLabel setHidden:NO];
     }
     else
     {
         [fOptionsBox  setContentView:fX264optView];
-        [fDisplayTheoraOptionsLabel setHidden:YES];
+        [fAdvPanelNotAvailableLabel setHidden:YES];
     }
     return;
 }
