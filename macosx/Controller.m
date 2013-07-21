@@ -5150,7 +5150,7 @@ the user is using "Custom" settings by determining the sender*/
             [fH264LevelPopUp                     setHidden:NO];
             [fH264LevelPopUpLabel                setHidden:NO];
             [fX264FastDecodeCheck                setHidden:NO];
-            [fDisplayAdvancedOptionsLabel setStringValue:@"Additional options:"];
+            [fDisplayAdvancedOptionsLabel   setStringValue:@"Additional options:"];
             [fDisplayAdvancedOptionsLabel        setHidden:NO];
             [fDisplayAdvancedOptionsTextField    setHidden:NO];
             [fDisplayX264PresetsUnparseTextField setHidden:NO];
@@ -5159,10 +5159,10 @@ the user is using "Custom" settings by determining the sender*/
 
         case HB_VCODEC_FFMPEG_MPEG2:
         case HB_VCODEC_FFMPEG_MPEG4:
-            [fDisplayAdvancedOptionsLabel setStringValue:@"libavcodec options:"];
-            [fDisplayAdvancedOptionsLabel     setHidden:NO];
-            [fDisplayAdvancedOptionsTextField setHidden:NO];
-            [fX264PresetsBox                  setHidden:NO];
+            [fDisplayAdvancedOptionsLabel setStringValue:@"Advanced options:"];
+            [fDisplayAdvancedOptionsLabel      setHidden:NO];
+            [fDisplayAdvancedOptionsTextField  setHidden:NO];
+            [fX264PresetsBox                   setHidden:NO];
             break;
 
         default:
