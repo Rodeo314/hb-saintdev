@@ -1327,7 +1327,7 @@ AAMAAAABAAEAAAFTAAMAAAAEAAAFwgAAAAAACAAIAAgACAABAAEAAQABA</bytes>
 															<object class="NSTextField" id="796460997">
 																<reference key="NSNextResponder" ref="443817184"/>
 																<int key="NSvFlags">256</int>
-																<string key="NSFrame">{{15, 84}, {160, 13}}</string>
+																<string key="NSFrame">{{15, 82}, {156, 13}}</string>
 																<reference key="NSSuperview" ref="443817184"/>
 																<reference key="NSWindow"/>
 																<reference key="NSNextKeyView" ref="8023338"/>
@@ -1346,7 +1346,7 @@ AAMAAAABAAEAAAFTAAMAAAAEAAAFwgAAAAAACAAIAAgACAABAAEAAQABA</bytes>
 															<object class="NSTextField" id="487526549">
 																<reference key="NSNextResponder" ref="443817184"/>
 																<int key="NSvFlags">268</int>
-																<string key="NSFrame">{{15, 42}, {652, 40}}</string>
+																<string key="NSFrame">{{15, 42}, {650, 39}}</string>
 																<reference key="NSSuperview" ref="443817184"/>
 																<reference key="NSWindow"/>
 																<reference key="NSNextKeyView" ref="349581420"/>
