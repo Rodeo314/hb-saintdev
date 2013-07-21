@@ -1334,7 +1334,7 @@ AAMAAAABAAEAAAFTAAMAAAAEAAAFwgAAAAAACAAIAAgACAABAAEAAQABA</bytes>
 																<bool key="NSEnabled">YES</bool>
 																<object class="NSTextFieldCell" key="NSCell" id="934066385">
 																	<int key="NSCellFlags">67108864</int>
-																	<int key="NSCellFlags2">71303168</int>
+																	<int key="NSCellFlags2">4194304</int>
 																	<string key="NSContents">Additional options:</string>
 																	<reference key="NSSupport" ref="26"/>
 																	<reference key="NSControlView" ref="796460997"/>
