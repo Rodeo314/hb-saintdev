@@ -5117,34 +5117,54 @@ the user is using "Custom" settings by determining the sender*/
     {
         [fVidEncoderPopUp selectItemAtIndex:0];
     }
-    
     int videoEncoder = [[fVidEncoderPopUp selectedItem] tag];
     
-    [fAdvancedOptions setHidden:YES];
-    /* If we are using x264 then show the x264 advanced panel and the x264 presets box */
-    if (videoEncoder == HB_VCODEC_X264)
+    /* hide everything then show only what's relevant for the new encoder */
+    [fAdvancedOptions                     setLavcOptsEnabled:NO];
+    [fAdvancedOptions                             setHidden:YES];
+    [fX264UseAdvancedOptionsCheck                 setHidden:YES];
+    [fX264PresetsSlider                           setHidden:YES];
+    [fX264PresetSliderLabel                       setHidden:YES];
+    [fX264PresetSelectedTextField                 setHidden:YES];
+    [fX264TunePopUp                               setHidden:YES];
+    [fX264TunePopUpLabel                          setHidden:YES];
+    [fX264ProfilePopUp                            setHidden:YES];
+    [fX264ProfilePopUpLabel                       setHidden:YES];
+    [fX264LevelPopUp                              setHidden:YES];
+    [fX264LevelPopUpLabel                         setHidden:YES];
+    [fX264FastDecodeCheck                         setHidden:YES];
+    [fDisplayX264PresetsAdditonalOptionsTextField setHidden:YES];
+    [fDisplayX264PresetsAdditonalOptionsLabel     setHidden:YES];
+    [fDisplayX264PresetsUnparseTextField          setHidden:YES];
+    [fX264PresetsBox                              setHidden:YES];
+    switch (videoEncoder)
     {
-        [fAdvancedOptions setHidden:NO];
-        
-        // show the x264 presets box
-        [fX264PresetsBox setHidden:NO];
-                
-        [self autoSetM4vExtension: sender];
-    }
-    else // we are FFmpeg (lavc) or Theora
-    {
-        [fAdvancedOptions setHidden:YES];
-        [fX264PresetsBox setHidden:YES];
-        
-        // We Are Lavc
-        if ([[fVidEncoderPopUp selectedItem] tag] & HB_VCODEC_FFMPEG_MASK)
-        {
+        case HB_VCODEC_X264:
+            [fAdvancedOptions                             setHidden:NO];
+            [fX264UseAdvancedOptionsCheck                 setHidden:NO];
+            [fX264PresetsSlider                           setHidden:NO];
+            [fX264PresetSliderLabel                       setHidden:NO];
+            [fX264PresetSelectedTextField                 setHidden:NO];
+            [fX264TunePopUp                               setHidden:NO];
+            [fX264TunePopUpLabel                          setHidden:NO];
+            [fX264ProfilePopUp                            setHidden:NO];
+            [fX264ProfilePopUpLabel                       setHidden:NO];
+            [fX264LevelPopUp                              setHidden:NO];
+            [fX264LevelPopUpLabel                         setHidden:NO];
+            [fX264FastDecodeCheck                         setHidden:NO];
+            [fDisplayX264PresetsAdditonalOptionsTextField setHidden:NO];
+            [fDisplayX264PresetsAdditonalOptionsLabel     setHidden:NO];
+            [fDisplayX264PresetsUnparseTextField          setHidden:NO];
+            [fX264PresetsBox                              setHidden:NO];
+            break;
+
+        case HB_VCODEC_FFMPEG_MPEG2:
+        case HB_VCODEC_FFMPEG_MPEG4:
             [fAdvancedOptions setLavcOptsEnabled:YES];
-        }
-        else /// We are Theora
-        {
-            [fAdvancedOptions setLavcOptsEnabled:NO];  
-        }
+            break;
+
+        default:
+            break;
     }
 
 
@@ -5153,16 +5173,16 @@ the user is using "Custom" settings by determining the sender*/
         /* We set the iPod atom checkbox to disabled and uncheck it as its only for x264 in the mp4
          * container. Format is taken care of in formatPopUpChanged method by hiding and unchecking
          * anything other than MP4. */ 
-        [fDstMp4iPodFileCheck setEnabled: NO];
-        [fDstMp4iPodFileCheck setState: NSOffState];
+        [fDstMp4iPodFileCheck       setEnabled:NO];
+        [fDstMp4iPodFileCheck setState:NSOffState];
     }
     else
     {
-        [fDstMp4iPodFileCheck setEnabled: YES];
+        [fDstMp4iPodFileCheck setEnabled:YES];
     }
     [self setupQualitySlider];
-	[self calculatePictureSizing: sender];
-	[self twoPassCheckboxChanged: sender];
+	[self calculatePictureSizing:sender];
+	[self twoPassCheckboxChanged:sender];
 }
 
 
