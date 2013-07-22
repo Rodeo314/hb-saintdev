@@ -2125,7 +2125,7 @@
 				</object>
 				<object class="IBConnectionRecord">
 					<object class="IBOutletConnection" key="connection">
-						<string key="label">fDisplayTheoraOptionsLabel</string>
+						<string key="label">fAdvPanelNotAvailableLabel</string>
 						<reference key="source" ref="674763238"/>
 						<reference key="destination" ref="1067360024"/>
 					</object>
@@ -3754,7 +3754,7 @@
 						<bool key="EncodedWithXMLCoder">YES</bool>
 						<object class="NSArray" key="dict.sortedKeys">
 							<bool key="EncodedWithXMLCoder">YES</bool>
-							<string>fDisplayTheoraOptionsLabel</string>
+							<string>fAdvPanelNotAvailableLabel</string>
 							<string>fDisplayX264Options</string>
 							<string>fDisplayX264OptionsLabel</string>
 							<string>fEmptyView</string>
@@ -3849,7 +3849,7 @@
 						<bool key="EncodedWithXMLCoder">YES</bool>
 						<object class="NSArray" key="dict.sortedKeys">
 							<bool key="EncodedWithXMLCoder">YES</bool>
-							<string>fDisplayTheoraOptionsLabel</string>
+							<string>fAdvPanelNotAvailableLabel</string>
 							<string>fDisplayX264Options</string>
 							<string>fDisplayX264OptionsLabel</string>
 							<string>fEmptyView</string>
@@ -3896,7 +3896,7 @@
 						<object class="NSArray" key="dict.values">
 							<bool key="EncodedWithXMLCoder">YES</bool>
 							<object class="IBToOneOutletInfo">
-								<string key="name">fDisplayTheoraOptionsLabel</string>
+								<string key="name">fAdvPanelNotAvailableLabel</string>
 								<string key="candidateClassName">NSTextField</string>
 							</object>
 							<object class="IBToOneOutletInfo">
