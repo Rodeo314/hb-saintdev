@@ -703,6 +703,7 @@
 						<string key="NSFrame">{{4, 0}, {882, 34}}</string>
 						<reference key="NSSuperview" ref="738514360"/>
 						<reference key="NSWindow"/>
+						<reference key="NSNextKeyView"/>
 						<bool key="NSEnabled">YES</bool>
 						<object class="NSTextFieldCell" key="NSCell" id="456227852">
 							<int key="NSCellFlags">-1805647871</int>
@@ -1599,7 +1600,7 @@
 				<string key="NSExtension">NSResponder</string>
 			</object>
 			<object class="NSCustomView" id="679064762">
-				<reference key="NSNextResponder"/>
+				<nil key="NSNextResponder"/>
 				<int key="NSvFlags">256</int>
 				<object class="NSMutableArray" key="NSSubviews">
 					<bool key="EncodedWithXMLCoder">YES</bool>
@@ -1608,7 +1609,6 @@
 						<int key="NSvFlags">256</int>
 						<string key="NSFrame">{{199, 137}, {509, 17}}</string>
 						<reference key="NSSuperview" ref="679064762"/>
-						<reference key="NSWindow"/>
 						<bool key="NSEnabled">YES</bool>
 						<object class="NSTextFieldCell" key="NSCell" id="168605488">
 							<int key="NSCellFlags">67108864</int>
@@ -1623,9 +1623,6 @@
 					</object>
 				</object>
 				<string key="NSFrameSize">{906, 290}</string>
-				<reference key="NSSuperview"/>
-				<reference key="NSWindow"/>
-				<reference key="NSNextKeyView"/>
 				<object class="NSMutableString" key="NSClassName">
 					<characters key="NS.bytes">NSView</characters>
 				</object>
