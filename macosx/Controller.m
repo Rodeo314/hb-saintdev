@@ -5133,29 +5133,29 @@ the user is using "Custom" settings by determining the sender*/
     [fX264LevelPopUp                              setHidden:YES];
     [fX264LevelPopUpLabel                         setHidden:YES];
     [fX264FastDecodeCheck                         setHidden:YES];
-    [fDisplayX264PresetsAdditonalOptionsTextField setHidden:YES];
     [fDisplayX264PresetsAdditonalOptionsLabel     setHidden:YES];
+    [fDisplayX264PresetsAdditonalOptionsTextField setHidden:YES];
     [fDisplayX264PresetsUnparseTextField          setHidden:YES];
     [fX264PresetsBox                              setHidden:YES];
     switch (videoEncoder)
     {
         case HB_VCODEC_X264:
-            [fAdvancedOptions                             setHidden:NO];
-            [fX264UseAdvancedOptionsCheck                 setHidden:NO];
-            [fX264PresetsSlider                           setHidden:NO];
-            [fX264PresetSliderLabel                       setHidden:NO];
-            [fX264PresetSelectedTextField                 setHidden:NO];
-            [fX264TunePopUp                               setHidden:NO];
-            [fX264TunePopUpLabel                          setHidden:NO];
-            [fX264ProfilePopUp                            setHidden:NO];
-            [fX264ProfilePopUpLabel                       setHidden:NO];
-            [fX264LevelPopUp                              setHidden:NO];
-            [fX264LevelPopUpLabel                         setHidden:NO];
-            [fX264FastDecodeCheck                         setHidden:NO];
-            [fDisplayX264PresetsAdditonalOptionsTextField setHidden:NO];
-            [fDisplayX264PresetsAdditonalOptionsLabel     setHidden:NO];
-            [fDisplayX264PresetsUnparseTextField          setHidden:NO];
-            [fX264PresetsBox                              setHidden:NO];
+            [fAdvancedOptions                              setHidden:NO];
+            [fX264UseAdvancedOptionsCheck                  setHidden:NO];
+            [fX264PresetsSlider                            setHidden:NO];
+            [fX264PresetSliderLabel                        setHidden:NO];
+            [fX264PresetSelectedTextField                  setHidden:NO];
+            [fX264TunePopUp                                setHidden:NO];
+            [fX264TunePopUpLabel                           setHidden:NO];
+            [fX264ProfilePopUp                             setHidden:NO];
+            [fX264ProfilePopUpLabel                        setHidden:NO];
+            [fX264LevelPopUp                               setHidden:NO];
+            [fX264LevelPopUpLabel                          setHidden:NO];
+            [fX264FastDecodeCheck                          setHidden:NO];
+            [fDisplayX264PresetsAdditonalOptionsLabel      setHidden:NO];
+            [fDisplayX264PresetsAdditonalOptionsTextField  setHidden:NO];
+            [fDisplayX264PresetsUnparseTextField           setHidden:NO];
+            [fX264PresetsBox                               setHidden:NO];
             break;
 
         case HB_VCODEC_FFMPEG_MPEG2:
@@ -5472,39 +5472,75 @@ the user is using "Custom" settings by determining the sender*/
 
 - (void) enableX264Widgets: (bool) enable
 {
-    NSControl *controls[] =
+    // disable everything first, then enable what's required
+    [fX264PresetsSlider                           setEnabled:NO];
+    [fX264PresetSliderLabel                       setEnabled:NO];
+    [fX264PresetSelectedTextField                 setEnabled:NO];
+    [fX264TunePopUp                               setEnabled:NO];
+    [fX264TunePopUpLabel                          setEnabled:NO];
+    [fX264FastDecodeCheck                         setEnabled:NO];
+    [fDisplayX264PresetsAdditonalOptionsLabel     setEnabled:NO];
+    [fDisplayX264PresetsAdditonalOptionsTextField setEnabled:NO];
+    [fX264ProfilePopUp                            setEnabled:NO];
+    [fX264ProfilePopUpLabel                       setEnabled:NO];
+    [fX264LevelPopUp                              setEnabled:NO];
+    [fX264LevelPopUpLabel                         setEnabled:NO];
+    [fDisplayX264PresetsUnparseTextField          setEnabled:NO];
+    [fX264UseAdvancedOptionsCheck                 setEnabled:NO];
+    [fAdvancedOptions                               enableUI:NO];
+    
+    if (enable)
     {
-        fX264PresetsSlider, fX264PresetSliderLabel, fX264PresetSelectedTextField,
-        fX264TunePopUp, fX264TunePopUpLabel, fX264FastDecodeCheck,
-        fDisplayX264PresetsAdditonalOptionsTextField, fDisplayX264PresetsAdditonalOptionsLabel,
-        fX264ProfilePopUp, fX264ProfilePopUpLabel,
-        fX264LevelPopUp, fX264LevelPopUpLabel,
-        fDisplayX264PresetsUnparseTextField,
-    };
-    
-    // check whether the x264 preset system and the advanced panel should be enabled
-    BOOL enable_x264_controls  = (enable && [fX264UseAdvancedOptionsCheck state] == NSOffState);
-    BOOL enable_advanced_panel = (enable && [fX264UseAdvancedOptionsCheck state] == NSOnState);
-    
-    // enable/disable the checkbox and advanced panel
-    [fX264UseAdvancedOptionsCheck setEnabled:enable];
-    [fAdvancedOptions enableUI:enable_advanced_panel];
-    
-    // enable/disable the x264 preset system controls
-    for (unsigned i = 0; i < (sizeof(controls) / sizeof(NSControl*)); i++)
-    {
-        if ([[controls[i] className] isEqualToString: @"NSTextField"])
+        switch ([[fVidEncoderPopUp selectedItem] tag])
         {
-            NSTextField *tf = (NSTextField*)controls[i];
-            if (![tf isBezeled])
-            {
-                [tf setTextColor:(enable_x264_controls       ?
-                                  [NSColor controlTextColor] :
-                                  [NSColor disabledControlTextColor])];
-                continue;
-            }
+            case HB_VCODEC_X264:
+                if ([fX264UseAdvancedOptionsCheck state] == NSOnState)
+                {
+                    // enable the advanced panel
+                    [fAdvancedOptions enableUI:YES];
+                }
+                else
+                {
+                    // enable the x264 system widgets
+                    [fX264PresetsSlider                           setEnabled:YES];
+                    [fX264PresetSliderLabel                       setEnabled:YES];
+                    [fX264PresetSelectedTextField                 setEnabled:YES];
+                    [fX264TunePopUp                               setEnabled:YES];
+                    [fX264TunePopUpLabel                          setEnabled:YES];
+                    [fX264FastDecodeCheck                         setEnabled:YES];
+                    [fDisplayX264PresetsAdditonalOptionsLabel     setEnabled:YES];
+                    [fDisplayX264PresetsAdditonalOptionsTextField setEnabled:YES];
+                    [fX264ProfilePopUp                            setEnabled:YES];
+                    [fX264ProfilePopUpLabel                       setEnabled:YES];
+                    [fX264LevelPopUp                              setEnabled:YES];
+                    [fX264LevelPopUpLabel                         setEnabled:YES];
+                    [fDisplayX264PresetsUnparseTextField          setEnabled:YES];
+                }
+                // don't forget the x264 preset system vs. advanced panel toggle
+                [fX264UseAdvancedOptionsCheck setEnabled:YES];
+                break;
+                
+            default:
+                break;
         }
-        [controls[i] setEnabled:enable_x264_controls];
+    }
+    
+    // set the font for text fields based on wether they're enabled
+    NSTextField *textFields[] =
+    {
+        fX264PresetSliderLabel, fX264PresetSelectedTextField,
+        fX264TunePopUpLabel, fDisplayX264PresetsAdditonalOptionsLabel,
+        fDisplayX264PresetsAdditonalOptionsTextField, fX264ProfilePopUpLabel,
+        fX264LevelPopUpLabel, fDisplayX264PresetsUnparseTextField,
+    };
+    for (unsigned i = 0; i < (sizeof(textFields) / sizeof(NSTextField*)); i++)
+    {
+        if (![textFields[i] isBezeled])
+        {
+            [textFields[i] setTextColor:([textFields[i] isEnabled]  ?
+                                         [NSColor controlTextColor] :
+                                         [NSColor disabledControlTextColor])];
+        }
     }
 }
 
