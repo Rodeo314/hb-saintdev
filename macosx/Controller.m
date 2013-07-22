@@ -5143,6 +5143,7 @@ the user is using "Custom" settings by determining the sender*/
     [fDisplayAdvancedOptionsTextField    setHidden:YES];
     [fDisplayX264PresetsUnparseTextField setHidden:YES];
     [fX264PresetsBox                     setHidden:YES];
+    [fX264PresetsBox                setTransparent:YES];
     switch (videoEncoder)
     {
         case HB_VCODEC_X264:
@@ -5163,6 +5164,7 @@ the user is using "Custom" settings by determining the sender*/
             [fDisplayAdvancedOptionsTextField    setHidden:NO];
             [fDisplayX264PresetsUnparseTextField setHidden:NO];
             [fX264PresetsBox                     setHidden:NO];
+            [fX264PresetsBox                setTransparent:NO];
             break;
 
         case HB_VCODEC_FFMPEG_MPEG2:
