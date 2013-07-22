@@ -16,8 +16,6 @@
     IBOutlet NSTextField        * fX264optViewTitleLabel;
     IBOutlet NSTextField        * fDisplayX264OptionsLabel;
     IBOutlet NSTextField        * fDisplayX264Options;
-    IBOutlet NSTextField        * fDisplayLavcOptionsLabel;
-    IBOutlet NSTextField        * fDisplayLavcOptions;
     
     IBOutlet NSTextField        * fDisplayTheoraOptionsLabel;
     

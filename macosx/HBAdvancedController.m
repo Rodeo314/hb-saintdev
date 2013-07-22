@@ -56,8 +56,6 @@
         [fOptionsBox  setContentView:fX264optView];
         [fDisplayTheoraOptionsLabel setHidden:YES];
     }
-    [fDisplayLavcOptions      setHidden:YES];
-    [fDisplayLavcOptionsLabel setHidden:YES];
 }
 
  - (void) enableUI: (bool) b
