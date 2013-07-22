@@ -5127,42 +5127,42 @@ the user is using "Custom" settings by determining the sender*/
     int videoEncoder = [[fVidEncoderPopUp selectedItem] tag];
     
     /* hide everything then show only what's relevant for the new encoder */
-    [fAdvancedOptions                             setHidden:YES];
-    [fX264UseAdvancedOptionsCheck                 setHidden:YES];
-    [fX264PresetsSlider                           setHidden:YES];
-    [fX264PresetSliderLabel                       setHidden:YES];
-    [fX264PresetSelectedTextField                 setHidden:YES];
-    [fX264TunePopUp                               setHidden:YES];
-    [fX264TunePopUpLabel                          setHidden:YES];
-    [fH264ProfilePopUp                            setHidden:YES];
-    [fH264ProfilePopUpLabel                       setHidden:YES];
-    [fH264LevelPopUp                              setHidden:YES];
-    [fH264LevelPopUpLabel                         setHidden:YES];
-    [fX264FastDecodeCheck                         setHidden:YES];
-    [fDisplayAdvancedOptionsLabel     setHidden:YES];
-    [fDisplayAdvancedOptionsTextField setHidden:YES];
-    [fDisplayX264PresetsUnparseTextField          setHidden:YES];
-    [fX264PresetsBox                              setHidden:YES];
+    [fAdvancedOptions                    setHidden:YES];
+    [fX264UseAdvancedOptionsCheck        setHidden:YES];
+    [fX264PresetsSlider                  setHidden:YES];
+    [fX264PresetSliderLabel              setHidden:YES];
+    [fX264PresetSelectedTextField        setHidden:YES];
+    [fX264TunePopUp                      setHidden:YES];
+    [fX264TunePopUpLabel                 setHidden:YES];
+    [fH264ProfilePopUp                   setHidden:YES];
+    [fH264ProfilePopUpLabel              setHidden:YES];
+    [fH264LevelPopUp                     setHidden:YES];
+    [fH264LevelPopUpLabel                setHidden:YES];
+    [fX264FastDecodeCheck                setHidden:YES];
+    [fDisplayAdvancedOptionsLabel        setHidden:YES];
+    [fDisplayAdvancedOptionsTextField    setHidden:YES];
+    [fDisplayX264PresetsUnparseTextField setHidden:YES];
+    [fX264PresetsBox                     setHidden:YES];
     switch (videoEncoder)
     {
         case HB_VCODEC_X264:
-            [fAdvancedOptions                              setHidden:NO];
-            [fX264UseAdvancedOptionsCheck                  setHidden:NO];
-            [fX264PresetsSlider                            setHidden:NO];
-            [fX264PresetSliderLabel                        setHidden:NO];
-            [fX264PresetSelectedTextField                  setHidden:NO];
-            [fX264TunePopUp                                setHidden:NO];
-            [fX264TunePopUpLabel                           setHidden:NO];
-            [fH264ProfilePopUp                             setHidden:NO];
-            [fH264ProfilePopUpLabel                        setHidden:NO];
-            [fH264LevelPopUp                               setHidden:NO];
-            [fH264LevelPopUpLabel                          setHidden:NO];
-            [fX264FastDecodeCheck                          setHidden:NO];
-            [fDisplayAdvancedOptionsLabel setStringValue:@"Additional options:"];
-            [fDisplayAdvancedOptionsLabel      setHidden:NO];
-            [fDisplayAdvancedOptionsTextField  setHidden:NO];
-            [fDisplayX264PresetsUnparseTextField           setHidden:NO];
-            [fX264PresetsBox                               setHidden:NO];
+            [fAdvancedOptions                    setHidden:NO];
+            [fX264UseAdvancedOptionsCheck        setHidden:NO];
+            [fX264PresetsSlider                  setHidden:NO];
+            [fX264PresetSliderLabel              setHidden:NO];
+            [fX264PresetSelectedTextField        setHidden:NO];
+            [fX264TunePopUp                      setHidden:NO];
+            [fX264TunePopUpLabel                 setHidden:NO];
+            [fH264ProfilePopUp                   setHidden:NO];
+            [fH264ProfilePopUpLabel              setHidden:NO];
+            [fH264LevelPopUp                     setHidden:NO];
+            [fH264LevelPopUpLabel                setHidden:NO];
+            [fX264FastDecodeCheck                setHidden:NO];
+            [fDisplayAdvancedOptionsLabel   setStringValue:@"Additional options:"];
+            [fDisplayAdvancedOptionsLabel        setHidden:NO];
+            [fDisplayAdvancedOptionsTextField    setHidden:NO];
+            [fDisplayX264PresetsUnparseTextField setHidden:NO];
+            [fX264PresetsBox                     setHidden:NO];
             break;
 
         case HB_VCODEC_FFMPEG_MPEG2:
@@ -5170,7 +5170,7 @@ the user is using "Custom" settings by determining the sender*/
             [fDisplayAdvancedOptionsLabel setStringValue:@"Advanced options:"];
             [fDisplayAdvancedOptionsLabel      setHidden:NO];
             [fDisplayAdvancedOptionsTextField  setHidden:NO];
-            [fX264PresetsBox                               setHidden:NO];
+            [fX264PresetsBox                   setHidden:NO];
             break;
 
         default:
@@ -5484,21 +5484,21 @@ the user is using "Custom" settings by determining the sender*/
 - (void) enableX264Widgets: (bool) enable
 {
     // disable everything first, then enable what's required
-    [fX264PresetsSlider                           setEnabled:NO];
-    [fX264PresetSliderLabel                       setEnabled:NO];
-    [fX264PresetSelectedTextField                 setEnabled:NO];
-    [fX264TunePopUp                               setEnabled:NO];
-    [fX264TunePopUpLabel                          setEnabled:NO];
-    [fX264FastDecodeCheck                         setEnabled:NO];
-    [fDisplayAdvancedOptionsLabel     setEnabled:NO];
-    [fDisplayAdvancedOptionsTextField setEnabled:NO];
-    [fH264ProfilePopUp                            setEnabled:NO];
-    [fH264ProfilePopUpLabel                       setEnabled:NO];
-    [fH264LevelPopUp                              setEnabled:NO];
-    [fH264LevelPopUpLabel                         setEnabled:NO];
-    [fDisplayX264PresetsUnparseTextField          setEnabled:NO];
-    [fX264UseAdvancedOptionsCheck                 setEnabled:NO];
-    [fAdvancedOptions                               enableUI:NO];
+    [fX264PresetsSlider                  setEnabled:NO];
+    [fX264PresetSliderLabel              setEnabled:NO];
+    [fX264PresetSelectedTextField        setEnabled:NO];
+    [fX264TunePopUp                      setEnabled:NO];
+    [fX264TunePopUpLabel                 setEnabled:NO];
+    [fX264FastDecodeCheck                setEnabled:NO];
+    [fDisplayAdvancedOptionsLabel        setEnabled:NO];
+    [fDisplayAdvancedOptionsTextField    setEnabled:NO];
+    [fH264ProfilePopUp                   setEnabled:NO];
+    [fH264ProfilePopUpLabel              setEnabled:NO];
+    [fH264LevelPopUp                     setEnabled:NO];
+    [fH264LevelPopUpLabel                setEnabled:NO];
+    [fDisplayX264PresetsUnparseTextField setEnabled:NO];
+    [fX264UseAdvancedOptionsCheck        setEnabled:NO];
+    [fAdvancedOptions                      enableUI:NO];
     
     if (enable)
     {
@@ -5513,19 +5513,19 @@ the user is using "Custom" settings by determining the sender*/
                 else
                 {
                     // enable the x264 system widgets
-                    [fX264PresetsSlider                           setEnabled:YES];
-                    [fX264PresetSliderLabel                       setEnabled:YES];
-                    [fX264PresetSelectedTextField                 setEnabled:YES];
-                    [fX264TunePopUp                               setEnabled:YES];
-                    [fX264TunePopUpLabel                          setEnabled:YES];
-                    [fX264FastDecodeCheck                         setEnabled:YES];
-                    [fDisplayAdvancedOptionsLabel     setEnabled:YES];
-                    [fDisplayAdvancedOptionsTextField setEnabled:YES];
-                    [fH264ProfilePopUp                            setEnabled:YES];
-                    [fH264ProfilePopUpLabel                       setEnabled:YES];
-                    [fH264LevelPopUp                              setEnabled:YES];
-                    [fH264LevelPopUpLabel                         setEnabled:YES];
-                    [fDisplayX264PresetsUnparseTextField          setEnabled:YES];
+                    [fX264PresetsSlider                  setEnabled:YES];
+                    [fX264PresetSliderLabel              setEnabled:YES];
+                    [fX264PresetSelectedTextField        setEnabled:YES];
+                    [fX264TunePopUp                      setEnabled:YES];
+                    [fX264TunePopUpLabel                 setEnabled:YES];
+                    [fX264FastDecodeCheck                setEnabled:YES];
+                    [fDisplayAdvancedOptionsLabel        setEnabled:YES];
+                    [fDisplayAdvancedOptionsTextField    setEnabled:YES];
+                    [fH264ProfilePopUp                   setEnabled:YES];
+                    [fH264ProfilePopUpLabel              setEnabled:YES];
+                    [fH264LevelPopUp                     setEnabled:YES];
+                    [fH264LevelPopUpLabel                setEnabled:YES];
+                    [fDisplayX264PresetsUnparseTextField setEnabled:YES];
                 }
                 // don't forget the x264 preset system vs. advanced panel toggle
                 [fX264UseAdvancedOptionsCheck setEnabled:YES];
