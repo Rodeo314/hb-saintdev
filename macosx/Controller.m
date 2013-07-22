@@ -2607,7 +2607,7 @@ fWorkingCount = 0;
         [queueFileJob setObject:[NSNumber numberWithInt:0] forKey: @"x264UseAdvancedOptions"];
         [queueFileJob setObject:[self x264Preset]          forKey: @"x264Preset"];
         [queueFileJob setObject:[self x264Tune]            forKey: @"x264Tune"];
-        [queueFileJob setObject:[self x264OptionExtra]     forKey: @"x264OptionExtra"];
+        [queueFileJob setObject:[self advancedOptions]     forKey: @"x264OptionExtra"];
         [queueFileJob setObject:[self h264Profile]         forKey: @"h264Profile"];
         [queueFileJob setObject:[self h264Level]           forKey: @"h264Level"];
     }
@@ -2615,7 +2615,7 @@ fWorkingCount = 0;
     /* FFmpeg (lavc) Option String */
     if ([[fVidEncoderPopUp selectedItem] tag] & HB_VCODEC_FFMPEG_MASK)
     {
-        [queueFileJob setObject:[self x264OptionExtra] forKey:@"lavcOption"];
+        [queueFileJob setObject:[self advancedOptions] forKey:@"lavcOption"];
     }
 
 	[queueFileJob setObject:[NSNumber numberWithInt:[[fVidQualityMatrix selectedCell] tag] + 1] forKey:@"VideoQualityType"];
@@ -3031,7 +3031,7 @@ fWorkingCount = 0;
         // preset does not use the x264 preset system, reset the widgets
         [self setX264Preset:     nil];
         [self setX264Tune:       nil];
-        [self setX264OptionExtra:[queueToApply objectForKey:@"x264Option"]];
+        [self setAdvancedOptions:[queueToApply objectForKey:@"x264Option"]];
         [self setH264Profile:    nil];
         [self setH264Level:      nil];
         // enable the advanced panel and update the widgets
@@ -3043,7 +3043,7 @@ fWorkingCount = 0;
         // we are using the x264 preset system
         [self setX264Preset:     [queueToApply objectForKey:@"x264Preset"]];
         [self setX264Tune:       [queueToApply objectForKey:@"x264Tune"]];
-        [self setX264OptionExtra:[queueToApply objectForKey:@"x264OptionExtra"]];
+        [self setAdvancedOptions:[queueToApply objectForKey:@"x264OptionExtra"]];
         [self setH264Profile:    [queueToApply objectForKey:@"h264Profile"]];
         [self setH264Level:      [queueToApply objectForKey:@"h264Level"]];
         // preset does not use the advanced panel, reset it
@@ -3055,7 +3055,7 @@ fWorkingCount = 0;
 
     if ([[fVidEncoderPopUp selectedItem] tag] & HB_VCODEC_FFMPEG_MASK)
     {
-        [self setX264OptionExtra:[queueToApply objectForKey:@"lavcOption"]];
+        [self setAdvancedOptions:[queueToApply objectForKey:@"lavcOption"]];
     }
     
     /* Lets run through the following functions to get variables set there */
@@ -3381,7 +3381,7 @@ fWorkingCount = 0;
             {
                 x264_tune = [tmpString UTF8String];
             }
-            if ([(tmpString = [self x264OptionExtra]) length])
+            if ([(tmpString = [self advancedOptions]) length])
             {
                 advanced_opts = [tmpString UTF8String];
             }
@@ -5134,13 +5134,13 @@ the user is using "Custom" settings by determining the sender*/
     [fX264PresetSelectedTextField                 setHidden:YES];
     [fX264TunePopUp                               setHidden:YES];
     [fX264TunePopUpLabel                          setHidden:YES];
-    [fX264ProfilePopUp                            setHidden:YES];
-    [fX264ProfilePopUpLabel                       setHidden:YES];
-    [fX264LevelPopUp                              setHidden:YES];
-    [fX264LevelPopUpLabel                         setHidden:YES];
+    [fH264ProfilePopUp                            setHidden:YES];
+    [fH264ProfilePopUpLabel                       setHidden:YES];
+    [fH264LevelPopUp                              setHidden:YES];
+    [fH264LevelPopUpLabel                         setHidden:YES];
     [fX264FastDecodeCheck                         setHidden:YES];
-    [fDisplayX264PresetsAdditonalOptionsLabel     setHidden:YES];
-    [fDisplayX264PresetsAdditonalOptionsTextField setHidden:YES];
+    [fDisplayAdvancedOptionsLabel     setHidden:YES];
+    [fDisplayAdvancedOptionsTextField setHidden:YES];
     [fDisplayX264PresetsUnparseTextField          setHidden:YES];
     [fX264PresetsBox                              setHidden:YES];
     switch (videoEncoder)
@@ -5153,23 +5153,23 @@ the user is using "Custom" settings by determining the sender*/
             [fX264PresetSelectedTextField                  setHidden:NO];
             [fX264TunePopUp                                setHidden:NO];
             [fX264TunePopUpLabel                           setHidden:NO];
-            [fX264ProfilePopUp                             setHidden:NO];
-            [fX264ProfilePopUpLabel                        setHidden:NO];
-            [fX264LevelPopUp                               setHidden:NO];
-            [fX264LevelPopUpLabel                          setHidden:NO];
+            [fH264ProfilePopUp                             setHidden:NO];
+            [fH264ProfilePopUpLabel                        setHidden:NO];
+            [fH264LevelPopUp                               setHidden:NO];
+            [fH264LevelPopUpLabel                          setHidden:NO];
             [fX264FastDecodeCheck                          setHidden:NO];
-            [fDisplayX264PresetsAdditonalOptionsLabel setStringValue:@"Additional options:"];
-            [fDisplayX264PresetsAdditonalOptionsLabel      setHidden:NO];
-            [fDisplayX264PresetsAdditonalOptionsTextField  setHidden:NO];
+            [fDisplayAdvancedOptionsLabel setStringValue:@"Additional options:"];
+            [fDisplayAdvancedOptionsLabel      setHidden:NO];
+            [fDisplayAdvancedOptionsTextField  setHidden:NO];
             [fDisplayX264PresetsUnparseTextField           setHidden:NO];
             [fX264PresetsBox                               setHidden:NO];
             break;
 
         case HB_VCODEC_FFMPEG_MPEG2:
         case HB_VCODEC_FFMPEG_MPEG4:
-            [fDisplayX264PresetsAdditonalOptionsLabel setStringValue:@"Advanced options:"];
-            [fDisplayX264PresetsAdditonalOptionsLabel      setHidden:NO];
-            [fDisplayX264PresetsAdditonalOptionsTextField  setHidden:NO];
+            [fDisplayAdvancedOptionsLabel setStringValue:@"Advanced options:"];
+            [fDisplayAdvancedOptionsLabel      setHidden:NO];
+            [fDisplayAdvancedOptionsTextField  setHidden:NO];
             [fX264PresetsBox                               setHidden:NO];
             break;
 
@@ -5464,21 +5464,21 @@ the user is using "Custom" settings by determining the sender*/
     // the fastdecode checkbox is off by default
     [fX264FastDecodeCheck setState: NSOffState];
     // setup the h264 profile popup
-    [fX264ProfilePopUp removeAllItems];
+    [fH264ProfilePopUp removeAllItems];
     const char * const * h264_profiles = hb_h264_profiles();
     for (int i = 0; h264_profiles[i] != NULL; i++)
     {
-        [fX264ProfilePopUp addItemWithTitle: [NSString stringWithUTF8String:h264_profiles[i]]];
+        [fH264ProfilePopUp addItemWithTitle: [NSString stringWithUTF8String:h264_profiles[i]]];
     }
     // setup the h264 level popup
-    [fX264LevelPopUp removeAllItems];
+    [fH264LevelPopUp removeAllItems];
     const char * const * h264_levels = hb_h264_levels();
     for (int i = 0; h264_levels[i] != NULL; i++)
     {
-        [fX264LevelPopUp addItemWithTitle: [NSString stringWithUTF8String:h264_levels[i]]];
+        [fH264LevelPopUp addItemWithTitle: [NSString stringWithUTF8String:h264_levels[i]]];
     }
     // clear the additional x264 options
-    [fDisplayX264PresetsAdditonalOptionsTextField setStringValue:@""];
+    [fDisplayAdvancedOptionsTextField setStringValue:@""];
 }
 
 - (void) enableX264Widgets: (bool) enable
@@ -5490,12 +5490,12 @@ the user is using "Custom" settings by determining the sender*/
     [fX264TunePopUp                               setEnabled:NO];
     [fX264TunePopUpLabel                          setEnabled:NO];
     [fX264FastDecodeCheck                         setEnabled:NO];
-    [fDisplayX264PresetsAdditonalOptionsLabel     setEnabled:NO];
-    [fDisplayX264PresetsAdditonalOptionsTextField setEnabled:NO];
-    [fX264ProfilePopUp                            setEnabled:NO];
-    [fX264ProfilePopUpLabel                       setEnabled:NO];
-    [fX264LevelPopUp                              setEnabled:NO];
-    [fX264LevelPopUpLabel                         setEnabled:NO];
+    [fDisplayAdvancedOptionsLabel     setEnabled:NO];
+    [fDisplayAdvancedOptionsTextField setEnabled:NO];
+    [fH264ProfilePopUp                            setEnabled:NO];
+    [fH264ProfilePopUpLabel                       setEnabled:NO];
+    [fH264LevelPopUp                              setEnabled:NO];
+    [fH264LevelPopUpLabel                         setEnabled:NO];
     [fDisplayX264PresetsUnparseTextField          setEnabled:NO];
     [fX264UseAdvancedOptionsCheck                 setEnabled:NO];
     [fAdvancedOptions                               enableUI:NO];
@@ -5519,12 +5519,12 @@ the user is using "Custom" settings by determining the sender*/
                     [fX264TunePopUp                               setEnabled:YES];
                     [fX264TunePopUpLabel                          setEnabled:YES];
                     [fX264FastDecodeCheck                         setEnabled:YES];
-                    [fDisplayX264PresetsAdditonalOptionsLabel     setEnabled:YES];
-                    [fDisplayX264PresetsAdditonalOptionsTextField setEnabled:YES];
-                    [fX264ProfilePopUp                            setEnabled:YES];
-                    [fX264ProfilePopUpLabel                       setEnabled:YES];
-                    [fX264LevelPopUp                              setEnabled:YES];
-                    [fX264LevelPopUpLabel                         setEnabled:YES];
+                    [fDisplayAdvancedOptionsLabel     setEnabled:YES];
+                    [fDisplayAdvancedOptionsTextField setEnabled:YES];
+                    [fH264ProfilePopUp                            setEnabled:YES];
+                    [fH264ProfilePopUpLabel                       setEnabled:YES];
+                    [fH264LevelPopUp                              setEnabled:YES];
+                    [fH264LevelPopUpLabel                         setEnabled:YES];
                     [fDisplayX264PresetsUnparseTextField          setEnabled:YES];
                 }
                 // don't forget the x264 preset system vs. advanced panel toggle
@@ -5534,8 +5534,8 @@ the user is using "Custom" settings by determining the sender*/
             case HB_VCODEC_FFMPEG_MPEG4:
             case HB_VCODEC_FFMPEG_MPEG2:
                 // enable the advanced options text box
-                [fDisplayX264PresetsAdditonalOptionsLabel     setEnabled:YES];
-                [fDisplayX264PresetsAdditonalOptionsTextField setEnabled:YES];
+                [fDisplayAdvancedOptionsLabel     setEnabled:YES];
+                [fDisplayAdvancedOptionsTextField setEnabled:YES];
                 break;
                 
             default:
@@ -5547,9 +5547,9 @@ the user is using "Custom" settings by determining the sender*/
     NSTextField *textFields[] =
     {
         fX264PresetSliderLabel, fX264PresetSelectedTextField,
-        fX264TunePopUpLabel, fDisplayX264PresetsAdditonalOptionsLabel,
-        fDisplayX264PresetsAdditonalOptionsTextField, fX264ProfilePopUpLabel,
-        fX264LevelPopUpLabel, fDisplayX264PresetsUnparseTextField,
+        fX264TunePopUpLabel, fDisplayAdvancedOptionsLabel,
+        fDisplayAdvancedOptionsTextField, fH264ProfilePopUpLabel,
+        fH264LevelPopUpLabel, fDisplayX264PresetsUnparseTextField,
     };
     for (unsigned i = 0; i < (sizeof(textFields) / sizeof(NSTextField*)); i++)
     {
@@ -5621,25 +5621,25 @@ the user is using "Custom" settings by determining the sender*/
     return x264Tune;
 }
 
-- (NSString*) x264OptionExtra
+- (NSString*) advancedOptions
 {
-    return [fDisplayX264PresetsAdditonalOptionsTextField stringValue];
+    return [fDisplayAdvancedOptionsTextField stringValue];
 }
 
 - (NSString*) h264Profile
 {
-    if ([fX264ProfilePopUp indexOfSelectedItem])
+    if ([fH264ProfilePopUp indexOfSelectedItem])
     {
-        return [fX264ProfilePopUp titleOfSelectedItem];
+        return [fH264ProfilePopUp titleOfSelectedItem];
     }
     return @"";
 }
 
 - (NSString*) h264Level
 {
-    if ([fX264LevelPopUp indexOfSelectedItem])
+    if ([fH264LevelPopUp indexOfSelectedItem])
     {
-        return [fX264LevelPopUp titleOfSelectedItem];
+        return [fH264LevelPopUp titleOfSelectedItem];
     }
     return @"";
 }
@@ -5694,29 +5694,29 @@ the user is using "Custom" settings by determining the sender*/
     }
 }
 
-- (void) setX264OptionExtra: (NSString*)x264OptionExtra
+- (void) setAdvancedOptions: (NSString*)advancedOptions
 {
-    if (!x264OptionExtra)
+    if (!advancedOptions)
     {
-        [fDisplayX264PresetsAdditonalOptionsTextField setStringValue:@""];
+        [fDisplayAdvancedOptionsTextField setStringValue:@""];
         return;
     }
-    [fDisplayX264PresetsAdditonalOptionsTextField setStringValue:x264OptionExtra];
+    [fDisplayAdvancedOptionsTextField setStringValue:advancedOptions];
 }
 
 - (void) setH264Profile: (NSString*)h264Profile
 {
     if (!h264Profile)
     {
-        [fX264ProfilePopUp selectItemAtIndex:0];
+        [fH264ProfilePopUp selectItemAtIndex:0];
         return;
     }
     // set the profile
-    [fX264ProfilePopUp selectItemWithTitle:h264Profile];
+    [fH264ProfilePopUp selectItemWithTitle:h264Profile];
     // fallback
-    if ([fX264ProfilePopUp indexOfSelectedItem] == -1)
+    if ([fH264ProfilePopUp indexOfSelectedItem] == -1)
     {
-        [fX264ProfilePopUp selectItemAtIndex:0];
+        [fH264ProfilePopUp selectItemAtIndex:0];
     }
 }
 
@@ -5724,15 +5724,15 @@ the user is using "Custom" settings by determining the sender*/
 {
     if (!h264Level)
     {
-        [fX264LevelPopUp selectItemAtIndex:0];
+        [fH264LevelPopUp selectItemAtIndex:0];
         return;
     }
     // set the level
-    [fX264LevelPopUp selectItemWithTitle:h264Level];
+    [fH264LevelPopUp selectItemWithTitle:h264Level];
     // fallback
-    if ([fX264LevelPopUp indexOfSelectedItem] == -1)
+    if ([fH264LevelPopUp indexOfSelectedItem] == -1)
     {
-        [fX264LevelPopUp selectItemAtIndex:0];
+        [fH264LevelPopUp selectItemAtIndex:0];
     }
 }
 
@@ -5773,7 +5773,7 @@ the user is using "Custom" settings by determining the sender*/
     {
         x264_tune = [tmpString UTF8String];
     }
-    if ([(tmpString = [self x264OptionExtra]) length])
+    if ([(tmpString = [self advancedOptions]) length])
     {
         advanced_opts = [tmpString UTF8String];
     }
@@ -6567,12 +6567,12 @@ return YES;
                 {
                     /* we set the advanced options string here if applicable */
                     [fAdvancedOptions setOptions:        [chosenPreset objectForKey:@"x264Option"]];
-                    [self             setX264OptionExtra:[chosenPreset objectForKey:@"x264Option"]];
+                    [self             setAdvancedOptions:[chosenPreset objectForKey:@"x264Option"]];
                 }
                 else
                 {
                     [fAdvancedOptions setOptions:        @""];
-                    [self             setX264OptionExtra:nil];
+                    [self             setAdvancedOptions:nil];
                 }
                 /* preset does not use the x264 preset system, reset the widgets */
                 [self setX264Preset: nil];
@@ -6591,7 +6591,7 @@ return YES;
                  */
                 [self setX264Preset:     [chosenPreset objectForKey:@"x264Preset"]];
                 [self setX264Tune:       [chosenPreset objectForKey:@"x264Tune"]];
-                [self setX264OptionExtra:[chosenPreset objectForKey:@"x264OptionExtra"]];
+                [self setAdvancedOptions:[chosenPreset objectForKey:@"x264OptionExtra"]];
                 [self setH264Profile:    [chosenPreset objectForKey:@"h264Profile"]];
                 [self setH264Level:      [chosenPreset objectForKey:@"h264Level"]];
                 /* preset does not use the advanced panel, reset it */
@@ -6606,11 +6606,11 @@ return YES;
         {
             if ([chosenPreset objectForKey:@"lavcOption"])
             {
-                [self setX264OptionExtra:[chosenPreset objectForKey:@"lavcOption"]];
+                [self setAdvancedOptions:[chosenPreset objectForKey:@"lavcOption"]];
             }
             else
             {
-                [self setX264OptionExtra:@""];
+                [self setAdvancedOptions:@""];
             }
         }
         
@@ -7242,7 +7242,7 @@ return YES;
             [preset setObject:[NSNumber numberWithInt:0] forKey:@"x264UseAdvancedOptions"];
             [preset setObject:[self x264Preset]          forKey:@"x264Preset"];
             [preset setObject:[self x264Tune]            forKey:@"x264Tune"];
-            [preset setObject:[self x264OptionExtra]     forKey:@"x264OptionExtra"];
+            [preset setObject:[self advancedOptions]     forKey:@"x264OptionExtra"];
             [preset setObject:[self h264Profile]         forKey:@"h264Profile"];
             [preset setObject:[self h264Level]           forKey:@"h264Level"];
             /*
@@ -7263,7 +7263,7 @@ return YES;
         /* FFmpeg (lavc) Option String */
         if ([[fVidEncoderPopUp selectedItem] tag] & HB_VCODEC_FFMPEG_MASK)
         {
-            [preset setObject:[self x264OptionExtra] forKey:@"lavcOption"];
+            [preset setObject:[self advancedOptions] forKey:@"lavcOption"];
         }
         
         /* though there are actually only 0 - 1 types available in the ui we need to map to the old 0 - 2
