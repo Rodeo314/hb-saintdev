@@ -127,6 +127,7 @@
 							<string key="NSFrame">{{18, -26}, {930, 20}}</string>
 							<reference key="NSSuperview" ref="168918359"/>
 							<reference key="NSWindow"/>
+							<reference key="NSNextKeyView"/>
 							<int key="NSpiFlags">16396</int>
 							<double key="NSMaxValue">100</double>
 						</object>
@@ -136,6 +137,7 @@
 							<string key="NSFrame">{{13, 28}, {940, 343}}</string>
 							<reference key="NSSuperview" ref="168918359"/>
 							<reference key="NSWindow"/>
+							<reference key="NSNextKeyView" ref="1053078401"/>
 							<object class="NSMutableArray" key="NSTabViewItems">
 								<bool key="EncodedWithXMLCoder">YES</bool>
 								<object class="NSTabViewItem" id="107038816">
@@ -358,6 +360,7 @@
 												<string key="NSFrame">{{16, 4}, {892, 14}}</string>
 												<reference key="NSSuperview" ref="1053078401"/>
 												<reference key="NSWindow"/>
+												<reference key="NSNextKeyView" ref="794651271"/>
 												<bool key="NSEnabled">YES</bool>
 												<object class="NSTextFieldCell" key="NSCell" id="109092334">
 													<int key="NSCellFlags">67108864</int>
@@ -1415,6 +1418,7 @@ AAMAAAABAAEAAAFTAAMAAAAEAAAFwgAAAAAACAAIAAgACAABAAEAAQABA</bytes>
 																<string key="NSFrame">{{12, 6}, {863, 29}}</string>
 																<reference key="NSSuperview" ref="443817184"/>
 																<reference key="NSWindow"/>
+																<reference key="NSNextKeyView" ref="987137669"/>
 																<bool key="NSEnabled">YES</bool>
 																<object class="NSTextFieldCell" key="NSCell" id="812860538">
 																	<int key="NSCellFlags">67108864</int>
@@ -12604,6 +12608,10 @@ AAMAAAABAAEAAAFTAAMAAAAEAAAFwgAAAAAACAAIAAgACAABAAEAAQABA</bytes>
 							<string>fFramerateCfrCell</string>
 							<string>fFramerateMatrix</string>
 							<string>fFramerateVfrPfrCell</string>
+							<string>fH264LevelPopUp</string>
+							<string>fH264LevelPopUpLabel</string>
+							<string>fH264ProfilePopUp</string>
+							<string>fH264ProfilePopUpLabel</string>
 							<string>fLoadChaptersButton</string>
 							<string>fPictureFiltersField</string>
 							<string>fPictureSettingsField</string>
@@ -12668,14 +12676,10 @@ AAMAAAABAAEAAAFTAAMAAAAEAAAFwgAAAAAACAAIAAgACAABAAEAAQABA</bytes>
 							<string>fVidTwoPassCheck</string>
 							<string>fWindow</string>
 							<string>fX264FastDecodeCheck</string>
-							<string>fH264LevelPopUp</string>
-							<string>fH264LevelPopUpLabel</string>
 							<string>fX264PresetSelectedTextField</string>
 							<string>fX264PresetSliderLabel</string>
 							<string>fX264PresetsBox</string>
 							<string>fX264PresetsSlider</string>
-							<string>fH264ProfilePopUp</string>
-							<string>fH264ProfilePopUpLabel</string>
 							<string>fX264TunePopUp</string>
 							<string>fX264TunePopUpLabel</string>
 							<string>fX264UseAdvancedOptionsCheck</string>
@@ -12711,6 +12715,10 @@ AAMAAAABAAEAAAFTAAMAAAAEAAAFwgAAAAAACAAIAAgACAABAAEAAQABA</bytes>
 							<string>NSButtonCell</string>
 							<string>NSMatrix</string>
 							<string>NSButtonCell</string>
+							<string>NSPopUpButton</string>
+							<string>NSTextField</string>
+							<string>NSPopUpButton</string>
+							<string>NSTextField</string>
 							<string>NSButton</string>
 							<string>NSTextField</string>
 							<string>NSTextField</string>
@@ -12775,14 +12783,10 @@ AAMAAAABAAEAAAFTAAMAAAAEAAAFwgAAAAAACAAIAAgACAABAAEAAQABA</bytes>
 							<string>NSButton</string>
 							<string>NSWindow</string>
 							<string>NSButton</string>
-							<string>NSPopUpButton</string>
-							<string>NSTextField</string>
 							<string>NSTextField</string>
 							<string>NSTextField</string>
 							<string>NSBox</string>
 							<string>NSSlider</string>
-							<string>NSPopUpButton</string>
-							<string>NSTextField</string>
 							<string>NSPopUpButton</string>
 							<string>NSTextField</string>
 							<string>NSButton</string>
@@ -12821,6 +12825,10 @@ AAMAAAABAAEAAAFTAAMAAAAEAAAFwgAAAAAACAAIAAgACAABAAEAAQABA</bytes>
 							<string>fFramerateCfrCell</string>
 							<string>fFramerateMatrix</string>
 							<string>fFramerateVfrPfrCell</string>
+							<string>fH264LevelPopUp</string>
+							<string>fH264LevelPopUpLabel</string>
+							<string>fH264ProfilePopUp</string>
+							<string>fH264ProfilePopUpLabel</string>
 							<string>fLoadChaptersButton</string>
 							<string>fPictureFiltersField</string>
 							<string>fPictureSettingsField</string>
@@ -12885,14 +12893,10 @@ AAMAAAABAAEAAAFTAAMAAAAEAAAFwgAAAAAACAAIAAgACAABAAEAAQABA</bytes>
 							<string>fVidTwoPassCheck</string>
 							<string>fWindow</string>
 							<string>fX264FastDecodeCheck</string>
-							<string>fH264LevelPopUp</string>
-							<string>fH264LevelPopUpLabel</string>
 							<string>fX264PresetSelectedTextField</string>
 							<string>fX264PresetSliderLabel</string>
 							<string>fX264PresetsBox</string>
 							<string>fX264PresetsSlider</string>
-							<string>fH264ProfilePopUp</string>
-							<string>fH264ProfilePopUpLabel</string>
 							<string>fX264TunePopUp</string>
 							<string>fX264TunePopUpLabel</string>
 							<string>fX264UseAdvancedOptionsCheck</string>
@@ -13014,6 +13018,22 @@ AAMAAAABAAEAAAFTAAMAAAAEAAAFwgAAAAAACAAIAAgACAABAAEAAQABA</bytes>
 							<object class="IBToOneOutletInfo">
 								<string key="name">fFramerateVfrPfrCell</string>
 								<string key="candidateClassName">NSButtonCell</string>
+							</object>
+							<object class="IBToOneOutletInfo">
+								<string key="name">fH264LevelPopUp</string>
+								<string key="candidateClassName">NSPopUpButton</string>
+							</object>
+							<object class="IBToOneOutletInfo">
+								<string key="name">fH264LevelPopUpLabel</string>
+								<string key="candidateClassName">NSTextField</string>
+							</object>
+							<object class="IBToOneOutletInfo">
+								<string key="name">fH264ProfilePopUp</string>
+								<string key="candidateClassName">NSPopUpButton</string>
+							</object>
+							<object class="IBToOneOutletInfo">
+								<string key="name">fH264ProfilePopUpLabel</string>
+								<string key="candidateClassName">NSTextField</string>
 							</object>
 							<object class="IBToOneOutletInfo">
 								<string key="name">fLoadChaptersButton</string>
@@ -13272,14 +13292,6 @@ AAMAAAABAAEAAAFTAAMAAAAEAAAFwgAAAAAACAAIAAgACAABAAEAAQABA</bytes>
 								<string key="candidateClassName">NSButton</string>
 							</object>
 							<object class="IBToOneOutletInfo">
-								<string key="name">fH264LevelPopUp</string>
-								<string key="candidateClassName">NSPopUpButton</string>
-							</object>
-							<object class="IBToOneOutletInfo">
-								<string key="name">fH264LevelPopUpLabel</string>
-								<string key="candidateClassName">NSTextField</string>
-							</object>
-							<object class="IBToOneOutletInfo">
 								<string key="name">fX264PresetSelectedTextField</string>
 								<string key="candidateClassName">NSTextField</string>
 							</object>
@@ -13294,14 +13306,6 @@ AAMAAAABAAEAAAFTAAMAAAAEAAAFwgAAAAAACAAIAAgACAABAAEAAQABA</bytes>
 							<object class="IBToOneOutletInfo">
 								<string key="name">fX264PresetsSlider</string>
 								<string key="candidateClassName">NSSlider</string>
-							</object>
-							<object class="IBToOneOutletInfo">
-								<string key="name">fH264ProfilePopUp</string>
-								<string key="candidateClassName">NSPopUpButton</string>
-							</object>
-							<object class="IBToOneOutletInfo">
-								<string key="name">fH264ProfilePopUpLabel</string>
-								<string key="candidateClassName">NSTextField</string>
 							</object>
 							<object class="IBToOneOutletInfo">
 								<string key="name">fX264TunePopUp</string>
