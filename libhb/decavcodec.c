@@ -167,15 +167,13 @@ static int hb_qsv_decode_setup(AVCodec **codec, enum AVCodecID codec_id)
         goto fail;
     }
 
-    switch (codec_id)
+    const char *codec_name = hb_qsv_decode_get_codec_name(codec_id);
+    if (codec_name == NULL)
     {
-        case AV_CODEC_ID_H264:
-            *codec = avcodec_find_decoder_by_name("h264_qsv");
-            break;
-        default:
-            hb_error("hb_qsv_decode_setup: unsupported codec_id %d", codec_id);
-            goto fail;
+        hb_error("hb_qsv_decode_setup: unsupported codec_id %d", codec_id);
+        goto fail;
     }
+    *codec = avcodec_find_decoder_by_name(codec_name);
     return (*codec != NULL);
 
 fail:
@@ -1234,15 +1232,15 @@ static int decavcodecvInit( hb_work_object_t * w, hb_job_t * job )
         AVCodec *codec = NULL;
 
 #ifdef USE_QSV
-        if (job != NULL && job->vcodec == HB_VCODEC_QSV_H264 &&
-            w->codec_param == AV_CODEC_ID_H264)
+        if (job != NULL &&
+            job->vcodec == HB_VCODEC_QSV_H264 && job->title->qsv_decode_support)
         {
             pv->qsv_decode = hb_qsv_decode_setup(&codec, w->codec_param);
+        }
+        if (pv->qsv_decode)
+        {
 #ifdef USE_QSV_PTS_WORKAROUND
-            if (pv->qsv_decode)
-            {
-                pv->qsv_pts_list = hb_list_init();
-            }
+            pv->qsv_pts_list = hb_list_init();
 #endif
             // parse QSV options before decoding
             // FIXME: why do we need this here?
@@ -1308,20 +1306,22 @@ static int decavcodecvInit( hb_work_object_t * w, hb_job_t * job )
         AVCodec *codec = NULL;
 
 #ifdef USE_QSV
-        if (job != NULL && job->vcodec == HB_VCODEC_QSV_H264 &&
-            w->codec_param == AV_CODEC_ID_H264)
+        if (job != NULL &&
+            job->vcodec == HB_VCODEC_QSV_H264 && job->title->qsv_decode_support)
         {
             pv->qsv_decode = hb_qsv_decode_setup(&codec, w->codec_param);
+        }
+        if (pv->qsv_decode)
+        {
 #ifdef USE_QSV_PTS_WORKAROUND
-            if (pv->qsv_decode)
-            {
-                pv->qsv_pts_list = hb_list_init();
-            }
+            pv->qsv_pts_list = hb_list_init();
 #endif
         }
         else
 #endif
+        {
             codec = avcodec_find_decoder(w->codec_param);
+        }
 
 
         pv->parser = av_parser_init( w->codec_param );
@@ -1466,20 +1466,23 @@ static int decavcodecvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
 
         AVCodec *codec = NULL;
 #ifdef USE_QSV
-        if (pv->job != NULL && pv->job->vcodec == HB_VCODEC_QSV_H264 &&
-            w->codec_param == AV_CODEC_ID_H264)
+        if (pv->job != NULL &&
+            pv->job->vcodec == HB_VCODEC_QSV_H264 &&
+            pv->job->title->qsv_decode_support)
         {
             pv->qsv_decode = hb_qsv_decode_setup(&codec, w->codec_param);
+        }
+        if (pv->qsv_decode)
+        {
 #ifdef USE_QSV_PTS_WORKAROUND
-            if (pv->qsv_decode)
-            {
-                pv->qsv_pts_list = hb_list_init();
-            }
+            pv->qsv_pts_list = hb_list_init();
 #endif
         }
         else
 #endif
+        {
             codec = avcodec_find_decoder(w->codec_param);
+        }
 
         if ( codec == NULL )
         {
@@ -1722,6 +1725,14 @@ static int decavcodecvInfo( hb_work_object_t *w, hb_work_info_t *info )
             break;
         }
     }
+
+#ifdef USE_QSV
+    if (hb_qsv_decode_is_supported(pv->context->codec_id, pv->context->pix_fmt))
+    {
+        info->qsv_decode_support = 1;
+        info->name = hb_qsv_decode_get_codec_name(pv->context->codec_id);
+    }
+#endif
 
     return 1;
 }

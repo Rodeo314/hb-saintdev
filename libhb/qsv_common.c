@@ -232,3 +232,28 @@ void hb_qsv_info_print()
         }
     }
 }
+
+int hb_qsv_decode_is_supported(enum AVCodecID codec_id,
+                               enum AVPixelFormat pix_fmt)
+{
+    switch (codec_id)
+    {
+        case AV_CODEC_ID_H264:
+            return (pix_fmt == AV_PIX_FMT_YUV420P);
+
+        default:
+            return 0;
+    }
+}
+
+const char* hb_qsv_decode_get_codec_name(enum AVCodecID codec_id)
+{
+    switch (codec_id)
+    {
+        case AV_CODEC_ID_H264:
+            return "h264_qsv";
+
+        default:
+            return NULL;
+    }
+}

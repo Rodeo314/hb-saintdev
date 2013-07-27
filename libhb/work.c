@@ -666,7 +666,7 @@ static void do_job(hb_job_t *job)
      * when QSV is used for decoding, not all CPU-based filters
      * are supported, so we need to do a little extra setup here
      */
-    if (job->vcodec == HB_VCODEC_QSV_H264 && title->video_codec_param == AV_CODEC_ID_H264)
+    if (job->vcodec == HB_VCODEC_QSV_H264 && title->qsv_decode_support)
     {
         int vpp_settings[7];
         int num_cpu_filters = 0;
@@ -852,14 +852,18 @@ static void do_job(hb_job_t *job)
         }
     }
 
-    if( job->vcodec == HB_VCODEC_QSV_H264 && title->video_codec_param == AV_CODEC_ID_H264){
+#ifdef USE_QSV
+    if (job->vcodec == HB_VCODEC_QSV_H264 && title->qsv_decode_support)
+    {
         job->fifo_mpeg2  = hb_fifo_init( FIFO_MINI, FIFO_MINI_WAKE );
         job->fifo_raw    = hb_fifo_init( FIFO_MINI, FIFO_MINI_WAKE );
         job->fifo_sync   = hb_fifo_init( FIFO_MINI, FIFO_MINI_WAKE );
         job->fifo_render = hb_fifo_init( FIFO_MINI, FIFO_MINI_WAKE );
-        job->fifo_mpeg4 = hb_fifo_init( FIFO_MINI, FIFO_MINI_WAKE );
+        job->fifo_mpeg4  = hb_fifo_init( FIFO_MINI, FIFO_MINI_WAKE );
     }
-    else{
+    else
+#endif
+    {
         job->fifo_mpeg2  = hb_fifo_init( FIFO_LARGE, FIFO_LARGE_WAKE );
         job->fifo_raw    = hb_fifo_init( FIFO_SMALL, FIFO_SMALL_WAKE );
         job->fifo_sync   = hb_fifo_init( FIFO_SMALL, FIFO_SMALL_WAKE );

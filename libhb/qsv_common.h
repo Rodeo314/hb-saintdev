@@ -11,6 +11,7 @@
 #define HB_QSV_COMMON_H
 
 #include "msdk/mfxvideo.h"
+#include "libavcodec/avcodec.h"
 
 /* Minimum Intel Media SDK version (currently 1.3, for Sandy Bridge support) */
 #define HB_QSV_MINVERSION_MAJOR AV_QSV_MSDK_VERSION_MAJOR
@@ -57,5 +58,10 @@ extern hb_qsv_info_t *hb_qsv_info;
 int  hb_qsv_available();
 int  hb_qsv_info_init();
 void hb_qsv_info_print();
+
+/* Intel Quick Sync Video DECODE utilities */
+int hb_qsv_decode_is_supported(enum AVCodecID codec_id,
+                               enum AVPixelFormat pix_fmt);
+const char* hb_qsv_decode_get_codec_name(enum AVCodecID codec_id);
 
 #endif
