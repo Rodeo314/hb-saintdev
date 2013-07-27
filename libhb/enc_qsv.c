@@ -145,8 +145,6 @@ struct hb_work_private_s
     mfxU16  la_depth;
 };
 
-extern char* get_codec_id(hb_work_private_t *pv);
-
 // for DTS generation (when MSDK API < 1.6 or VFR)
 static void hb_qsv_add_new_dts(hb_list_t *list, int64_t new_dts)
 {
@@ -183,22 +181,11 @@ int qsv_enc_init( av_qsv_context* qsv, hb_work_private_t * pv ){
 
     hb_job_t       * job  = pv->job;
 
-    if(!qsv){
-        int x = 0;
-        for(;x < hb_list_count( job->list_work );x++){
-            hb_work_object_t * w = hb_list_item( job->list_work, x );
-            if(w->id == WORK_DECAVCODECV || w->id == WORK_DECMPEG2){
-                char *codec = get_codec_id(w->private_data);
-                is_encode_only = strstr(codec,"qsv") == 0 ? 1 : 0;
-                if(is_encode_only)
-                    qsv = av_mallocz( sizeof( av_qsv_context ) );
-                else
-                    hb_error( "Wrong settings for decode/encode" );
-                break;
-            }
-        }
+    if (qsv == NULL)
+    {
+        is_encode_only = 1;
+        qsv = av_mallocz(sizeof(av_qsv_context));
     }
-    if(!qsv && !is_encode_only) return 3;
 
     av_qsv_space* qsv_encode = qsv->enc_space;
 
