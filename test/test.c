@@ -1603,11 +1603,6 @@ static int HandleEvents( hb_handle_t * h )
 
             hb_filter_object_t * filter;
 
-            if(vcodec == HB_VCODEC_QSV_H264)
-            {
-                job->vcodec = vcodec;
-            }
-
             /* Add selected filters */
             if( detelecine )
             {
@@ -1820,23 +1815,6 @@ static int HandleEvents( hb_handle_t * h )
             filter = hb_filter_init( HB_FILTER_CROP_SCALE );
             hb_add_filter( job, filter, filter_str );
             free( filter_str );
-
-            if(vcodec == HB_VCODEC_QSV_H264)
-            {
-                char * filter_str;
-                filter_str = hb_strdup_printf("%d:%d:%d:%d:%d:%d_dei:%s",
-                        job->width, job->height,
-                        job->crop[0], job->crop[1], job->crop[2], job->crop[3], deinterlace ? (deinterlace_opt ? deinterlace_opt: "-1") : "0" );
-                filter = hb_filter_init( HB_FILTER_QSV );
-                hb_add_filter( job, filter, filter_str );
-                free( filter_str );
-
-                filter = hb_filter_init( HB_FILTER_QSV_PRE );
-                hb_add_filter( job, filter, NULL );
-                filter = hb_filter_init( HB_FILTER_QSV_POST );
-                hb_add_filter( job, filter, NULL );
-            }
-
 
             // Add framerate shaping filter
             if (vrate)
