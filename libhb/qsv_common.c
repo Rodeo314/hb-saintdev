@@ -216,7 +216,7 @@ void hb_qsv_info_print()
     {
         if (qsv_hardware_available)
         {
-            hb_log(" - Intel Media SDK (hardware): API %d.%d (minimum: %d.%d)",
+            hb_log(" - Intel Media SDK hardware: API %d.%d (minimum: %d.%d)",
                    qsv_hardware_version.Major,
                    qsv_hardware_version.Minor,
                    qsv_minimum_version.Major,
@@ -224,7 +224,7 @@ void hb_qsv_info_print()
         }
         if (qsv_software_available)
         {
-            hb_log(" - Intel Media SDK (software): API %d.%d (minimum: %d.%d)",
+            hb_log(" - Intel Media SDK software: API %d.%d (minimum: %d.%d)",
                    qsv_software_version.Major,
                    qsv_software_version.Minor,
                    qsv_minimum_version.Major,
