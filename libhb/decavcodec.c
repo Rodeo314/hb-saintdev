@@ -159,12 +159,11 @@ static int64_t hb_av_pop_next_pts(hb_list_t *list)
 #endif
 
 #ifdef USE_QSV
-static int hb_qsv_decode_setup(AVCodec **codec, enum AVCodecID codec_id,
-                               hb_title_t *title)
+static int hb_qsv_decode_setup(AVCodec **codec, enum AVCodecID codec_id)
 {
-    if (codec == NULL || title == NULL)
+    if (codec == NULL)
     {
-        hb_error("hb_qsv_decode_setup: invalid codec or title");
+        hb_error("hb_qsv_decode_setup: invalid codec");
         goto fail;
     }
 
@@ -1238,8 +1237,7 @@ static int decavcodecvInit( hb_work_object_t * w, hb_job_t * job )
         if (job != NULL && job->vcodec == HB_VCODEC_QSV_H264 &&
             w->codec_param == AV_CODEC_ID_H264)
         {
-            pv->qsv_decode = hb_qsv_decode_setup(&codec, w->codec_param,
-                                                 job->title);
+            pv->qsv_decode = hb_qsv_decode_setup(&codec, w->codec_param);
 #ifdef USE_QSV_PTS_WORKAROUND
             if (pv->qsv_decode)
             {
@@ -1313,8 +1311,7 @@ static int decavcodecvInit( hb_work_object_t * w, hb_job_t * job )
         if (job != NULL && job->vcodec == HB_VCODEC_QSV_H264 &&
             w->codec_param == AV_CODEC_ID_H264)
         {
-            pv->qsv_decode = hb_qsv_decode_setup(&codec, w->codec_param,
-                                                 job->title);
+            pv->qsv_decode = hb_qsv_decode_setup(&codec, w->codec_param);
 #ifdef USE_QSV_PTS_WORKAROUND
             if (pv->qsv_decode)
             {
@@ -1472,8 +1469,7 @@ static int decavcodecvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
         if (pv->job != NULL && pv->job->vcodec == HB_VCODEC_QSV_H264 &&
             w->codec_param == AV_CODEC_ID_H264)
         {
-            pv->qsv_decode = hb_qsv_decode_setup(&codec, w->codec_param,
-                                                 pv->job->title);
+            pv->qsv_decode = hb_qsv_decode_setup(&codec, w->codec_param);
 #ifdef USE_QSV_PTS_WORKAROUND
             if (pv->qsv_decode)
             {
