@@ -3993,10 +3993,6 @@ static int ParseOptions( int argc, char ** argv )
                     {
                         deinterlace_opt = "15";
                     }
-                    else if (!( strcmp( optarg, "qsv" ) ))
-                    {
-                        deinterlace_opt = "32";
-                    }
                     else
                     {
                         deinterlace_opt = strdup( optarg );
