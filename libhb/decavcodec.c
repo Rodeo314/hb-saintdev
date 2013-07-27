@@ -1165,24 +1165,23 @@ static void decodeVideo( hb_work_object_t *w, uint8_t *data, int size, int seque
     } while ( pos < size );
 
     /* the stuff above flushed the parser, now flush the decoder */
-    if ( size <= 0 )
+    if (size <= 0)
     {
-        int zero_allowed = 1;
+        while (decodeFrame(w, NULL, 0, sequence, AV_NOPTS_VALUE, AV_NOPTS_VALUE, 0))
+        {
+            continue;
+        }
 #ifdef USE_QSV
         if (pv->qsv_decode)
         {
-            zero_allowed = 2;
+            // flush a second time
+            while (decodeFrame(w, NULL, 0, sequence, AV_NOPTS_VALUE, AV_NOPTS_VALUE, 0))
+            {
+                continue;
+            }
         }
 #endif
-        for(;;)
-        {
-        while ( decodeFrame( w, NULL, 0, sequence, AV_NOPTS_VALUE, AV_NOPTS_VALUE, 0 ) )
-        {
-        }
-            if( (--zero_allowed) == NULL )
-                break;
-        }
-        flushDelayQueue( pv );
+        flushDelayQueue(pv);
     }
 }
 
