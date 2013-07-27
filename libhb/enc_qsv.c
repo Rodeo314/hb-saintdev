@@ -302,37 +302,24 @@ int qsv_enc_init( av_qsv_context* qsv, hb_work_private_t * pv ){
 
     if (job->vquality >= 0)
     {
-        int cqp_offset_i,cqp_offset_p,cqp_offset_b;
-        int is_enforcing = 0;
-
+        int cqp_offset_i = 0, cqp_offset_p = 2, cqp_offset_b = 4;
         if ((entry = hb_dict_get(qsv_opts_dict, QSV_NAME_cqp_offset_i)) != NULL && entry->value != NULL)
         {
             cqp_offset_i = atoi(entry->value);
         }
-        else
-            cqp_offset_i = 0;
-         if ((entry = hb_dict_get(qsv_opts_dict, QSV_NAME_cqp_offset_p)) != NULL && entry->value != NULL)
+        if ((entry = hb_dict_get(qsv_opts_dict, QSV_NAME_cqp_offset_p)) != NULL && entry->value != NULL)
         {
             cqp_offset_p = atoi(entry->value);
         }
-        else
-            cqp_offset_p = 2;
         if ((entry = hb_dict_get(qsv_opts_dict, QSV_NAME_cqp_offset_b)) != NULL && entry->value != NULL)
         {
             cqp_offset_b = atoi(entry->value);
-            is_enforcing = 1;
         }
-        else
-            cqp_offset_b = 4;
 
-        if( pv->qsv_config.gop_ref_dist == 4 && !is_enforcing )
-        {
-            cqp_offset_b = cqp_offset_p;
-        }
-        qsv_encode->m_mfxVideoParam.mfx.RateControlMethod   = MFX_RATECONTROL_CQP;
-        qsv_encode->m_mfxVideoParam.mfx.QPI                 = job->vquality + cqp_offset_i;
-        qsv_encode->m_mfxVideoParam.mfx.QPP                 = job->vquality + cqp_offset_p;
-        qsv_encode->m_mfxVideoParam.mfx.QPB                 = job->vquality + cqp_offset_b;
+        qsv_encode->m_mfxVideoParam.mfx.RateControlMethod = MFX_RATECONTROL_CQP;
+        qsv_encode->m_mfxVideoParam.mfx.QPI               = job->vquality + cqp_offset_i;
+        qsv_encode->m_mfxVideoParam.mfx.QPP               = job->vquality + cqp_offset_p;
+        qsv_encode->m_mfxVideoParam.mfx.QPB               = job->vquality + cqp_offset_b;
     }
     else if (job->vbitrate > 0)
     {
