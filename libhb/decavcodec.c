@@ -924,11 +924,11 @@ static int decodeFrame( hb_work_object_t *w, uint8_t *data, int size, int sequen
         avp.flags |= AV_PKT_FLAG_KEY;
     }
 #ifdef USE_QSV
-        if (pv->qsv_decode && pv->context->hwaccel_context == NULL)
-        {
-            qsv_from_first_frame = 1;
-            hb_qsv_decode_init(pv->context, &pv->qsv_config);
-        }
+    if (pv->qsv_decode && pv->context->hwaccel_context == NULL)
+    {
+        qsv_from_first_frame = 1;
+        hb_qsv_decode_init(pv->context, &pv->qsv_config);
+    }
 #endif
 #ifdef USE_QSV_PTS_WORKAROUND
     /*
