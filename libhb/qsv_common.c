@@ -232,6 +232,11 @@ void hb_qsv_info_print()
         }
     }
 }
+int hb_qsv_decode_is_enabled(hb_job_t *job)
+{
+    return ((job != NULL && job->title->qsv_decode_support) &&
+            (job->vcodec & HB_VCODEC_QSV_MASK));
+}
 
 int hb_qsv_decode_is_supported(enum AVCodecID codec_id,
                                enum AVPixelFormat pix_fmt)

@@ -666,7 +666,7 @@ static void do_job(hb_job_t *job)
      * when QSV is used for decoding, not all CPU-based filters
      * are supported, so we need to do a little extra setup here
      */
-    if (job->vcodec == HB_VCODEC_QSV_H264 && title->qsv_decode_support)
+    if (hb_qsv_decode_is_enabled(job))
     {
         int vpp_settings[7];
         int num_cpu_filters = 0;

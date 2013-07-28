@@ -1224,8 +1224,7 @@ static int decavcodecvInit( hb_work_object_t * w, hb_job_t * job )
         AVCodec *codec = NULL;
 
 #ifdef USE_QSV
-        if (job != NULL &&
-            job->vcodec == HB_VCODEC_QSV_H264 && job->title->qsv_decode_support)
+        if (hb_qsv_decode_is_enabled(job))
         {
             pv->qsv_decode = hb_qsv_decode_setup(&codec, w->codec_param);
         }
@@ -1278,8 +1277,7 @@ static int decavcodecvInit( hb_work_object_t * w, hb_job_t * job )
         AVCodec *codec = NULL;
 
 #ifdef USE_QSV
-        if (job != NULL &&
-            job->vcodec == HB_VCODEC_QSV_H264 && job->title->qsv_decode_support)
+        if (hb_qsv_decode_is_enabled(job))
         {
             pv->qsv_decode = hb_qsv_decode_setup(&codec, w->codec_param);
         }
