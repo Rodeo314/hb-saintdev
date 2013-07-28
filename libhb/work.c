@@ -12,7 +12,7 @@
 #include "libavformat/avformat.h"
 
 #ifdef USE_QSV
-#include "libavcodec/qsv.h"
+#include "qsv_common.h"
 #endif
 
 typedef struct
