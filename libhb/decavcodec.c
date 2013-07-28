@@ -900,9 +900,6 @@ static int decodeFrame( hb_work_object_t *w, uint8_t *data, int size, int sequen
     int got_picture, oldlevel = 0;
     AVFrame frame = { { 0 } };
     AVPacket avp;
-#ifdef USE_QSV
-    int qsv_from_first_frame = 0;
-#endif
 
     if ( global_verbosity_level <= 1 )
     {
@@ -923,13 +920,7 @@ static int decodeFrame( hb_work_object_t *w, uint8_t *data, int size, int sequen
     {
         avp.flags |= AV_PKT_FLAG_KEY;
     }
-#ifdef USE_QSV
-    if (pv->qsv_decode && pv->context->hwaccel_context == NULL)
-    {
-        qsv_from_first_frame = 1;
-        hb_qsv_decode_init(pv->context, &pv->qsv_config);
-    }
-#endif
+
 #ifdef USE_QSV_PTS_WORKAROUND
     /*
      * The MediaSDK decoder will return decoded frames in the correct order,
@@ -950,11 +941,12 @@ static int decodeFrame( hb_work_object_t *w, uint8_t *data, int size, int sequen
     }
 
 #ifdef USE_QSV
-    if (pv->qsv_decode && qsv_from_first_frame && pv->video_codec_opened > 0)
+    if (pv->qsv_decode && pv->job->qsv == NULL && pv->video_codec_opened > 0)
     {
         pv->job->qsv = pv->context->priv_data;
     }
 #endif
+
 #ifdef USE_QSV_PTS_WORKAROUND
     if (pv->qsv_decode && got_picture)
     {
@@ -1309,20 +1301,7 @@ static int decavcodecvInit( hb_work_object_t * w, hb_job_t * job )
         pv->context->workaround_bugs = FF_BUG_AUTODETECT;
         pv->context->err_recognition = AV_EF_CRCCHECK;
         pv->context->error_concealment = FF_EC_GUESS_MVS|FF_EC_DEBLOCK;
-
-#ifdef USE_QSV
-        if (pv->qsv_decode)
-        {
-            hb_qsv_decode_init(pv->context, &pv->qsv_config);
-        }
-#endif
     }
-#ifdef USE_QSV
-    if (pv->qsv_decode && pv->video_codec_opened > 0)
-    {
-        pv->job->qsv = pv->context->priv_data;
-    }
-#endif
     return 0;
 }
 
@@ -1479,6 +1458,14 @@ static int decavcodecvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
             hb_buffer_close( &in );
             return HB_WORK_OK;
         }
+
+#ifdef USE_QSV
+        if (pv->qsv_decode)
+        {
+            hb_qsv_decode_init(pv->context, &pv->qsv_config);
+        }
+#endif
+
         // disable threaded decoding for scan, can cause crashes
         if ( hb_avcodec_open( pv->context, codec, NULL, pv->threads ) )
         {
@@ -1486,12 +1473,6 @@ static int decavcodecvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
             *buf_out = hb_buffer_init( 0 );;
             return HB_WORK_DONE;
         }
-#ifdef USE_QSV
-        if (pv->qsv_decode)
-        {
-            pv->job->qsv = pv->context->priv_data;
-        }
-#endif
         pv->video_codec_opened = 1;
     }
 
