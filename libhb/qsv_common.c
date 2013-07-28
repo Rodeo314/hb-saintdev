@@ -232,6 +232,28 @@ void hb_qsv_info_print()
         }
     }
 }
+
+int hb_qsv_decode_setup(AVCodec **codec, enum AVCodecID codec_id)
+{
+    if (codec == NULL)
+    {
+        hb_error("hb_qsv_decode_setup: invalid codec");
+        goto fail;
+    }
+
+    const char *codec_name = hb_qsv_decode_get_codec_name(codec_id);
+    if (codec_name == NULL)
+    {
+        hb_error("hb_qsv_decode_setup: unsupported codec_id %d", codec_id);
+        goto fail;
+    }
+    *codec = avcodec_find_decoder_by_name(codec_name);
+    return (*codec != NULL);
+
+fail:
+    return 0;
+}
+
 int hb_qsv_decode_is_enabled(hb_job_t *job)
 {
     return ((job != NULL && job->title->qsv_decode_support) &&
@@ -248,6 +270,27 @@ int hb_qsv_decode_is_supported(enum AVCodecID codec_id,
 
         default:
             return 0;
+    }
+}
+
+void hb_qsv_decode_init(AVCodecContext *context, av_qsv_config *qsv_config)
+{
+    if (context == NULL || qsv_config == NULL)
+    {
+        hb_error("hb_qsv_decode_init: invalid context or config");
+        return;
+    }
+
+    context->hwaccel_context       = qsv_config;
+    qsv_config->impl_requested     = MFX_IMPL_AUTO_ANY|MFX_IMPL_VIA_ANY;
+    qsv_config->io_pattern         = MFX_IOPATTERN_OUT_OPAQUE_MEMORY;
+    qsv_config->sync_need          = 0;
+    qsv_config->usage_threaded     = 1;
+    qsv_config->additional_buffers = 64; // FIFO_LARGE
+    if (hb_qsv_info->capabilities & HB_QSV_CAP_OPTION2_LOOKAHEAD)
+    {
+        // more surfaces may be needed for the lookahead
+        qsv_config->additional_buffers = 160;
     }
 }
 

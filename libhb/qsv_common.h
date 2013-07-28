@@ -60,9 +60,11 @@ int  hb_qsv_info_init();
 void hb_qsv_info_print();
 
 /* Intel Quick Sync Video DECODE utilities */
+int hb_qsv_decode_setup(AVCodec **codec, enum AVCodecID codec_id);
 int hb_qsv_decode_is_enabled(hb_job_t *job);
 int hb_qsv_decode_is_supported(enum AVCodecID codec_id,
                                enum AVPixelFormat pix_fmt);
+void hb_qsv_decode_init(AVCodecContext *context, av_qsv_config *qsv_config);
 const char* hb_qsv_decode_get_codec_name(enum AVCodecID codec_id);
 
 #endif
