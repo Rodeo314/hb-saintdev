@@ -234,7 +234,17 @@ void hb_display_job_info(hb_job_t *job)
 
     hb_log(" * video track");
 
-    hb_log("   + decoder: %s", title->video_codec_name );
+#ifdef USE_QSV
+    if (hb_qsv_decode_is_enabled(job))
+    {
+        hb_log("   + decoder: %s",
+               hb_qsv_decode_get_codec_name(title->video_codec_param));
+    }
+    else
+#endif
+    {
+        hb_log("   + decoder: %s", title->video_codec_name);
+    }
 
     if( title->video_bitrate )
     {
