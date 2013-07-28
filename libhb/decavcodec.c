@@ -1446,17 +1446,9 @@ static int decavcodecvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
 
         AVCodec *codec = NULL;
 #ifdef USE_QSV
-        if (pv->job != NULL &&
-            pv->job->vcodec == HB_VCODEC_QSV_H264 &&
-            pv->job->title->qsv_decode_support)
-        {
-            pv->qsv_decode = hb_qsv_decode_setup(&codec, w->codec_param);
-        }
         if (pv->qsv_decode)
         {
-#ifdef USE_QSV_PTS_WORKAROUND
-            pv->qsv_pts_list = hb_list_init();
-#endif
+            hb_qsv_decode_setup(&codec, w->codec_param);
         }
         else
 #endif
