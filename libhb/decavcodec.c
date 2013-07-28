@@ -1242,26 +1242,6 @@ static int decavcodecvInit( hb_work_object_t * w, hb_job_t * job )
 #ifdef USE_QSV_PTS_WORKAROUND
             pv->qsv_pts_list = hb_list_init();
 #endif
-            // parse QSV options before decoding
-            // FIXME: why do we need this here?
-            // FIXME: job->advanced_opts should not be used for decoder options
-            int ret;
-            hb_dict_t *qsv_opts = NULL;
-            hb_dict_entry_t *entry = NULL;
-            qsv_param_set_defaults(&pv->qsv_config);
-            if (job->advanced_opts != NULL && *job->advanced_opts != '\0')
-            {
-                qsv_opts = hb_encopts_to_dict(job->advanced_opts, job->vcodec);
-            }
-            while ((entry = hb_dict_next(qsv_opts, entry)) != NULL)
-            {
-                ret = qsv_param_parse(&pv->qsv_config, entry->key, entry->value);
-                if (ret == QSV_PARAM_BAD_NAME)
-                    hb_log("QSV options: Unknown suboption %s", entry->key);
-                if (ret == QSV_PARAM_BAD_VALUE)
-                    hb_log("QSV options: Bad argument %s=%s", entry->key, entry->value);
-            }
-            hb_dict_free(&qsv_opts);
         }
         else
 #endif
