@@ -1678,11 +1678,8 @@ static int decavcodecvInfo( hb_work_object_t *w, hb_work_info_t *info )
     }
 
 #ifdef USE_QSV
-    if (hb_qsv_decode_is_supported(pv->context->codec_id, pv->context->pix_fmt))
-    {
-        info->qsv_decode_support = 1;
-        info->name = hb_qsv_decode_get_codec_name(pv->context->codec_id);
-    }
+    info->qsv_decode_support = hb_qsv_decode_is_supported(pv->context->codec_id,
+                                                          pv->context->pix_fmt);
 #endif
 
     return 1;
