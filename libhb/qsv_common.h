@@ -79,13 +79,18 @@ enum
 
 typedef struct
 {
-    // MFX_EXTBUFF_CODING_OPTION             (1)
-    // MFX_EXTBUFF_CODING_OPTION2            (2)
-    // MFX_EXTBUFF_VIDEO_SIGNAL_INFO,        (3)
-    // MFX_EXTBUFF_CODING_OPTION_SPSPPS      (4)
-    // MFX_EXTBUFF_OPAQUE_SURFACE_ALLOCATION (5)
+    /*
+     * Supported mfxExtBuffer.BufferId values:
+     *
+     * MFX_EXTBUFF_CODING_OPTION             (1)
+     * MFX_EXTBUFF_CODING_OPTION_SPS_PPS     (2)
+     * MFX_EXTBUFF_CODING_OPTION2            (3)
+     * MFX_EXTBUFF_OPAQUE_SURFACE_ALLOCATION (4)
+     * MFX_EXTBUFF_VIDEO_SIGNAL_INFO         (5)
+     */
+#define HB_QSV_ENC_NUM_EXT_PARAM_MAX 5
+    mfxExtBuffer*         ExtParam[HB_QSV_ENC_NUM_EXT_PARAM_MAX];
     mfxU16                NumExtParam;
-    mfxExtBuffer*         ExtParam[5];
     mfxVideoParam         videoParam;
     mfxExtCodingOption    codingOption;
     mfxExtCodingOption2   codingOption2;
