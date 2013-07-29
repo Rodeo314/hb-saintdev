@@ -83,14 +83,12 @@ typedef struct
      * Supported mfxExtBuffer.BufferId values:
      *
      * MFX_EXTBUFF_CODING_OPTION             (1)
-     * MFX_EXTBUFF_CODING_OPTION_SPS_PPS     (2)
-     * MFX_EXTBUFF_CODING_OPTION2            (3)
-     * MFX_EXTBUFF_OPAQUE_SURFACE_ALLOCATION (4)
-     * MFX_EXTBUFF_VIDEO_SIGNAL_INFO         (5)
+     * MFX_EXTBUFF_CODING_OPTION2            (2)
+     * MFX_EXTBUFF_OPAQUE_SURFACE_ALLOCATION (3)
+     * MFX_EXTBUFF_VIDEO_SIGNAL_INFO         (4)
      */
-#define HB_QSV_ENC_NUM_EXT_PARAM_MAX 5
-    mfxExtBuffer*         ExtParam[HB_QSV_ENC_NUM_EXT_PARAM_MAX];
-    mfxU16                NumExtParam;
+#define HB_QSV_ENC_NUM_EXT_PARAM_MAX 4
+    mfxExtBuffer*         ExtParamArray[HB_QSV_ENC_NUM_EXT_PARAM_MAX];
     mfxVideoParam         videoParam;
     mfxExtCodingOption    codingOption;
     mfxExtCodingOption2   codingOption2;

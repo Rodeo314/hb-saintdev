@@ -819,20 +819,11 @@ void hb_qsv_param_default(hb_qsv_param_t *param)
         param->codingOption2.LookAheadDepth  = 40;
         param->codingOption2.Trellis         = MFX_TRELLIS_UNKNOWN;
 
-        // attach supported mfxExtBuffer structures to the mfxVideoParam
-        param->NumExtParam                    = 0;
-        param->ExtParam[param->NumExtParam++] = (mfxExtBuffer*)&param->codingOption;
-        param->ExtParam[param->NumExtParam++] = (mfxExtBuffer*)&param->videoSignalInfo;
-        if (hb_qsv_info->capabilities & HB_QSV_CAP_OPTION2_BRC)
-        {
-            param->ExtParam[param->NumExtParam++] = (mfxExtBuffer*)&param->codingOption2;
-        }
-
         // introduced in API 1.0
         memset(&param->videoParam, 0, sizeof(mfxVideoParam));
         param->videoParam.Protected        = 0; // reserved, must be 0
-        param->videoParam.NumExtParam      = param->NumExtParam;
-        param->videoParam.ExtParam         = param->ExtParam;
+        param->videoParam.NumExtParam      = 0;
+        param->videoParam.ExtParam         = param->ExtParamArray;
         param->videoParam.IOPattern        = MFX_IOPATTERN_IN_SYSTEM_MEMORY;
         param->videoParam.mfx.TargetUsage  = MFX_TARGETUSAGE_2;
         param->videoParam.mfx.GopOptFlag   = MFX_GOP_CLOSED;
@@ -873,5 +864,14 @@ void hb_qsv_param_default(hb_qsv_param_t *param)
         param->rc.vbv_max_bitrate     =  0;
         param->rc.vbv_buffer_size     =  0;
         param->rc.vbv_buffer_init     = .9;
+
+        // attach supported mfxExtBuffer structures to the mfxVideoParam
+        param->videoParam.NumExtParam = 0;
+        param->videoParam.ExtParam[param->videoParam.NumExtParam++] = (mfxExtBuffer*)&param->codingOption;
+        param->videoParam.ExtParam[param->videoParam.NumExtParam++] = (mfxExtBuffer*)&param->videoSignalInfo;
+        if (hb_qsv_info->capabilities & HB_QSV_CAP_OPTION2_BRC)
+        {
+            param->videoParam.ExtParam[param->videoParam.NumExtParam++] = (mfxExtBuffer*)&param->codingOption2;
+        }
     }
 }

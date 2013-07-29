@@ -1496,6 +1496,55 @@ void hb_qsv_h264_param_setup_for_job(hb_qsv_param_t *param, hb_job_t *job)
     }
 }
 
+int hb_qsv_h264_get_sps_pps(hb_qsv_param_t *param,
+                            mfxExtCodingOptionSPSPPS *sps_pps)
+{
+    mfxStatus err;
+    mfxSession session;
+    mfxVersion version;
+    mfxVideoParam videoParam;
+    if (param != NULL && sps_pps != NULL)
+    {
+        version.Major = HB_QSV_MINVERSION_MAJOR;
+        version.Minor = HB_QSV_MINVERSION_MINOR;
+        err = MFXInit(MFX_IMPL_AUTO_ANY|MFX_IMPL_VIA_ANY, &version, &session);
+        if (err != MFX_ERR_NONE)
+        {
+            goto fail;
+        }
+        err = MFXVideoENCODE_Init(session, &param->videoParam);
+        if (err != MFX_ERR_NONE)
+        {
+            goto fail;
+        }
+        // SPS/PPS retrieval with NAL prefix: 00 00 00 01 for each
+        memset(&videoParam, 0, sizeof(mfxVideoParam));
+        sps_pps->Header.BufferId = MFX_EXTBUFF_CODING_OPTION_SPSPPS;
+        sps_pps->Header.BufferSz = sizeof(mfxExtCodingOptionSPSPPS);
+        sps_pps->SPSId           = 0;
+        sps_pps->SPSBuffer       = calloc(1, 1024);
+        sps_pps->SPSBufSize      = 1024;
+        sps_pps->PPSId           = 0;
+        sps_pps->PPSBuffer       = calloc(1, 1024);
+        sps_pps->PPSBufSize      = 1024;
+        videoParam.NumExtParam   = 1;
+        videoParam.ExtParam      = (mfxExtBuffer**)&sps_pps;
+        err = MFXVideoENCODE_GetVideoParam(session, &videoParam);
+        if (err != MFX_ERR_NONE)
+        {
+            goto fail;
+        }
+        MFXVideoENCODE_Close(session);
+        MFXClose(session);
+        return 0;
+    }
+fail:
+    // FIXME: log error message
+    MFXVideoENCODE_Close(session);
+    MFXClose(session);
+    return -1;
+}
+
 int qsv_param_parse( av_qsv_config* config, const char *name, const char *value){
     int ret = QSV_PARAM_OK;
 
