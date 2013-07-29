@@ -105,6 +105,13 @@ typedef struct
     } rc;
 } hb_qsv_param_t;
 
+#define HB_QSV_CLIP3(min, max, val) ((val < min) ? min : (val > max) ? max : val)
+int   hb_qsv_codingoption_xlat(int val);
+int   hb_qsv_atoindex(const char* const *arr, const char *str, int *err);
+int   hb_qsv_atobool (const char *str, int *err);
+int   hb_qsv_atoi    (const char *str, int *err);
+float hb_qsv_atof    (const char *str, int *err);
+
 void hb_qsv_param_default(hb_qsv_param_t *param);
 void hb_qsv_param_parse_all(hb_qsv_param_t *param, const char *advanced_opts, int vcodec);
 int  hb_qsv_param_parse(hb_qsv_param_t *param, const char *key, const char *value, int vcodec);

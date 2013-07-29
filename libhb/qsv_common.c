@@ -308,42 +308,35 @@ const char* hb_qsv_decode_get_codec_name(enum AVCodecID codec_id)
     }
 }
 
-void hb_qsv_param_parse_all(hb_qsv_param_t *param,
-                            const char *advanced_opts, int vcodec)
+int hb_qsv_codingoption_xlat(int val)
 {
-    if (advanced_opts != NULL && advanced_opts[0] != '\0')
+    switch (HB_QSV_CLIP3(-1, 2, val))
     {
-        hb_dict_entry_t *option = NULL;
-        hb_dict_t *options_list = hb_encopts_to_dict(advanced_opts, vcodec);
-        while ((option = hb_dict_next(options_list, option)) != NULL)
-        {
-            switch (hb_qsv_param_parse(param, option->key, option->value, vcodec))
-            {
-                case HB_QSV_PARAM_OK:
-                    break;
-                case HB_QSV_PARAM_BAD_NAME:
-                    hb_log("hb_qsv_param_parse: bad key %s", option->key);
-                    break;
-                case HB_QSV_PARAM_BAD_VALUE:
-                    hb_log("hb_qsv_param_parse: bad value %s for key %s",
-                           option->value, option->key);
-                    break;
-                case HB_QSV_PARAM_UNSUPPORTED:
-                    hb_log("hb_qsv_param_parse: unsupported option %s",
-                           option->key);
-                    break;
-                case HB_QSV_PARAM_ERROR:
-                default:
-                    hb_log("hb_qsv_param_parse: unknown error");
-                    break;
-            }
-        }
-        hb_dict_free(&options_list);
+        case 0:
+            return MFX_CODINGOPTION_OFF;
+        case 1:
+        case 2: // MFX_CODINGOPTION_ADAPTIVE, reserved
+            return MFX_CODINGOPTION_ON;
+        case -1:
+        default:
+            return MFX_CODINGOPTION_UNKNOWN;
     }
 }
-
+int hb_qsv_atoindex(const char* const *arr, const char *str, int *err)
+{
+    int i;
+    for (i = 0; arr[i] != NULL; i++)
+    {
+        if (!strcasecmp(arr[i], str))
+        {
+            break;
+        }
+    }
+    *err = (arr[i] == NULL);
+    return i;
+}
 // adapted from libx264
-static int hb_qsv_atobool(const char *str, int *err)
+int hb_qsv_atobool(const char *str, int *err)
 {
     if (!strcasecmp(str,    "1") ||
         !strcasecmp(str,  "yes") ||
@@ -360,7 +353,7 @@ static int hb_qsv_atobool(const char *str, int *err)
     *err = 1;
     return 0;
 }
-static int hb_qsv_atoi(const char *str, int *err)
+int hb_qsv_atoi(const char *str, int *err)
 {
     char *end;
     int v = strtol(str, &end, 0);
@@ -370,7 +363,7 @@ static int hb_qsv_atoi(const char *str, int *err)
     }
     return v;
 }
-static float hb_qsv_atof(const char *str, int *err)
+float hb_qsv_atof(const char *str, int *err)
 {
     char *end;
     float v = strtod(str, &end);
@@ -381,33 +374,38 @@ static float hb_qsv_atof(const char *str, int *err)
     return v;
 }
 
-#define HB_QSV_CLIP3(min, max, val) ((val < min) ? min : (val > max) ? max : val)
-static int hb_qsv_codingoption_xlat(int val)
+void hb_qsv_param_parse_all(hb_qsv_param_t *param,
+                            const char *advanced_opts, int vcodec)
 {
-    switch (HB_QSV_CLIP3(-1, 2, val))
+    if (advanced_opts != NULL && advanced_opts[0] != '\0')
     {
-        case 0:
-            return MFX_CODINGOPTION_OFF;
-        case 1:
-        case 2: // MFX_CODINGOPTION_ADAPTIVE, reserved
-            return MFX_CODINGOPTION_ON;
-        case -1:
-        default:
-            return MFX_CODINGOPTION_UNKNOWN;
-    }
-}
-static int hb_qsv_atoindex(const char* const *arr, const char *str, int *err)
-{
-    int i;
-    for (i = 0; arr[i] != NULL; i++)
-    {
-        if (!strcasecmp(arr[i], str))
+        hb_dict_entry_t *option = NULL;
+        hb_dict_t *options_list = hb_encopts_to_dict(advanced_opts, vcodec);
+        while ((option = hb_dict_next(options_list, option)) != NULL)
         {
-            break;
+            switch (hb_qsv_param_parse(param, option->key, option->value, vcodec))
+            {
+                case HB_QSV_PARAM_OK:
+                    break;
+                case HB_QSV_PARAM_BAD_NAME:
+                    hb_log("hb_qsv_param_parse_all: bad key %s", option->key);
+                    break;
+                case HB_QSV_PARAM_BAD_VALUE:
+                    hb_log("hb_qsv_param_parse_all: bad value %s for key %s",
+                           option->value, option->key);
+                    break;
+                case HB_QSV_PARAM_UNSUPPORTED:
+                    hb_log("hb_qsv_param_parse_all: unsupported option %s",
+                           option->key);
+                    break;
+                case HB_QSV_PARAM_ERROR:
+                default:
+                    hb_log("hb_qsv_param_parse_all: unknown error");
+                    break;
+            }
         }
+        hb_dict_free(&options_list);
     }
-    *err = (arr[i] == NULL);
-    return i;
 }
 
 int hb_qsv_param_parse(hb_qsv_param_t *param,
