@@ -67,4 +67,46 @@ int hb_qsv_decode_is_supported(enum AVCodecID codec_id,
 void hb_qsv_decode_init(AVCodecContext *context, av_qsv_config *qsv_config);
 const char* hb_qsv_decode_get_codec_name(enum AVCodecID codec_id);
 
+/* Media SDK parameters handling */
+enum
+{
+    HB_QSV_PARAM_OK,
+    HB_QSV_PARAM_ERROR,
+    HB_QSV_PARAM_BAD_NAME,
+    HB_QSV_PARAM_BAD_VALUE,
+    HB_QSV_PARAM_UNSUPPORTED,
+};
+
+typedef struct
+{
+    // MFX_EXTBUFF_CODING_OPTION             (1)
+    // MFX_EXTBUFF_CODING_OPTION2            (2)
+    // MFX_EXTBUFF_VIDEO_SIGNAL_INFO,        (3)
+    // MFX_EXTBUFF_CODING_OPTION_SPSPPS      (4)
+    // MFX_EXTBUFF_OPAQUE_SURFACE_ALLOCATION (5)
+    mfxU16                NumExtParam;
+    mfxExtBuffer*         ExtParam[5];
+    mfxVideoParam         videoParam;
+    mfxExtCodingOption    codingOption;
+    mfxExtCodingOption2   codingOption2;
+    mfxExtVideoSignalInfo videoSignalInfo;
+    struct
+    {
+        int gop_pic_size;
+        int int_ref_cycle_size;
+    } gop;
+    struct
+    {
+        int   lookahead;
+        int   cqp_offsets[3];
+        int   vbv_max_bitrate;
+        int   vbv_buffer_size;
+        float vbv_buffer_init;
+    } rc;
+} hb_qsv_param_t;
+
+void hb_qsv_param_default(hb_qsv_param_t *param);
+void hb_qsv_param_parse_for_job(hb_qsv_param_t *param, hb_job_t *job);
+int  hb_qsv_param_parse(hb_qsv_param_t *param, const char *key, const char *value);
+
 #endif

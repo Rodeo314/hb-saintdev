@@ -8,6 +8,7 @@
  */
 
 #include "common.h"
+#include "hb_dict.h"
 #include "qsv_common.h"
 
 // avoids a warning
@@ -303,5 +304,421 @@ const char* hb_qsv_decode_get_codec_name(enum AVCodecID codec_id)
 
         default:
             return NULL;
+    }
+}
+
+void hb_qsv_param_parse_for_job(hb_qsv_param_t *param, hb_job_t *job)
+{
+    if (param != NULL && job != NULL)
+    {
+        hb_dict_entry_t *option = NULL;
+        hb_dict_t *options_list = hb_encopts_to_dict(job->advanced_opts,
+                                                     job->vcodec);
+        while ((option = hb_dict_next(options_list, option)) != NULL)
+        {
+            switch (hb_qsv_param_parse(param, option->key, option->value))
+            {
+                case HB_QSV_PARAM_OK:
+                    hb_deep_log(2, "hb_qsv_param_parse: set option %s%s%s",
+                                option->key,
+                                option->value != NULL ? " to value "  : "",
+                                option->value != NULL ? option->value : "");
+                    break;
+                case HB_QSV_PARAM_BAD_NAME:
+                    hb_log("hb_qsv_param_parse: bad key %s", option->key);
+                    break;
+                case HB_QSV_PARAM_BAD_VALUE:
+                    hb_log("hb_qsv_param_parse: bad value %s for key %s",
+                           option->value, option->key);
+                    break;
+                case HB_QSV_PARAM_UNSUPPORTED:
+                    hb_log("hb_qsv_param_parse: unsupported option %s",
+                           option->key);
+                    break;
+                case HB_QSV_PARAM_ERROR:
+                default:
+                    hb_log("hb_qsv_param_parse: unknown error");
+                    break;
+            }
+        }
+        hb_dict_free(&options_list);
+    }
+}
+
+// adapted from libx264
+static int hb_qsv_atobool(const char *str, int *err)
+{
+    if (!strcasecmp(str,    "1") ||
+        !strcasecmp(str,  "yes") ||
+        !strcasecmp(str, "true"))
+    {
+        return 1;
+    }
+    if (!strcasecmp(str,     "0") ||
+        !strcasecmp(str,    "no") ||
+        !strcasecmp(str, "false"))
+    {
+        return 0;
+    }
+    *err = 1;
+    return 0;
+}
+static int hb_qsv_atoi(const char *str, int *err)
+{
+    char *end;
+    int v = strtol(str, &end, 0);
+    if (end == str || end[0] != '\0')
+    {
+        *err = 1;
+    }
+    return v;
+}
+static float hb_qsv_atof(const char *str, int *err)
+{
+    char *end;
+    float v = strtod(str, &end);
+    if (end == str || end[0] != '\0')
+    {
+        *err = 1;
+    }
+    return v;
+}
+
+#define HB_QSV_CLIP3(min, max, val) ((val < min) ? min : (val > max) ? max : val)
+static int hb_qsv_codingoption_xlat(int val)
+{
+    switch (HB_QSV_CLIP3(-1, 2, val))
+    {
+        case 0:
+            return MFX_CODINGOPTION_OFF;
+        case 1:
+        case 2: // MFX_CODINGOPTION_ADAPTIVE, reserved
+            return MFX_CODINGOPTION_ON;
+        case -1:
+        default:
+            return MFX_CODINGOPTION_UNKNOWN;
+    }
+}
+
+int hb_qsv_param_parse(hb_qsv_param_t *param, const char *key, const char *value)
+{
+    float fvalue;
+    int ivalue, error = 0;
+    if (param == NULL)
+    {
+        return HB_QSV_PARAM_ERROR;
+    }
+    if (value == NULL || value[0] == '\0')
+    {
+        value = "true";
+    }
+    else if (value[0] == '=')
+    {
+        value++;
+    }
+    if (key == NULL || key[0] == '\0')
+    {
+        return HB_QSV_PARAM_BAD_NAME;
+    }
+    else if (!strncasecmp(key, "no-", 3))
+    {
+        key  += 3;
+        value = hb_qsv_atobool(value, &error) ? "false" : "true";
+        if (error)
+        {
+            return HB_QSV_PARAM_BAD_VALUE;
+        }
+    }
+    if (!strcasecmp(key, "async-depth"))
+    {
+        ivalue = hb_qsv_atoi(value, &error);
+        if (!error)
+        {
+            param->videoParam.AsyncDepth = HB_QSV_CLIP3(0, UINT16_MAX, ivalue);
+        }
+    }
+    else if (!strcasecmp(key, "target-usage"))
+    {
+        ivalue = hb_qsv_atoi(value, &error);
+        if (!error)
+        {
+            param->videoParam.mfx.TargetUsage = HB_QSV_CLIP3(1, 7, ivalue);
+        }
+    }
+    else if (!strcasecmp(key, "num-ref-frame"))
+    {
+        ivalue = hb_qsv_atoi(value, &error);
+        if (!error)
+        {
+            param->videoParam.mfx.NumRefFrame = HB_QSV_CLIP3(0, 16, ivalue);
+        }
+    }
+    else if (!strcasecmp(key, "gop-ref-dist"))
+    {
+        ivalue = hb_qsv_atoi(value, &error);
+        if (!error)
+        {
+            param->videoParam.mfx.GopRefDist = HB_QSV_CLIP3(0, 32, ivalue);
+        }
+    }
+    else if (!strcasecmp(key, "gop-pic-size"))
+    {
+        ivalue = hb_qsv_atoi(value, &error);
+        if (!error)
+        {
+            param->gop.gop_pic_size = HB_QSV_CLIP3(-1, UINT16_MAX, ivalue);
+        }
+    }
+    else if (!strcasecmp(key, "scenecut"))
+    {
+        ivalue = hb_qsv_atobool(value, &error);
+        if (!error)
+        {
+            if (!ivalue)
+            {
+                param->videoParam.mfx.GopOptFlag |= MFX_GOP_STRICT;
+            }
+            else
+            {
+                param->videoParam.mfx.GopOptFlag &= ~MFX_GOP_STRICT;
+            }
+        }
+    }
+    else if (!strcasecmp(key, "cqp-offset-i"))
+    {
+        ivalue = hb_qsv_atoi(value, &error);
+        if (!error)
+        {
+            param->rc.cqp_offsets[0] = HB_QSV_CLIP3(INT16_MIN, INT16_MAX, ivalue);
+        }
+    }
+    else if (!strcasecmp(key, "cqp-offset-p"))
+    {
+        ivalue = hb_qsv_atoi(value, &error);
+        if (!error)
+        {
+            param->rc.cqp_offsets[1] = HB_QSV_CLIP3(INT16_MIN, INT16_MAX, ivalue);
+        }
+    }
+    else if (!strcasecmp(key, "cqp-offset-b"))
+    {
+        ivalue = hb_qsv_atoi(value, &error);
+        if (!error)
+        {
+            param->rc.cqp_offsets[2] = HB_QSV_CLIP3(INT16_MIN, INT16_MAX, ivalue);
+        }
+    }
+    else if (!strcasecmp(key, "vbv-init"))
+    {
+        fvalue = hb_qsv_atof(value, &error);
+        if (!error)
+        {
+            param->rc.vbv_buffer_init = HB_QSV_CLIP3(0, UINT16_MAX, fvalue);
+        }
+    }
+    else if (!strcasecmp(key, "vbv-bufsize"))
+    {
+        ivalue = hb_qsv_atoi(value, &error);
+        if (!error)
+        {
+            param->rc.vbv_buffer_size = HB_QSV_CLIP3(0, UINT16_MAX, ivalue);
+        }
+    }
+    else if (!strcasecmp(key, "vbv-maxrate"))
+    {
+        ivalue = hb_qsv_atoi(value, &error);
+        if (!error)
+        {
+            param->rc.vbv_max_bitrate = HB_QSV_CLIP3(0, UINT16_MAX, ivalue);
+        }
+    }
+    else if (!strcasecmp(key, "cabac"))
+    {
+        ivalue = hb_qsv_atobool(value, &error);
+        if (!error)
+        {
+            param->codingOption.CAVLC = hb_qsv_codingoption_xlat(ivalue);
+        }
+    }
+    else if (!strcasecmp(key, "rdo"))
+    {
+        ivalue = hb_qsv_atobool(value, &error);
+        if (!error)
+        {
+            param->codingOption.RateDistortionOpt = hb_qsv_codingoption_xlat(ivalue);
+        }
+    }
+    else if (!strcasecmp(key, "mbbrc"))
+    {
+        if (hb_qsv_info->capabilities & HB_QSV_CAP_OPTION2_BRC)
+        {
+            ivalue = hb_qsv_atobool(value, &error);
+            if (!error)
+            {
+                param->codingOption2.MBBRC = hb_qsv_codingoption_xlat(ivalue);
+            }
+        }
+        else
+        {
+            return HB_QSV_PARAM_UNSUPPORTED;
+        }
+    }
+    else if (!strcasecmp(key, "extbrc"))
+    {
+        if (hb_qsv_info->capabilities & HB_QSV_CAP_OPTION2_BRC)
+        {
+            ivalue = hb_qsv_atobool(value, &error);
+            if (!error)
+            {
+                param->codingOption2.ExtBRC = hb_qsv_codingoption_xlat(ivalue);
+            }
+        }
+        else
+        {
+            return HB_QSV_PARAM_UNSUPPORTED;
+        }
+    }
+    else if (!strcasecmp(key, "lookahead"))
+    {
+        if (hb_qsv_info->capabilities & HB_QSV_CAP_OPTION2_LOOKAHEAD)
+        {
+            ivalue = hb_qsv_atobool(value, &error);
+            if (!error)
+            {
+                param->rc.lookahead = ivalue;
+            }
+        }
+        else
+        {
+            return HB_QSV_PARAM_UNSUPPORTED;
+        }
+    }
+    else if (!strcasecmp(key, "lookahead-depth"))
+    {
+        if (hb_qsv_info->capabilities & HB_QSV_CAP_OPTION2_LOOKAHEAD)
+        {
+            ivalue = hb_qsv_atoi(value, &error);
+            if (!error)
+            {
+                param->codingOption2.LookAheadDepth = HB_QSV_CLIP3(10, 100, ivalue);
+            }
+        }
+        else
+        {
+            return HB_QSV_PARAM_UNSUPPORTED;
+        }
+    }
+    /*
+     * TODO:
+     * - intra-refresh
+     * - open-gop
+     * - interlaced, fake-interlaced
+     * - trellis
+     * - video signal info
+     */
+    else
+    {
+        return HB_QSV_PARAM_BAD_NAME;
+    }
+    return error ? HB_QSV_PARAM_BAD_VALUE : HB_QSV_PARAM_OK;
+}
+
+void hb_qsv_param_default(hb_qsv_param_t *param)
+{
+    if (param != NULL)
+    {
+        // introduced in API 1.0
+        memset(&param->codingOption, 0, sizeof(mfxExtCodingOption));
+        param->codingOption2.Header.BufferId     = MFX_EXTBUFF_CODING_OPTION;
+        param->codingOption2.Header.BufferSz     = sizeof(mfxExtCodingOption);
+        param->codingOption.MECostType           = 0; // reserved, must be 0
+        param->codingOption.MESearchType         = 0; // reserved, must be 0
+        param->codingOption.MVSearchWindow.x     = 0; // reserved, must be 0
+        param->codingOption.MVSearchWindow.y     = 0; // reserved, must be 0
+        param->codingOption.RefPicListReordering = 0; // reserved, must be 0
+        param->codingOption.IntraPredBlockSize   = 0; // reserved, must be 0
+        param->codingOption.InterPredBlockSize   = 0; // reserved, must be 0
+        param->codingOption.MVPrecision          = 0; // reserved, must be 0
+        param->codingOption.EndOfSequence        = MFX_CODINGOPTION_UNKNOWN;
+        param->codingOption.RateDistortionOpt    = MFX_CODINGOPTION_UNKNOWN;
+        param->codingOption.CAVLC                = MFX_CODINGOPTION_OFF;
+        param->codingOption.ResetRefList         = MFX_CODINGOPTION_OFF;
+        param->codingOption.MaxDecFrameBuffering = 0; // unspecified
+        param->codingOption.AUDelimiter          = MFX_CODINGOPTION_OFF;
+        param->codingOption.SingleSeiNalUnit     = MFX_CODINGOPTION_UNKNOWN;
+        param->codingOption.PicTimingSEI         = MFX_CODINGOPTION_OFF;
+        param->codingOption.VuiNalHrdParameters  = MFX_CODINGOPTION_UNKNOWN;
+        param->codingOption.FramePicture         = MFX_CODINGOPTION_UNKNOWN;
+        // introduced in API 1.3
+        param->codingOption.RefPicMarkRep        = MFX_CODINGOPTION_UNKNOWN;
+        param->codingOption.FieldOutput          = MFX_CODINGOPTION_UNKNOWN;
+        param->codingOption.NalHrdConformance    = MFX_CODINGOPTION_UNKNOWN;
+        param->codingOption.SingleSeiNalUnit     = MFX_CODINGOPTION_UNKNOWN;
+        param->codingOption.VuiVclHrdParameters  = MFX_CODINGOPTION_UNKNOWN;
+        // introduced in API 1.4
+        param->codingOption.ViewOutput           = MFX_CODINGOPTION_UNKNOWN;
+        // introduced in API 1.6
+        param->codingOption.RecoveryPointSEI     = MFX_CODINGOPTION_UNKNOWN;
+        
+        // introduced in API 1.3
+        memset(&param->videoSignalInfo, 0, sizeof(mfxExtVideoSignalInfo));
+        param->videoSignalInfo.Header.BufferId          = MFX_EXTBUFF_VIDEO_SIGNAL_INFO;
+        param->videoSignalInfo.Header.BufferSz          = sizeof(mfxExtVideoSignalInfo);
+        param->videoSignalInfo.VideoFormat              = 5; // undefined
+        param->videoSignalInfo.VideoFullRange           = 0; // TV range
+        param->videoSignalInfo.ColourDescriptionPresent = 0; // don't write to bitstream
+        param->videoSignalInfo.ColourPrimaries          = 2; // undefined
+        param->videoSignalInfo.TransferCharacteristics  = 2; // undefined
+        param->videoSignalInfo.MatrixCoefficients       = 2; // undefined
+
+        // introduced in API 1.6
+        memset(&param->codingOption2, 0, sizeof(mfxExtCodingOption2));
+        param->codingOption2.Header.BufferId = MFX_EXTBUFF_CODING_OPTION2;
+        param->codingOption2.Header.BufferSz = sizeof(mfxExtCodingOption2);
+        param->codingOption2.IntRefType      = 0;
+        param->codingOption2.IntRefQPDelta   = 0;
+        param->codingOption2.MaxFrameSize    = 0;
+        param->codingOption2.BitrateLimit    = MFX_CODINGOPTION_ON;
+        param->codingOption2.MBBRC           = MFX_CODINGOPTION_UNKNOWN;
+        param->codingOption2.ExtBRC          = MFX_CODINGOPTION_OFF;
+        // introduced in API 1.7
+        param->codingOption2.LookAheadDepth  = 40;
+        param->codingOption2.Trellis         = MFX_TRELLIS_UNKNOWN;
+
+        param->NumExtParam = sizeof(param->ExtParam) / sizeof(param->ExtParam[0]);
+        while (param->NumExtParam >= 0)
+        {
+            param->ExtParam[param->NumExtParam--] = NULL;
+        }
+        param->ExtParam[param->NumExtParam++] = (mfxExtBuffer*)&param->codingOption;
+        param->ExtParam[param->NumExtParam++] = (mfxExtBuffer*)&param->videoSignalInfo;
+        if (hb_qsv_info->capabilities & HB_QSV_CAP_OPTION2_BRC)
+        {
+            param->ExtParam[param->NumExtParam++] = (mfxExtBuffer*)&param->codingOption2;
+        }
+
+        // introduced in API 1.0
+        memset(&param->videoParam, 0, sizeof(mfxVideoParam));
+        param->videoParam.Protected       = 0; // reserved, must be 0
+        param->videoParam.NumExtParam     = param->NumExtParam;
+        param->videoParam.ExtParam        = param->ExtParam;
+        param->videoParam.IOPattern       = MFX_IOPATTERN_IN_SYSTEM_MEMORY;
+        param->videoParam.mfx.TargetUsage = MFX_TARGETUSAGE_2;
+        param->videoParam.mfx.GopOptFlag  = MFX_GOP_CLOSED;
+        param->videoParam.mfx.IdrInterval = 0; // all I-frames are IDR
+        param->videoParam.mfx.NumRefFrame = 0; // use Media SDK default
+        param->videoParam.mfx.GopRefDist  = 4; // power of 2, >= 4: B-pyramid
+        // introduced in API 1.1
+        param->videoParam.AsyncDepth      = AV_QSV_ASYNC_DEPTH_DEFAULT;
+
+        param->gop.gop_pic_size       = -1; // set automatically
+        param->gop.int_ref_cycle_size = -1; // set automatically
+        param->rc.lookahead           = -1; // set automatically
+        param->rc.cqp_offsets[0]      =  0;
+        param->rc.cqp_offsets[1]      =  2;
+        param->rc.cqp_offsets[2]      =  4;
+        param->rc.vbv_max_bitrate     =  0;
+        param->rc.vbv_buffer_size     =  0;
+        param->rc.vbv_buffer_init     = .9;
     }
 }
