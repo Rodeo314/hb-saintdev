@@ -808,6 +808,7 @@ void hb_qsv_param_default(hb_qsv_param_t *param)
         param->codingOption2.Header.BufferId = MFX_EXTBUFF_CODING_OPTION2;
         param->codingOption2.Header.BufferSz = sizeof(mfxExtCodingOption2);
         param->codingOption2.IntRefType      = 0;
+        param->codingOption2.IntRefCycleSize = 2;
         param->codingOption2.IntRefQPDelta   = 0;
         param->codingOption2.MaxFrameSize    = 0;
         param->codingOption2.BitrateLimit    = MFX_CODINGOPTION_ON;
@@ -828,17 +829,19 @@ void hb_qsv_param_default(hb_qsv_param_t *param)
 
         // introduced in API 1.0
         memset(&param->videoParam, 0, sizeof(mfxVideoParam));
-        param->videoParam.Protected       = 0; // reserved, must be 0
-        param->videoParam.NumExtParam     = param->NumExtParam;
-        param->videoParam.ExtParam        = param->ExtParam;
-        param->videoParam.IOPattern       = MFX_IOPATTERN_IN_SYSTEM_MEMORY;
-        param->videoParam.mfx.TargetUsage = MFX_TARGETUSAGE_2;
-        param->videoParam.mfx.GopOptFlag  = MFX_GOP_CLOSED;
-        param->videoParam.mfx.IdrInterval = 0; // all I-frames are IDR
-        param->videoParam.mfx.NumRefFrame = 0; // use Media SDK default
-        param->videoParam.mfx.GopRefDist  = 4; // power of 2, >= 4: B-pyramid
+        param->videoParam.Protected              = 0; // reserved, must be 0
+        param->videoParam.NumExtParam            = param->NumExtParam;
+        param->videoParam.ExtParam               = param->ExtParam;
+        param->videoParam.IOPattern              = MFX_IOPATTERN_IN_SYSTEM_MEMORY;
+        param->videoParam.mfx.TargetUsage        = MFX_TARGETUSAGE_2;
+        param->videoParam.mfx.GopOptFlag         = MFX_GOP_CLOSED;
+        param->videoParam.mfx.BRCParamMultiplier = 0; // no multiplier
+        param->videoParam.mfx.IdrInterval        = 0; // all I-frames are IDR
+        param->videoParam.mfx.NumRefFrame        = 0; // use Media SDK default
+        param->videoParam.mfx.GopPicSize         = 0; // use Media SDK default
+        param->videoParam.mfx.GopRefDist         = 4; // power of 2, >= 4: B-pyramid
         // introduced in API 1.1
-        param->videoParam.AsyncDepth      = AV_QSV_ASYNC_DEPTH_DEFAULT;
+        param->videoParam.AsyncDepth             = AV_QSV_ASYNC_DEPTH_DEFAULT;
 
         // FrameInfo: dummy default values
         param->videoParam.mfx.FrameInfo.FrameRateExtN = 25;
