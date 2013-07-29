@@ -637,6 +637,51 @@ int hb_qsv_param_parse(hb_qsv_param_t *param,
             param->videoSignalInfo.MatrixCoefficients = ivalue;
         }
     }
+    else if (!strcasecmp(key, "tff") ||
+             !strcasecmp(key, "interlaced"))
+    {
+        switch (vcodec)
+        {
+            case HB_VCODEC_QSV_H264:
+                ivalue = hb_qsv_atobool(value, &error);
+                break;
+            default:
+                return HB_QSV_PARAM_UNSUPPORTED;
+        }
+        if (!error)
+        {
+            if (ivalue)
+            {
+                param->videoParam.mfx.FrameInfo.PicStruct = MFX_PICSTRUCT_FIELD_TFF;
+            }
+            else
+            {
+                param->videoParam.mfx.FrameInfo.PicStruct = MFX_PICSTRUCT_PROGRESSIVE;
+            }
+        }
+    }
+    else if (!strcasecmp(key, "bff"))
+    {
+        switch (vcodec)
+        {
+            case HB_VCODEC_QSV_H264:
+                ivalue = hb_qsv_atobool(value, &error);
+                break;
+            default:
+                return HB_QSV_PARAM_UNSUPPORTED;
+        }
+        if (!error)
+        {
+            if (ivalue)
+            {
+                param->videoParam.mfx.FrameInfo.PicStruct = MFX_PICSTRUCT_FIELD_BFF;
+            }
+            else
+            {
+                param->videoParam.mfx.FrameInfo.PicStruct = MFX_PICSTRUCT_PROGRESSIVE;
+            }
+        }
+    }
     else if (!strcasecmp(key, "mbbrc"))
     {
         if (hb_qsv_info->capabilities & HB_QSV_CAP_OPTION2_BRC)
@@ -699,8 +744,8 @@ int hb_qsv_param_parse(hb_qsv_param_t *param,
     }
     /*
      * TODO:
-     * - interlaced, fake-interlaced
      * - trellis
+     * - fake-interlaced (see mfxExtCodingOption.FramePicture)
      * - intra-refresh
      * - open-gop
      * - overscan
