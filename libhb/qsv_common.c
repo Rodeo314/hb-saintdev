@@ -699,11 +699,11 @@ int hb_qsv_param_parse(hb_qsv_param_t *param,
     }
     /*
      * TODO:
-     * - intra-refresh
-     * - open-gop
      * - interlaced, fake-interlaced
      * - trellis
-     * - video signal info
+     * - intra-refresh
+     * - open-gop
+     * - overscan
      */
     else
     {
@@ -800,6 +800,22 @@ void hb_qsv_param_default(hb_qsv_param_t *param)
         // introduced in API 1.1
         param->videoParam.AsyncDepth      = AV_QSV_ASYNC_DEPTH_DEFAULT;
 
+        // FrameInfo: dummy default values
+        param->videoParam.mfx.FrameInfo.FrameRateExtN = 25;
+        param->videoParam.mfx.FrameInfo.FrameRateExtD =  1;
+        param->videoParam.mfx.FrameInfo.AspectRatioW  =  1;
+        param->videoParam.mfx.FrameInfo.AspectRatioH  =  1;
+        param->videoParam.mfx.FrameInfo.CropX         =  0;
+        param->videoParam.mfx.FrameInfo.CropY         =  0;
+        param->videoParam.mfx.FrameInfo.CropW         = 32;
+        param->videoParam.mfx.FrameInfo.CropH         = 32;
+        param->videoParam.mfx.FrameInfo.Width         = 32;
+        param->videoParam.mfx.FrameInfo.Height        = 32;
+        param->videoParam.mfx.FrameInfo.FourCC        = MFX_FOURCC_NV12;
+        param->videoParam.mfx.FrameInfo.ChromaFormat  = MFX_CHROMAFORMAT_YUV420;
+        param->videoParam.mfx.FrameInfo.PicStruct     = MFX_PICSTRUCT_PROGRESSIVE;
+
+        // GOP & rate control
         param->gop.gop_pic_size       = -1; // set automatically
         param->gop.int_ref_cycle_size = -1; // set automatically
         param->rc.lookahead           = -1; // set automatically
