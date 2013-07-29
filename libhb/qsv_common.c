@@ -819,11 +819,8 @@ void hb_qsv_param_default(hb_qsv_param_t *param)
         param->codingOption2.LookAheadDepth  = 40;
         param->codingOption2.Trellis         = MFX_TRELLIS_UNKNOWN;
 
-        param->NumExtParam = sizeof(param->ExtParam) / sizeof(param->ExtParam[0]);
-        while (param->NumExtParam >= 0)
-        {
-            param->ExtParam[param->NumExtParam--] = NULL;
-        }
+        // attach supported mfxExtBuffer structures to the mfxVideoParam
+        param->NumExtParam                    = 0;
         param->ExtParam[param->NumExtParam++] = (mfxExtBuffer*)&param->codingOption;
         param->ExtParam[param->NumExtParam++] = (mfxExtBuffer*)&param->videoSignalInfo;
         if (hb_qsv_info->capabilities & HB_QSV_CAP_OPTION2_BRC)
