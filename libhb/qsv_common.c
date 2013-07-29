@@ -10,6 +10,7 @@
 #include "common.h"
 #include "hb_dict.h"
 #include "qsv_common.h"
+#include "h264_common.h"
 
 // avoids a warning
 #include "libavutil/cpu.h"
@@ -307,22 +308,18 @@ const char* hb_qsv_decode_get_codec_name(enum AVCodecID codec_id)
     }
 }
 
-void hb_qsv_param_parse_for_job(hb_qsv_param_t *param, hb_job_t *job)
+void hb_qsv_param_parse_all(hb_qsv_param_t *param,
+                            const char *advanced_opts, int vcodec)
 {
-    if (param != NULL && job != NULL)
+    if (advanced_opts != NULL && advanced_opts[0] != '\0')
     {
         hb_dict_entry_t *option = NULL;
-        hb_dict_t *options_list = hb_encopts_to_dict(job->advanced_opts,
-                                                     job->vcodec);
+        hb_dict_t *options_list = hb_encopts_to_dict(advanced_opts, vcodec);
         while ((option = hb_dict_next(options_list, option)) != NULL)
         {
-            switch (hb_qsv_param_parse(param, option->key, option->value))
+            switch (hb_qsv_param_parse(param, option->key, option->value, vcodec))
             {
                 case HB_QSV_PARAM_OK:
-                    hb_deep_log(2, "hb_qsv_param_parse: set option %s%s%s",
-                                option->key,
-                                option->value != NULL ? " to value "  : "",
-                                option->value != NULL ? option->value : "");
                     break;
                 case HB_QSV_PARAM_BAD_NAME:
                     hb_log("hb_qsv_param_parse: bad key %s", option->key);
@@ -399,8 +396,22 @@ static int hb_qsv_codingoption_xlat(int val)
             return MFX_CODINGOPTION_UNKNOWN;
     }
 }
+static int hb_qsv_atoindex(const char* const *arr, const char *str, int *err)
+{
+    int i;
+    for (i = 0; arr[i] != NULL; i++)
+    {
+        if (!strcasecmp(arr[i], str))
+        {
+            break;
+        }
+    }
+    *err = (arr[i] == NULL);
+    return i;
+}
 
-int hb_qsv_param_parse(hb_qsv_param_t *param, const char *key, const char *value)
+int hb_qsv_param_parse(hb_qsv_param_t *param,
+                       const char *key, const char *value, int vcodec)
 {
     float fvalue;
     int ivalue, error = 0;
@@ -546,6 +557,84 @@ int hb_qsv_param_parse(hb_qsv_param_t *param, const char *key, const char *value
         if (!error)
         {
             param->codingOption.RateDistortionOpt = hb_qsv_codingoption_xlat(ivalue);
+        }
+    }
+    else if (!strcasecmp(key, "videoformat"))
+    {
+        switch (vcodec)
+        {
+            case HB_VCODEC_QSV_H264:
+                ivalue = hb_qsv_atoindex(x264_vidformat_names, value, &error);
+                break;
+            default:
+                return HB_QSV_PARAM_UNSUPPORTED;
+        }
+        if (!error)
+        {
+            param->videoSignalInfo.VideoFormat = ivalue;
+        }
+    }
+    else if (!strcasecmp(key, "fullrange"))
+    {
+        switch (vcodec)
+        {
+            case HB_VCODEC_QSV_H264:
+                ivalue = hb_qsv_atoindex(x264_fullrange_names, value, &error);
+                break;
+            default:
+                return HB_QSV_PARAM_UNSUPPORTED;
+        }
+        if (!error)
+        {
+            param->videoSignalInfo.VideoFullRange = ivalue;
+        }
+    }
+    else if (!strcasecmp(key, "colorprim"))
+    {
+        switch (vcodec)
+        {
+            case HB_VCODEC_QSV_H264:
+                ivalue = hb_qsv_atoindex(x264_colorprim_names, value, &error);
+                break;
+            default:
+                return HB_QSV_PARAM_UNSUPPORTED;
+        }
+        if (!error)
+        {
+            param->videoSignalInfo.ColourDescriptionPresent = 1;
+            param->videoSignalInfo.ColourPrimaries = ivalue;
+        }
+    }
+    else if (!strcasecmp(key, "transfer"))
+    {
+        switch (vcodec)
+        {
+            case HB_VCODEC_QSV_H264:
+                ivalue = hb_qsv_atoindex(x264_transfer_names, value, &error);
+                break;
+            default:
+                return HB_QSV_PARAM_UNSUPPORTED;
+        }
+        if (!error)
+        {
+            param->videoSignalInfo.ColourDescriptionPresent = 1;
+            param->videoSignalInfo.TransferCharacteristics = ivalue;
+        }
+    }
+    else if (!strcasecmp(key, "colormatrix"))
+    {
+        switch (vcodec)
+        {
+            case HB_VCODEC_QSV_H264:
+                ivalue = hb_qsv_atoindex(x264_colmatrix_names, value, &error);
+                break;
+            default:
+                return HB_QSV_PARAM_UNSUPPORTED;
+        }
+        if (!error)
+        {
+            param->videoSignalInfo.ColourDescriptionPresent = 1;
+            param->videoSignalInfo.MatrixCoefficients = ivalue;
         }
     }
     else if (!strcasecmp(key, "mbbrc"))

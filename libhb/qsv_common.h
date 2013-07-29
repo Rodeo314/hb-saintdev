@@ -106,7 +106,7 @@ typedef struct
 } hb_qsv_param_t;
 
 void hb_qsv_param_default(hb_qsv_param_t *param);
-void hb_qsv_param_parse_for_job(hb_qsv_param_t *param, hb_job_t *job);
-int  hb_qsv_param_parse(hb_qsv_param_t *param, const char *key, const char *value);
+void hb_qsv_param_parse_all(hb_qsv_param_t *param, const char *advanced_opts, int vcodec);
+int  hb_qsv_param_parse(hb_qsv_param_t *param, const char *key, const char *value, int vcodec);
 
 #endif
