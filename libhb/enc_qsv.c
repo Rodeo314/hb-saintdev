@@ -92,6 +92,8 @@ struct hb_work_private_s
     int64_t        init_pts[BFRM_DELAY_MAX + 1];
     hb_list_t     *list_dts;
 
+    hb_qsv_param_t param;
+
     mfxExtCodingOptionSPSPPS    *sps_pps;
 
     int codec_profile;
@@ -748,17 +750,12 @@ int encqsvInit( hb_work_object_t * w, hb_job_t * job )
 
 #if 1
     int error;
-    hb_qsv_param_t param;
-    mfxExtCodingOptionSPSPPS sps_pps;
-    if ((error = hb_qsv_h264_param_setup_for_job(&param, job)) != 0)
+    pv->config = w->config;
+    if ((error = hb_qsv_h264_param_init(pv)) != MFX_ERR_NONE)
     {
-        hb_error("hb_qsv_h264_param_setup_for_job: %d", error);
+        hb_error("hb_qsv_h264_param_init: %d", error);
+        return error;
     }
-    if ((error = hb_qsv_h264_get_sps_pps(&param, &sps_pps)) != MFX_ERR_NONE)
-    {
-        hb_error("hb_qsv_h264_get_sps_pps: %d", error);
-    }
-    return error;
 #endif
 
     return 0;
@@ -1301,10 +1298,13 @@ void parse_nalus(uint8_t *nal_inits, size_t length, hb_buffer_t *buf, uint32_t f
         }
 }
 
-int hb_qsv_h264_param_setup_for_job(hb_qsv_param_t *param, hb_job_t *job)
+mfxStatus hb_qsv_h264_param_init(hb_work_private_t *pv)
 {
-    if (param != NULL && job != NULL)
+    mfxStatus err = MFX_ERR_NONE;
+    if (pv != NULL && pv->job != NULL)
     {
+        hb_job_t *job         = pv->job;
+        hb_qsv_param_t *param = &pv->param;
         hb_qsv_param_default(param);
 
         /* enable and set colorimetry (video signal information) */
@@ -1391,7 +1391,7 @@ int hb_qsv_h264_param_setup_for_job(hb_qsv_param_t *param, hb_job_t *job)
             }
             else
             {
-                hb_log("hb_qsv_h264_param_setup_for_job: bad profile %s",
+                hb_log("hb_qsv_h264_param_init: bad profile %s",
                        job->h264_profile);
             }
         }
@@ -1405,7 +1405,7 @@ int hb_qsv_h264_param_setup_for_job(hb_qsv_param_t *param, hb_job_t *job)
             }
             else
             {
-                hb_log("hb_qsv_h264_param_setup_for_job: bad level %s",
+                hb_log("hb_qsv_h264_param_init: bad level %s",
                        job->h264_level);
             }
             if ((param->videoParam.mfx.CodecLevel == MFX_LEVEL_AVC_52) &&
@@ -1460,7 +1460,7 @@ int hb_qsv_h264_param_setup_for_job(hb_qsv_param_t *param, hb_job_t *job)
                 param->videoParam.mfx.TargetKbps        = job->vbitrate;
                 if (param->rc.vbv_max_bitrate > 0)
                 {
-                    hb_log("hb_qsv_h264_param_setup_for_job: MFX_RATECONTROL_LA, ignoring VBV");
+                    hb_log("hb_qsv_h264_param_init: MFX_RATECONTROL_LA, ignoring VBV");
                 }
             }
             else if (job->vbitrate == param->rc.vbv_max_bitrate)
@@ -1520,9 +1520,10 @@ int hb_qsv_h264_param_setup_for_job(hb_qsv_param_t *param, hb_job_t *job)
         }
         else
         {
-            hb_error("hb_qsv_h264_param_setup_for_job: invalid rate control (%d, %d)",
+            hb_error("hb_qsv_h264_param_init: invalid rate control (%d, %d)",
                      job->vquality, job->vbitrate);
-            return -1;
+            err = MFX_ERR_INVALID_VIDEO_PARAM;
+            goto end;
         }
 
         /* set the keyframe interval */
@@ -1541,64 +1542,66 @@ int hb_qsv_h264_param_setup_for_job(hb_qsv_param_t *param, hb_job_t *job)
             }
         }
         param->videoParam.mfx.GopPicSize = param->gop.gop_pic_size;
+
+        /* Get the SPS/PPS */
+        if (err == MFX_ERR_NONE)
+        {
+            mfxVersion version;
+            mfxVideoParam videoParam;
+            mfxSession session = (mfxSession)0;
+            mfxExtCodingOptionSPSPPS sps_pps_buf, *sps_pps = &sps_pps_buf;
+            version.Major = HB_QSV_MINVERSION_MAJOR;
+            version.Minor = HB_QSV_MINVERSION_MINOR;
+            err = MFXInit(MFX_IMPL_AUTO_ANY, &version, &session);
+            if (err != MFX_ERR_NONE)
+            {
+                goto end;
+            }
+            err = MFXVideoENCODE_Init(session, &param->videoParam);
+            if (err != MFX_ERR_NONE &&
+                err != MFX_WRN_PARTIAL_ACCELERATION &&
+                err != MFX_WRN_INCOMPATIBLE_VIDEO_PARAM)
+            {
+                MFXClose(session);
+                goto end;
+            }
+            // SPS/PPS retrieval with NAL prefix: 00 00 00 01 for each
+            memset(&videoParam, 0, sizeof(mfxVideoParam));
+            sps_pps->Header.BufferId = MFX_EXTBUFF_CODING_OPTION_SPSPPS;
+            sps_pps->Header.BufferSz = sizeof(mfxExtCodingOptionSPSPPS);
+            sps_pps->SPSId           = 0;
+            sps_pps->SPSBufSize      = 1024;
+            sps_pps->SPSBuffer       = malloc(sps_pps->SPSBufSize);
+            sps_pps->PPSId           = 0;
+            sps_pps->PPSBufSize      = 1024;
+            sps_pps->PPSBuffer       = malloc(sps_pps->PPSBufSize);
+            videoParam.NumExtParam   = 1;
+            videoParam.ExtParam      = (mfxExtBuffer**)&sps_pps;
+            err = MFXVideoENCODE_GetVideoParam(session, &videoParam);
+            if (err == MFX_ERR_NONE)
+            {
+                // Sequence Parameter Set
+                pv->config->h264.sps_length = sps_pps->SPSBufSize - sizeof(ff_prefix_code);
+                memcpy(pv->config->h264.sps,  sps_pps->SPSBuffer  + sizeof(ff_prefix_code),
+                       pv->config->h264.sps_length);
+                // Picture Parameter Set
+                pv->config->h264.pps_length = sps_pps->PPSBufSize - sizeof(ff_prefix_code);
+                memcpy(pv->config->h264.pps,  sps_pps->PPSBuffer  + sizeof(ff_prefix_code),
+                       pv->config->h264.pps_length);
+            }
+            free(sps_pps->SPSBuffer);
+            free(sps_pps->PPSBuffer);
+            MFXVideoENCODE_Close(session);
+            MFXClose(session);
+        }
     }
     else
     {
-        hb_error("hb_qsv_h264_param_setup_for_job: invalid param or job");
-        return -1;
-    }
-    return 0;
-}
-
-mfxStatus hb_qsv_h264_get_sps_pps(hb_qsv_param_t *param,
-                                  mfxExtCodingOptionSPSPPS *sps_pps)
-{
-    mfxVersion version;
-    mfxVideoParam videoParam;
-    mfxStatus err = MFX_ERR_NONE;
-    mfxSession session = (mfxSession)0;
-    if (param != NULL && sps_pps != NULL)
-    {
-        version.Major = HB_QSV_MINVERSION_MAJOR;
-        version.Minor = HB_QSV_MINVERSION_MINOR;
-        err = MFXInit(MFX_IMPL_AUTO_ANY, &version, &session);
-        if (err != MFX_ERR_NONE)
-        {
-            goto end;
-        }
-        err = MFXVideoENCODE_Init(session, &param->videoParam);
-        if (err != MFX_ERR_NONE &&
-            err != MFX_WRN_PARTIAL_ACCELERATION &&
-            err != MFX_WRN_INCOMPATIBLE_VIDEO_PARAM)
-        {
-            goto end;
-        }
-        // SPS/PPS retrieval with NAL prefix: 00 00 00 01 for each
-        memset(&videoParam, 0, sizeof(mfxVideoParam));
-        sps_pps->Header.BufferId = MFX_EXTBUFF_CODING_OPTION_SPSPPS;
-        sps_pps->Header.BufferSz = sizeof(mfxExtCodingOptionSPSPPS);
-        sps_pps->SPSId           = 0;
-        sps_pps->SPSBufSize      = 1024;
-        sps_pps->SPSBuffer       = malloc(sps_pps->SPSBufSize);
-        sps_pps->PPSId           = 0;
-        sps_pps->PPSBufSize      = 1024;
-        sps_pps->PPSBuffer       = malloc(sps_pps->PPSBufSize);
-        videoParam.NumExtParam   = 1;
-        videoParam.ExtParam      = (mfxExtBuffer**)&sps_pps;
-        err = MFXVideoENCODE_GetVideoParam(session, &videoParam);
-        if (err != MFX_ERR_NONE)
-        {
-            sps_pps->SPSBufSize = 0;
-            free(sps_pps->SPSBuffer);
-            sps_pps->SPSBuffer = NULL;
-            sps_pps->PPSBufSize = 0;
-            free(sps_pps->PPSBuffer);
-            sps_pps->PPSBuffer = NULL;
-        }
+        hb_error("hb_qsv_h264_param_init: NULL pointer");
+        err = MFX_ERR_NULL_PTR;
+        goto end;
     }
 end:
-    MFXVideoENCODE_Close(session);
-    MFXClose(session);
     return err;
 }
 
