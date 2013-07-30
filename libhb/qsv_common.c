@@ -774,7 +774,7 @@ void hb_qsv_param_default(hb_qsv_param_t *param)
         param->codingOption.EndOfSequence        = MFX_CODINGOPTION_UNKNOWN;
         param->codingOption.RateDistortionOpt    = MFX_CODINGOPTION_UNKNOWN;
         param->codingOption.CAVLC                = MFX_CODINGOPTION_UNKNOWN;
-        param->codingOption.ResetRefList         = MFX_CODINGOPTION_OFF;
+        param->codingOption.ResetRefList         = MFX_CODINGOPTION_UNKNOWN;
         param->codingOption.MaxDecFrameBuffering = 0; // unspecified
         param->codingOption.AUDelimiter          = MFX_CODINGOPTION_OFF;
         param->codingOption.SingleSeiNalUnit     = MFX_CODINGOPTION_UNKNOWN;
@@ -812,8 +812,8 @@ void hb_qsv_param_default(hb_qsv_param_t *param)
         param->codingOption2.IntRefQPDelta   = 0;
         param->codingOption2.MaxFrameSize    = 0;
         param->codingOption2.BitrateLimit    = MFX_CODINGOPTION_ON;
-        param->codingOption2.MBBRC           = MFX_CODINGOPTION_UNKNOWN;
         param->codingOption2.ExtBRC          = MFX_CODINGOPTION_OFF;
+        param->codingOption2.MBBRC           = MFX_CODINGOPTION_UNKNOWN;
         // introduced in API 1.7
         param->codingOption2.LookAheadDepth  = 40;
         param->codingOption2.Trellis         = MFX_TRELLIS_UNKNOWN;
