@@ -3090,21 +3090,17 @@ static void ShowHelp()
 if (hb_qsv_available())
 {
     fprintf(out,
-    "                            same style as mencoder (x264/qsv/ffmpeg only):\n"
-    "                            option1=value1:option2=value2\n"
-    "                            (see trac.handbrake.fr/wiki/x264Options\n"
-    "                             and trac.handbrake.fr/wiki/QuickSyncOptions)\n");
+    "                            same style as mencoder (x264/qsv/ffmpeg only):\n");
 }
 else
 #endif
 {
     fprintf(out,
-    "                            same style as mencoder (x264 and ffmpeg only):\n"
-    "                            option1=value1:option2=value2\n"
-    "                            (see trac.handbrake.fr/wiki/x264Options)\n");
+    "                            same style as mencoder (x264 and ffmpeg only):\n");
 }
     
     fprintf(out,
+    "                            option1=value1:option2=value2\n"
     "        --h264-profile      When using x264, ensures compliance with the\n"
     "          <string>          specified H.264 profile:\n"
     "                            ");
