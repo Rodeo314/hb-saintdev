@@ -740,16 +740,16 @@ int hb_qsv_param_parse(hb_qsv_param_t *param,
             return HB_QSV_PARAM_UNSUPPORTED;
         }
     }
-    /*
-     * TODO:
-     * - trellis
-     * - slice count control
-     * - open-gop
-     * - fake-interlaced (mfxExtCodingOption.FramePicture???)
-     * - intra-refresh
-     */
     else
     {
+        /*
+         * TODO:
+         * - trellis
+         * - slice count control
+         * - open-gop
+         * - fake-interlaced (mfxExtCodingOption.FramePicture???)
+         * - intra-refresh
+         */
         return HB_QSV_PARAM_BAD_NAME;
     }
     return error ? HB_QSV_PARAM_BAD_VALUE : HB_QSV_PARAM_OK;
