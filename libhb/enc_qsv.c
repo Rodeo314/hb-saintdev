@@ -1537,13 +1537,13 @@ mfxStatus hb_qsv_h264_get_sps_pps(hb_qsv_param_t *param,
     {
         version.Major = HB_QSV_MINVERSION_MAJOR;
         version.Minor = HB_QSV_MINVERSION_MINOR;
-        err = MFXInit(MFX_IMPL_AUTO_ANY|MFX_IMPL_VIA_ANY, &version, &session);
+        err = MFXInit(MFX_IMPL_AUTO_ANY, &version, &session);
         if (err != MFX_ERR_NONE)
         {
             goto end;
         }
         err = MFXVideoENCODE_Init(session, &param->videoParam);
-        if (err != MFX_ERR_NONE)
+        if (err != MFX_ERR_NONE && err != MFX_WRN_PARTIAL_ACCELERATION)
         {
             goto end;
         }
