@@ -1576,7 +1576,7 @@ mfxStatus hb_qsv_h264_param_init_for_job(hb_qsv_param_t *param, hb_job_t *job,
             err = MFXVideoENCODE_GetVideoParam(session, &videoParam);
             if (err == MFX_ERR_NONE)
             {
-                // remove 32-bit NAL prefix (00 00 00 01)
+                // remove 32-bit NAL prefix (0x00 0x00 0x00 0x01)
                 config->h264.sps_length = sps_pps->SPSBufSize - 4;
                 memmove(config->h264.sps, config->h264.sps + 4, config->h264.sps_length);
                 config->h264.pps_length = sps_pps->PPSBufSize - 4;
