@@ -137,7 +137,8 @@ static int64_t stop_at_pts    = 0;
 static int    stop_at_frame = 0;
 static uint64_t min_title_duration = 10;
 #ifdef USE_QSV
-static int qsv_decode = 1;
+static int qsv_decode      =  1;
+static int qsv_async_depth = -1;
 #endif
 
 /* Exit cleanly on Ctrl-C */
@@ -1877,6 +1878,10 @@ static int HandleEvents( hb_handle_t * h )
             }
 
 #ifdef USE_QSV
+            if (qsv_async_depth >= 0)
+            {
+                job->qsv_async_depth = qsv_async_depth;
+            }
             job->qsv_decode = qsv_decode;
 #endif
 
@@ -3590,6 +3595,7 @@ static int ParseOptions( int argc, char ** argv )
     #define NORMALIZE_MIX       287
     #define AUDIO_DITHER        288
     #define QSV_BASELINE        289
+    #define QSV_ASYNC_DEPTH     290
 
     for( ;; )
     {
@@ -3601,6 +3607,7 @@ static int ParseOptions( int argc, char ** argv )
             { "no-dvdnav",   no_argument,       NULL,    DVDNAV },
 #ifdef USE_QSV
             { "qsv-baseline", no_argument,      NULL,    QSV_BASELINE },
+            { "qsv-async-depth", required_argument, NULL, QSV_ASYNC_DEPTH },
             { "disable-qsv-decoding", no_argument, &qsv_decode, 0 },
 #endif
 
@@ -4219,8 +4226,8 @@ static int ParseOptions( int argc, char ** argv )
             case MIN_DURATION:
                 min_title_duration = strtol( optarg, NULL, 0 );
                 break;
-            case QSV_BASELINE:
 #ifdef USE_QSV
+            case QSV_BASELINE:
                 if (hb_qsv_available())
                 {
                     /* XXX: for testing workarounds */
@@ -4228,8 +4235,11 @@ static int ParseOptions( int argc, char ** argv )
                     hb_qsv_info->capabilities &= ~HB_QSV_CAP_OPTION2_BRC;
                     hb_qsv_info->capabilities &= ~HB_QSV_CAP_OPTION2_LOOKAHEAD;
                 }
-#endif
                 break;
+            case QSV_ASYNC_DEPTH:
+                qsv_async_depth = atoi(optarg);
+                break;
+#endif
             default:
                 fprintf( stderr, "unknown option (%s)\n", argv[cur_optind] );
                 return -1;

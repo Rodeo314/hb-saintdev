@@ -266,7 +266,8 @@ fail:
     return -1;
 }
 
-void hb_qsv_decode_init(AVCodecContext *context, av_qsv_config *qsv_config)
+void hb_qsv_decode_init(AVCodecContext *context, av_qsv_config *qsv_config,
+                        int async_depth)
 {
     if (context == NULL || qsv_config == NULL)
     {
@@ -277,8 +278,9 @@ void hb_qsv_decode_init(AVCodecContext *context, av_qsv_config *qsv_config)
     context->hwaccel_context       = qsv_config;
     qsv_config->impl_requested     = MFX_IMPL_AUTO_ANY|MFX_IMPL_VIA_ANY;
     qsv_config->io_pattern         = MFX_IOPATTERN_OUT_OPAQUE_MEMORY;
-    qsv_config->sync_need          = 0;
-    qsv_config->usage_threaded     = 1;
+    qsv_config->async_depth        = async_depth;
+    qsv_config->sync_need          =  0;
+    qsv_config->usage_threaded     =  1;
     qsv_config->additional_buffers = 64; // FIFO_LARGE
     if (hb_qsv_info->capabilities & HB_QSV_CAP_OPTION2_LOOKAHEAD)
     {
