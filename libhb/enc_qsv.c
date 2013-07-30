@@ -746,6 +746,21 @@ int encqsvInit( hb_work_object_t * w, hb_job_t * job )
 
     pv->is_vpp_present = 0;
 
+#if 1
+    int error;
+    hb_qsv_param_t param;
+    mfxExtCodingOptionSPSPPS sps_pps;
+    if ((error = hb_qsv_h264_param_setup_for_job(&param, job)) != 0)
+    {
+        hb_error("hb_qsv_h264_param_setup_for_job: %d", error);
+    }
+    if ((error = hb_qsv_h264_get_sps_pps(&param, &sps_pps)) != MFX_ERR_NONE)
+    {
+        hb_error("hb_qsv_h264_get_sps_pps: %d", error);
+    }
+    return error;
+#endif
+
     return 0;
 }
 
@@ -1343,8 +1358,6 @@ int hb_qsv_h264_param_setup_for_job(hb_qsv_param_t *param, hb_job_t *job)
         param->videoParam.mfx.CodecProfile            = MFX_PROFILE_UNKNOWN;
         param->videoParam.mfx.FrameInfo.FourCC        = MFX_FOURCC_NV12;
         param->videoParam.mfx.FrameInfo.ChromaFormat  = MFX_CHROMAFORMAT_YUV420;
-        param->videoParam.mfx.FrameInfo.FrameRateExtN = job->vrate;
-        param->videoParam.mfx.FrameInfo.FrameRateExtD = job->vrate_base;
         param->videoParam.mfx.FrameInfo.CropX         = 0;
         param->videoParam.mfx.FrameInfo.CropY         = 0;
         param->videoParam.mfx.FrameInfo.CropW         = job->width;
@@ -1357,6 +1370,9 @@ int hb_qsv_h264_param_setup_for_job(hb_qsv_param_t *param, hb_job_t *job)
         {
             param->videoParam.mfx.FrameInfo.Height = AV_QSV_ALIGN32(job->height);
         }
+        hb_limit_rational64((int64_t*)&param->videoParam.mfx.FrameInfo.FrameRateExtN,
+                            (int64_t*)&param->videoParam.mfx.FrameInfo.FrameRateExtD,
+                            job->vrate, job->vrate_base, UINT32_MAX);
 
         /* set H.264 profile and level */
         if (job->h264_profile != NULL && job->h264_profile[0] != '\0')
