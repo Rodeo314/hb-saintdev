@@ -1429,7 +1429,17 @@ int hb_qsv_h264_param_setup_for_job(hb_qsv_param_t *param, hb_job_t *job)
                 // lookahead RC not supported
                 param->rc.lookahead = 0;
             }
-            if (job->vbitrate == param->rc.vbv_max_bitrate)
+            if (param->rc.lookahead)
+            {
+                // introduced in API 1.7
+                param->videoParam.mfx.RateControlMethod = MFX_RATECONTROL_LA;
+                param->videoParam.mfx.TargetKbps        = job->vbitrate;
+                if (param->rc.vbv_max_bitrate > 0)
+                {
+                    hb_log("hb_qsv_h264_param_setup_for_job: MFX_RATECONTROL_LA, ignoring VBV");
+                }
+            }
+            else if (job->vbitrate == param->rc.vbv_max_bitrate)
             {
                 // introduced in API 1.0
                 param->videoParam.mfx.RateControlMethod = MFX_RATECONTROL_CBR;
@@ -1450,16 +1460,6 @@ int hb_qsv_h264_param_setup_for_job(hb_qsv_param_t *param, hb_job_t *job)
                 {
                     param->videoParam.mfx.InitialDelayInKB = (param->rc.vbv_buffer_size *
                                                               param->rc.vbv_buffer_init / 8);
-                }
-            }
-            else if (param->rc.lookahead)
-            {
-                // introduced in API 1.7
-                param->videoParam.mfx.RateControlMethod = MFX_RATECONTROL_LA;
-                param->videoParam.mfx.TargetKbps        = job->vbitrate;
-                if (param->rc.vbv_max_bitrate > 0)
-                {
-                    hb_log("hb_qsv_h264_param_setup_for_job: MFX_RATECONTROL_LA, ignoring VBV");
                 }
             }
             else if (param->rc.vbv_max_bitrate > 0)
