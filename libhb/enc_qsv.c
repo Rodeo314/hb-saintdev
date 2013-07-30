@@ -1403,9 +1403,31 @@ int hb_qsv_h264_param_setup_for_job(hb_qsv_param_t *param, hb_job_t *job)
         }
         else if (job->vbitrate > 0)
         {
-            if (param->rc.lookahead < 0)
+            if (hb_qsv_info->capabilities & HB_QSV_CAP_OPTION2_LOOKAHEAD)
             {
-                param->rc.lookahead = (param->videoParam.mfx.TargetUsage >= MFX_TARGETUSAGE_2);
+                if (param->rc.lookahead < 0)
+                {
+                    if (param->rc.vbv_max_bitrate > 0)
+                    {
+                        // lookahead RC doesn't support VBV
+                        param->rc.lookahead = 0;
+                    }
+                    else
+                    {
+                        // set automatically based on target usage
+                        param->rc.lookahead = (param->videoParam.mfx.TargetUsage >= MFX_TARGETUSAGE_2);
+                    }
+                }
+                else
+                {
+                    // user force-enabled or force-disabled lookahead RC
+                    param->rc.lookahead = !!param->rc.lookahead;
+                }
+            }
+            else
+            {
+                // lookahead RC not supported
+                param->rc.lookahead = 0;
             }
             if (job->vbitrate == param->rc.vbv_max_bitrate)
             {
@@ -1430,13 +1452,30 @@ int hb_qsv_h264_param_setup_for_job(hb_qsv_param_t *param, hb_job_t *job)
                                                               param->rc.vbv_buffer_init / 8);
                 }
             }
-            else if (param->rc.vbv_max_bitrate > 0 && param->rc.vbv_buffer_size > 0)
+            else if (param->rc.lookahead)
+            {
+                // introduced in API 1.7
+                param->videoParam.mfx.RateControlMethod = MFX_RATECONTROL_LA;
+                param->videoParam.mfx.TargetKbps        = job->vbitrate;
+                if (param->rc.vbv_max_bitrate > 0)
+                {
+                    hb_log("hb_qsv_h264_param_setup_for_job: MFX_RATECONTROL_LA, ignoring VBV");
+                }
+            }
+            else if (param->rc.vbv_max_bitrate > 0)
             {
                 // introduced in API 1.0
                 param->videoParam.mfx.RateControlMethod = MFX_RATECONTROL_VBR;
                 param->videoParam.mfx.MaxKbps           = param->rc.vbv_max_bitrate;
                 param->videoParam.mfx.TargetKbps        = job->vbitrate;
-                if (param->rc.vbv_buffer_init > 1.0)
+                param->videoParam.mfx.BufferSizeInKB    = (param->rc.vbv_buffer_size / 8);
+                if (param->rc.vbv_buffer_size <= 0)
+                {
+                    // let Media SDK calculate these for us
+                    param->videoParam.mfx.BufferSizeInKB   = 0;
+                    param->videoParam.mfx.InitialDelayInKB = 0;
+                }
+                else if (param->rc.vbv_buffer_init > 1.0)
                 {
                     param->videoParam.mfx.InitialDelayInKB = (param->rc.vbv_buffer_init / 8);
                 }
@@ -1445,14 +1484,6 @@ int hb_qsv_h264_param_setup_for_job(hb_qsv_param_t *param, hb_job_t *job)
                     param->videoParam.mfx.InitialDelayInKB = (param->rc.vbv_buffer_size *
                                                               param->rc.vbv_buffer_init / 8);
                 }
-                param->videoParam.mfx.BufferSizeInKB = (param->rc.vbv_buffer_size / 8);
-            }
-            else if ((param->rc.lookahead > 0) &&
-                     (hb_qsv_info->capabilities & HB_QSV_CAP_OPTION2_LOOKAHEAD))
-            {
-                // introduced in API 1.7
-                param->videoParam.mfx.RateControlMethod = MFX_RATECONTROL_LA;
-                param->videoParam.mfx.TargetKbps        = job->vbitrate;
             }
             else
             {
