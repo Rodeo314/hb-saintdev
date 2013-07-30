@@ -30,6 +30,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hb.h"
 #include "enc_qsv.h"
 #include "qsv_common.h"
+#include "qsv_memory.h"
 #include "h264_common.h"
 
 /**
