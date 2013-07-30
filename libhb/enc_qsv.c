@@ -55,6 +55,28 @@ int profile_string_to_int( const char *str )
     return -1;
 }
 
+int qsv_h264_levels[sizeof(hb_h264_level_names)] = {
+                                                        0, // "auto"
+                                                        MFX_LEVEL_AVC_1,
+                                                        MFX_LEVEL_AVC_1b,
+                                                        MFX_LEVEL_AVC_11,
+                                                        MFX_LEVEL_AVC_12,
+                                                        MFX_LEVEL_AVC_13,
+                                                        MFX_LEVEL_AVC_2,
+                                                        MFX_LEVEL_AVC_21,
+                                                        MFX_LEVEL_AVC_22,
+                                                        MFX_LEVEL_AVC_3,
+                                                        MFX_LEVEL_AVC_31,
+                                                        MFX_LEVEL_AVC_32,
+                                                        MFX_LEVEL_AVC_4,
+                                                        MFX_LEVEL_AVC_41,
+                                                        MFX_LEVEL_AVC_42,
+                                                        MFX_LEVEL_AVC_5,
+                                                        MFX_LEVEL_AVC_51,
+                                                        0, // MFX_LEVEL_AVC_52 if MSDK API MFX_VERSION_MAJOR/MFX_VERSION_MINOR is 1/6
+                                                        0
+                                                    };
+
 int  encqsvInit( hb_work_object_t *, hb_job_t * );
 int  encqsvWork( hb_work_object_t *, hb_buffer_t **, hb_buffer_t ** );
 void encqsvClose( hb_work_object_t * );
@@ -712,7 +734,7 @@ int encqsvInit( hb_work_object_t * w, hb_job_t * job )
             {
                 // skipping "auto" for default one
                 if(i)
-                    pv->codec_level = hb_qsv_h264_level_values[i];
+                    pv->codec_level = qsv_h264_levels[i];
                 break;
             }
         }
@@ -745,16 +767,6 @@ int encqsvInit( hb_work_object_t * w, hb_job_t * job )
     w->config->h264.pps_length = 0;
 
     pv->is_vpp_present = 0;
-
-#if 1
-    hb_qsv_param_t param;
-    mfxStatus error = hb_qsv_h264_param_init_for_job(&param, job, w->config);
-    if (error != MFX_ERR_NONE)
-    {
-        hb_error("hb_qsv_h264_param_init_for_job: %d", error);
-        return error;
-    }
-#endif
 
     return 0;
 }
@@ -1294,306 +1306,6 @@ void parse_nalus(uint8_t *nal_inits, size_t length, hb_buffer_t *buf, uint32_t f
                 offset = next_offset;
             }
         }
-}
-
-mfxStatus hb_qsv_h264_param_init_for_job(hb_qsv_param_t *param, hb_job_t *job,
-                                         hb_esconfig_t *config)
-{
-    mfxStatus err = MFX_ERR_NONE;
-    if (param != NULL && job != NULL && config != NULL)
-    {
-        hb_qsv_param_default(param);
-
-        /* enable and set colorimetry (video signal information) */
-        param->videoSignalInfo.ColourDescriptionPresent = 1;
-        switch (job->color_matrix_code)
-        {
-            case 4:
-                // custom
-                param->videoSignalInfo.ColourPrimaries         = job->color_prim;
-                param->videoSignalInfo.TransferCharacteristics = job->color_transfer;
-                param->videoSignalInfo.MatrixCoefficients      = job->color_matrix;
-                break;
-            case 3:
-                // ITU BT.709 HD content
-                param->videoSignalInfo.ColourPrimaries         = HB_COLR_PRI_BT709;
-                param->videoSignalInfo.TransferCharacteristics = HB_COLR_TRA_BT709;
-                param->videoSignalInfo.MatrixCoefficients      = HB_COLR_MAT_BT709;
-                break;
-            case 2:
-                // ITU BT.601 DVD or SD TV content (PAL)
-                param->videoSignalInfo.ColourPrimaries         = HB_COLR_PRI_EBUTECH;
-                param->videoSignalInfo.TransferCharacteristics = HB_COLR_TRA_BT709;
-                param->videoSignalInfo.MatrixCoefficients      = HB_COLR_MAT_SMPTE170M;
-                break;
-            case 1:
-                // ITU BT.601 DVD or SD TV content (NTSC)
-                param->videoSignalInfo.ColourPrimaries         = HB_COLR_PRI_SMPTEC;
-                param->videoSignalInfo.TransferCharacteristics = HB_COLR_TRA_BT709;
-                param->videoSignalInfo.MatrixCoefficients      = HB_COLR_MAT_SMPTE170M;
-                break;
-            default:
-                // detected during scan
-                param->videoSignalInfo.ColourPrimaries         = job->title->color_prim;
-                param->videoSignalInfo.TransferCharacteristics = job->title->color_transfer;
-                param->videoSignalInfo.MatrixCoefficients      = job->title->color_matrix;
-                break;
-        }
-
-        /* parse user-specified advanced options */
-        hb_qsv_param_parse_all(param, job->advanced_opts, job->vcodec);
-
-        /* reload colorimetry in case values were set in advanced_opts */
-        job->color_matrix_code = 4;
-        job->color_prim        = param->videoSignalInfo.ColourPrimaries;
-        job->color_transfer    = param->videoSignalInfo.TransferCharacteristics;
-        job->color_matrix      = param->videoSignalInfo.MatrixCoefficients;
-
-        /* encode to H.264 and set FrameInfo */
-        param->videoParam.mfx.CodecId                 = MFX_CODEC_AVC;
-        param->videoParam.mfx.CodecLevel              = MFX_LEVEL_UNKNOWN;
-        param->videoParam.mfx.CodecProfile            = MFX_PROFILE_UNKNOWN;
-        param->videoParam.mfx.FrameInfo.FourCC        = MFX_FOURCC_NV12;
-        param->videoParam.mfx.FrameInfo.ChromaFormat  = MFX_CHROMAFORMAT_YUV420;
-        param->videoParam.mfx.FrameInfo.CropX         = 0;
-        param->videoParam.mfx.FrameInfo.CropY         = 0;
-        param->videoParam.mfx.FrameInfo.CropW         = job->width;
-        param->videoParam.mfx.FrameInfo.CropH         = job->height;
-        param->videoParam.mfx.FrameInfo.AspectRatioW  = job->anamorphic.par_width;
-        param->videoParam.mfx.FrameInfo.AspectRatioH  = job->anamorphic.par_height;
-        param->videoParam.mfx.FrameInfo.Width         = AV_QSV_ALIGN16(job->width);
-        param->videoParam.mfx.FrameInfo.Height        = AV_QSV_ALIGN16(job->height);
-        if (param->videoParam.mfx.FrameInfo.PicStruct != MFX_PICSTRUCT_PROGRESSIVE)
-        {
-            param->videoParam.mfx.FrameInfo.Height = AV_QSV_ALIGN32(job->height);
-        }
-        hb_limit_rational64((int64_t*)&param->videoParam.mfx.FrameInfo.FrameRateExtN,
-                            (int64_t*)&param->videoParam.mfx.FrameInfo.FrameRateExtD,
-                            job->vrate, job->vrate_base, UINT32_MAX);
-
-        /* set H.264 profile and level */
-        if (job->h264_profile != NULL && job->h264_profile[0] != '\0')
-        {
-            if (!strcasecmp(job->h264_profile, "baseline"))
-            {
-                param->videoParam.mfx.CodecProfile = MFX_PROFILE_AVC_BASELINE;
-            }
-            else if (!strcasecmp(job->h264_profile, "main"))
-            {
-                param->videoParam.mfx.CodecProfile = MFX_PROFILE_AVC_MAIN;
-            }
-            else if (!strcasecmp(job->h264_profile, "high"))
-            {
-                param->videoParam.mfx.CodecProfile = MFX_PROFILE_AVC_HIGH;
-            }
-            else
-            {
-                hb_log("hb_qsv_h264_param_init_for_job: bad profile %s",
-                       job->h264_profile);
-            }
-        }
-        if (job->h264_level != NULL && job->h264_level[0] != '\0')
-        {
-            int err;
-            int i = hb_qsv_atoindex(hb_h264_level_names, job->h264_level, &err);
-            if (!err && (i < (sizeof(hb_qsv_h264_level_values) / sizeof(int))))
-            {
-                param->videoParam.mfx.CodecLevel = hb_qsv_h264_level_values[i];
-            }
-            else
-            {
-                hb_log("hb_qsv_h264_param_init_for_job: bad level %s",
-                       job->h264_level);
-            }
-            if ((param->videoParam.mfx.CodecLevel == MFX_LEVEL_AVC_52) &&
-                (hb_qsv_info->capabilities & HB_QSV_CAP_OPTION2_BRC) == 0)
-            {
-                // Media SDK API < 1.6, MFX_LEVEL_AVC_52 unsupported
-                param->videoParam.mfx.CodecLevel = MFX_LEVEL_AVC_51;
-            }
-        }
-
-        /* set rate control paremeters */
-        if (job->vquality >= 0)
-        {
-            // introduced in API 1.1
-            param->videoParam.mfx.RateControlMethod = MFX_RATECONTROL_CQP;
-            param->videoParam.mfx.QPI = HB_QSV_CLIP3(0, 51, job->vquality + param->rc.cqp_offsets[0]);
-            param->videoParam.mfx.QPP = HB_QSV_CLIP3(0, 51, job->vquality + param->rc.cqp_offsets[1]);
-            param->videoParam.mfx.QPB = HB_QSV_CLIP3(0, 51, job->vquality + param->rc.cqp_offsets[2]);
-        }
-        else if (job->vbitrate > 0)
-        {
-            if (hb_qsv_info->capabilities & HB_QSV_CAP_OPTION2_LOOKAHEAD)
-            {
-                if (param->rc.lookahead < 0)
-                {
-                    if (param->rc.vbv_max_bitrate > 0)
-                    {
-                        // lookahead RC doesn't support VBV
-                        param->rc.lookahead = 0;
-                    }
-                    else
-                    {
-                        // set automatically based on target usage
-                        param->rc.lookahead = (param->videoParam.mfx.TargetUsage >= MFX_TARGETUSAGE_2);
-                    }
-                }
-                else
-                {
-                    // user force-enabled or force-disabled lookahead RC
-                    param->rc.lookahead = !!param->rc.lookahead;
-                }
-            }
-            else
-            {
-                // lookahead RC not supported
-                param->rc.lookahead = 0;
-            }
-            if (param->rc.lookahead)
-            {
-                // introduced in API 1.7
-                param->videoParam.mfx.RateControlMethod = MFX_RATECONTROL_LA;
-                param->videoParam.mfx.TargetKbps        = job->vbitrate;
-                if (param->rc.vbv_max_bitrate > 0)
-                {
-                    hb_log("hb_qsv_h264_param_init_for_job: MFX_RATECONTROL_LA, ignoring VBV");
-                }
-            }
-            else if (job->vbitrate == param->rc.vbv_max_bitrate)
-            {
-                // introduced in API 1.0
-                param->videoParam.mfx.RateControlMethod = MFX_RATECONTROL_CBR;
-                param->videoParam.mfx.MaxKbps           = job->vbitrate;
-                param->videoParam.mfx.TargetKbps        = job->vbitrate;
-                param->videoParam.mfx.BufferSizeInKB    = (param->rc.vbv_buffer_size / 8);
-                if (param->rc.vbv_buffer_size <= 0)
-                {
-                    // let Media SDK calculate these for us
-                    param->videoParam.mfx.BufferSizeInKB   = 0;
-                    param->videoParam.mfx.InitialDelayInKB = 0;
-                }
-                else if (param->rc.vbv_buffer_init > 1.0)
-                {
-                    param->videoParam.mfx.InitialDelayInKB = (param->rc.vbv_buffer_init / 8);
-                }
-                else
-                {
-                    param->videoParam.mfx.InitialDelayInKB = (param->rc.vbv_buffer_size *
-                                                              param->rc.vbv_buffer_init / 8);
-                }
-            }
-            else if (param->rc.vbv_max_bitrate > 0)
-            {
-                // introduced in API 1.0
-                param->videoParam.mfx.RateControlMethod = MFX_RATECONTROL_VBR;
-                param->videoParam.mfx.MaxKbps           = param->rc.vbv_max_bitrate;
-                param->videoParam.mfx.TargetKbps        = job->vbitrate;
-                param->videoParam.mfx.BufferSizeInKB    = (param->rc.vbv_buffer_size / 8);
-                if (param->rc.vbv_buffer_size <= 0)
-                {
-                    // let Media SDK calculate these for us
-                    param->videoParam.mfx.BufferSizeInKB   = 0;
-                    param->videoParam.mfx.InitialDelayInKB = 0;
-                }
-                else if (param->rc.vbv_buffer_init > 1.0)
-                {
-                    param->videoParam.mfx.InitialDelayInKB = (param->rc.vbv_buffer_init / 8);
-                }
-                else
-                {
-                    param->videoParam.mfx.InitialDelayInKB = (param->rc.vbv_buffer_size *
-                                                              param->rc.vbv_buffer_init / 8);
-                }
-            }
-            else
-            {
-                // introduced in API 1.3
-                param->videoParam.mfx.RateControlMethod = MFX_RATECONTROL_AVBR;
-                param->videoParam.mfx.TargetKbps        = job->vbitrate;
-                param->videoParam.mfx.Convergence       = 10; // 1000 frames
-                param->videoParam.mfx.Accuracy          = 50; // +/- 5.0%
-            }
-        }
-        else
-        {
-            hb_error("hb_qsv_h264_param_init_for_job: invalid rate control (%d, %d)",
-                     job->vquality, job->vbitrate);
-            err = MFX_ERR_INVALID_VIDEO_PARAM;
-            goto end;
-        }
-
-        /* set the keyframe interval */
-        if (param->gop.gop_pic_size < 0)
-        {
-            int rate = (int)((double)job->vrate / (double)job->vrate_base + 0.5);
-            if (param->videoParam.mfx.RateControlMethod == MFX_RATECONTROL_CQP)
-            {
-                // ensure B-pyramid is enabled for CQP on Haswell
-                param->gop.gop_pic_size = 32;
-            }
-            else
-            {
-                // set the keyframe interval based on the framerate
-                param->gop.gop_pic_size = 5 * rate + 1;
-            }
-        }
-        param->videoParam.mfx.GopPicSize = param->gop.gop_pic_size;
-
-        /* Get the SPS/PPS */
-        if (err == MFX_ERR_NONE)
-        {
-            mfxVersion version;
-            mfxVideoParam videoParam;
-            mfxSession session = (mfxSession)0;
-            mfxExtCodingOptionSPSPPS sps_pps_buf, *sps_pps = &sps_pps_buf;
-            version.Major = HB_QSV_MINVERSION_MAJOR;
-            version.Minor = HB_QSV_MINVERSION_MINOR;
-            err = MFXInit(MFX_IMPL_AUTO_ANY, &version, &session);
-            if (err != MFX_ERR_NONE)
-            {
-                goto end;
-            }
-            err = MFXVideoENCODE_Init(session, &param->videoParam);
-            if (err != MFX_ERR_NONE &&
-                err != MFX_WRN_PARTIAL_ACCELERATION &&
-                err != MFX_WRN_INCOMPATIBLE_VIDEO_PARAM)
-            {
-                MFXClose(session);
-                goto end;
-            }
-            memset(&videoParam, 0, sizeof(mfxVideoParam));
-            sps_pps->Header.BufferId = MFX_EXTBUFF_CODING_OPTION_SPSPPS;
-            sps_pps->Header.BufferSz = sizeof(mfxExtCodingOptionSPSPPS);
-            sps_pps->SPSId           = 0;
-            sps_pps->SPSBuffer       = config->h264.sps;
-            sps_pps->SPSBufSize      = sizeof(config->h264.sps);
-            sps_pps->PPSId           = 0;
-            sps_pps->PPSBuffer       = config->h264.pps;
-            sps_pps->PPSBufSize      = sizeof(config->h264.pps);
-            videoParam.NumExtParam   = 1;
-            videoParam.ExtParam      = (mfxExtBuffer**)&sps_pps;
-            err = MFXVideoENCODE_GetVideoParam(session, &videoParam);
-            if (err == MFX_ERR_NONE)
-            {
-                // remove 32-bit NAL prefix (0x00 0x00 0x00 0x01)
-                config->h264.sps_length = sps_pps->SPSBufSize - 4;
-                memmove(config->h264.sps, config->h264.sps + 4, config->h264.sps_length);
-                config->h264.pps_length = sps_pps->PPSBufSize - 4;
-                memmove(config->h264.pps, config->h264.pps + 4, config->h264.pps_length);
-            }
-            MFXVideoENCODE_Close(session);
-            MFXClose(session);
-        }
-    }
-    else
-    {
-        hb_error("hb_qsv_h264_param_init_for_job: NULL pointer");
-        err = MFX_ERR_NULL_PTR;
-        goto end;
-    }
-end:
-    return err;
 }
 
 int qsv_param_parse( av_qsv_config* config, const char *name, const char *value){
