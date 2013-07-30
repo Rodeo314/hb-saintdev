@@ -822,7 +822,6 @@ void hb_qsv_param_default(hb_qsv_param_t *param)
         memset(&param->videoParam, 0, sizeof(mfxVideoParam));
         param->videoParam.Protected        = 0; // reserved, must be 0
         param->videoParam.NumExtParam      = 0;
-        param->videoParam.ExtParam         = param->ExtParamArray;
         param->videoParam.IOPattern        = MFX_IOPATTERN_IN_SYSTEM_MEMORY;
         param->videoParam.mfx.TargetUsage  = MFX_TARGETUSAGE_2;
         param->videoParam.mfx.GopOptFlag   = MFX_GOP_CLOSED;
@@ -866,6 +865,7 @@ void hb_qsv_param_default(hb_qsv_param_t *param)
 
         // attach supported mfxExtBuffer structures to the mfxVideoParam
         param->videoParam.NumExtParam = 0;
+        param->videoParam.ExtParam = param->ExtParamArray;
         param->videoParam.ExtParam[param->videoParam.NumExtParam++] = (mfxExtBuffer*)&param->codingOption;
         param->videoParam.ExtParam[param->videoParam.NumExtParam++] = (mfxExtBuffer*)&param->videoSignalInfo;
         if (hb_qsv_info->capabilities & HB_QSV_CAP_OPTION2_BRC)
