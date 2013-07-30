@@ -1567,7 +1567,9 @@ mfxStatus hb_qsv_h264_get_sps_pps(hb_qsv_param_t *param,
             goto end;
         }
         err = MFXVideoENCODE_Init(session, &param->videoParam);
-        if (err != MFX_ERR_NONE && err != MFX_WRN_PARTIAL_ACCELERATION)
+        if (err != MFX_ERR_NONE &&
+            err != MFX_WRN_PARTIAL_ACCELERATION &&
+            err != MFX_WRN_INCOMPATIBLE_VIDEO_PARAM)
         {
             goto end;
         }
