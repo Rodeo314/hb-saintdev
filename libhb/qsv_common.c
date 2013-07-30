@@ -761,8 +761,8 @@ void hb_qsv_param_default(hb_qsv_param_t *param)
     {
         // introduced in API 1.0
         memset(&param->codingOption, 0, sizeof(mfxExtCodingOption));
-        param->codingOption2.Header.BufferId     = MFX_EXTBUFF_CODING_OPTION;
-        param->codingOption2.Header.BufferSz     = sizeof(mfxExtCodingOption);
+        param->codingOption.Header.BufferId      = MFX_EXTBUFF_CODING_OPTION;
+        param->codingOption.Header.BufferSz      = sizeof(mfxExtCodingOption);
         param->codingOption.MECostType           = 0; // reserved, must be 0
         param->codingOption.MESearchType         = 0; // reserved, must be 0
         param->codingOption.MVSearchWindow.x     = 0; // reserved, must be 0
