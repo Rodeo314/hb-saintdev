@@ -92,8 +92,6 @@ struct hb_work_private_s
     int64_t        init_pts[BFRM_DELAY_MAX + 1];
     hb_list_t     *list_dts;
 
-    hb_qsv_param_t param;
-
     mfxExtCodingOptionSPSPPS    *sps_pps;
 
     int codec_profile;
@@ -749,11 +747,11 @@ int encqsvInit( hb_work_object_t * w, hb_job_t * job )
     pv->is_vpp_present = 0;
 
 #if 1
-    int error;
-    pv->config = w->config;
-    if ((error = hb_qsv_h264_param_init(pv)) != MFX_ERR_NONE)
+    hb_qsv_param_t param;
+    mfxStatus error = hb_qsv_h264_param_init_for_job(&param, job, w->config);
+    if (error != MFX_ERR_NONE)
     {
-        hb_error("hb_qsv_h264_param_init: %d", error);
+        hb_error("hb_qsv_h264_param_init_for_job: %d", error);
         return error;
     }
 #endif
@@ -1298,13 +1296,12 @@ void parse_nalus(uint8_t *nal_inits, size_t length, hb_buffer_t *buf, uint32_t f
         }
 }
 
-mfxStatus hb_qsv_h264_param_init(hb_work_private_t *pv)
+mfxStatus hb_qsv_h264_param_init_for_job(hb_qsv_param_t *param, hb_job_t *job,
+                                         hb_esconfig_t *config)
 {
     mfxStatus err = MFX_ERR_NONE;
-    if (pv != NULL && pv->job != NULL)
+    if (param != NULL && job != NULL && config != NULL)
     {
-        hb_job_t *job         = pv->job;
-        hb_qsv_param_t *param = &pv->param;
         hb_qsv_param_default(param);
 
         /* enable and set colorimetry (video signal information) */
@@ -1391,7 +1388,7 @@ mfxStatus hb_qsv_h264_param_init(hb_work_private_t *pv)
             }
             else
             {
-                hb_log("hb_qsv_h264_param_init: bad profile %s",
+                hb_log("hb_qsv_h264_param_init_for_job: bad profile %s",
                        job->h264_profile);
             }
         }
@@ -1405,7 +1402,7 @@ mfxStatus hb_qsv_h264_param_init(hb_work_private_t *pv)
             }
             else
             {
-                hb_log("hb_qsv_h264_param_init: bad level %s",
+                hb_log("hb_qsv_h264_param_init_for_job: bad level %s",
                        job->h264_level);
             }
             if ((param->videoParam.mfx.CodecLevel == MFX_LEVEL_AVC_52) &&
@@ -1460,7 +1457,7 @@ mfxStatus hb_qsv_h264_param_init(hb_work_private_t *pv)
                 param->videoParam.mfx.TargetKbps        = job->vbitrate;
                 if (param->rc.vbv_max_bitrate > 0)
                 {
-                    hb_log("hb_qsv_h264_param_init: MFX_RATECONTROL_LA, ignoring VBV");
+                    hb_log("hb_qsv_h264_param_init_for_job: MFX_RATECONTROL_LA, ignoring VBV");
                 }
             }
             else if (job->vbitrate == param->rc.vbv_max_bitrate)
@@ -1520,7 +1517,7 @@ mfxStatus hb_qsv_h264_param_init(hb_work_private_t *pv)
         }
         else
         {
-            hb_error("hb_qsv_h264_param_init: invalid rate control (%d, %d)",
+            hb_error("hb_qsv_h264_param_init_for_job: invalid rate control (%d, %d)",
                      job->vquality, job->vbitrate);
             err = MFX_ERR_INVALID_VIDEO_PARAM;
             goto end;
@@ -1570,10 +1567,10 @@ mfxStatus hb_qsv_h264_param_init(hb_work_private_t *pv)
             sps_pps->Header.BufferId = MFX_EXTBUFF_CODING_OPTION_SPSPPS;
             sps_pps->Header.BufferSz = sizeof(mfxExtCodingOptionSPSPPS);
             sps_pps->SPSId           = 0;
-            sps_pps->SPSBufSize      = 1024;
+            sps_pps->SPSBufSize      = HB_CONFIG_MAX_SIZE;
             sps_pps->SPSBuffer       = malloc(sps_pps->SPSBufSize);
             sps_pps->PPSId           = 0;
-            sps_pps->PPSBufSize      = 1024;
+            sps_pps->PPSBufSize      = HB_CONFIG_MAX_SIZE;
             sps_pps->PPSBuffer       = malloc(sps_pps->PPSBufSize);
             videoParam.NumExtParam   = 1;
             videoParam.ExtParam      = (mfxExtBuffer**)&sps_pps;
@@ -1581,13 +1578,13 @@ mfxStatus hb_qsv_h264_param_init(hb_work_private_t *pv)
             if (err == MFX_ERR_NONE)
             {
                 // Sequence Parameter Set
-                pv->config->h264.sps_length = sps_pps->SPSBufSize - sizeof(ff_prefix_code);
-                memcpy(pv->config->h264.sps,  sps_pps->SPSBuffer  + sizeof(ff_prefix_code),
-                       pv->config->h264.sps_length);
+                config->h264.sps_length = sps_pps->SPSBufSize - sizeof(ff_prefix_code);
+                memcpy(config->h264.sps,  sps_pps->SPSBuffer  + sizeof(ff_prefix_code),
+                       config->h264.sps_length);
                 // Picture Parameter Set
-                pv->config->h264.pps_length = sps_pps->PPSBufSize - sizeof(ff_prefix_code);
-                memcpy(pv->config->h264.pps,  sps_pps->PPSBuffer  + sizeof(ff_prefix_code),
-                       pv->config->h264.pps_length);
+                config->h264.pps_length = sps_pps->PPSBufSize - sizeof(ff_prefix_code);
+                memcpy(config->h264.pps,  sps_pps->PPSBuffer  + sizeof(ff_prefix_code),
+                       config->h264.pps_length);
             }
             free(sps_pps->SPSBuffer);
             free(sps_pps->PPSBuffer);
@@ -1597,7 +1594,7 @@ mfxStatus hb_qsv_h264_param_init(hb_work_private_t *pv)
     }
     else
     {
-        hb_error("hb_qsv_h264_param_init: NULL pointer");
+        hb_error("hb_qsv_h264_param_init_for_job: NULL pointer");
         err = MFX_ERR_NULL_PTR;
         goto end;
     }
