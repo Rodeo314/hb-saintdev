@@ -12,9 +12,10 @@
 #include <ctype.h>
 #include <sys/time.h>
 
-#include "common.h"
-#include "lang.h"
 #include "hb.h"
+#include "lang.h"
+#include "common.h"
+#include "qsv_common.h"
 
 /**********************************************************************
  * Global variables
