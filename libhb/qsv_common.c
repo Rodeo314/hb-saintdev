@@ -543,7 +543,7 @@ int hb_qsv_param_parse(hb_qsv_param_t *param,
     }
     else if (!strcasecmp(key, "cabac"))
     {
-        ivalue = hb_qsv_atobool(value, &error);
+        ivalue = !hb_qsv_atobool(value, &error);
         if (!error)
         {
             param->codingOption.CAVLC = hb_qsv_codingoption_xlat(ivalue);
@@ -551,7 +551,7 @@ int hb_qsv_param_parse(hb_qsv_param_t *param,
     }
     else if (!strcasecmp(key, "rdo"))
     {
-        ivalue = hb_qsv_atobool(value, &error);
+        ivalue = hb_qsv_atoi(value, &error);
         if (!error)
         {
             param->codingOption.RateDistortionOpt = hb_qsv_codingoption_xlat(ivalue);
@@ -684,7 +684,7 @@ int hb_qsv_param_parse(hb_qsv_param_t *param,
     {
         if (hb_qsv_info->capabilities & HB_QSV_CAP_OPTION2_BRC)
         {
-            ivalue = hb_qsv_atobool(value, &error);
+            ivalue = hb_qsv_atoi(value, &error);
             if (!error)
             {
                 param->codingOption2.MBBRC = hb_qsv_codingoption_xlat(ivalue);
@@ -699,7 +699,7 @@ int hb_qsv_param_parse(hb_qsv_param_t *param,
     {
         if (hb_qsv_info->capabilities & HB_QSV_CAP_OPTION2_BRC)
         {
-            ivalue = hb_qsv_atobool(value, &error);
+            ivalue = hb_qsv_atoi(value, &error);
             if (!error)
             {
                 param->codingOption2.ExtBRC = hb_qsv_codingoption_xlat(ivalue);
@@ -773,7 +773,7 @@ void hb_qsv_param_default(hb_qsv_param_t *param)
         param->codingOption.MVPrecision          = 0; // reserved, must be 0
         param->codingOption.EndOfSequence        = MFX_CODINGOPTION_UNKNOWN;
         param->codingOption.RateDistortionOpt    = MFX_CODINGOPTION_UNKNOWN;
-        param->codingOption.CAVLC                = MFX_CODINGOPTION_OFF;
+        param->codingOption.CAVLC                = MFX_CODINGOPTION_UNKNOWN;
         param->codingOption.ResetRefList         = MFX_CODINGOPTION_OFF;
         param->codingOption.MaxDecFrameBuffering = 0; // unspecified
         param->codingOption.AUDelimiter          = MFX_CODINGOPTION_OFF;
