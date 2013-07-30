@@ -1562,32 +1562,26 @@ mfxStatus hb_qsv_h264_param_init_for_job(hb_qsv_param_t *param, hb_job_t *job,
                 MFXClose(session);
                 goto end;
             }
-            // SPS/PPS retrieval with NAL prefix: 00 00 00 01 for each
             memset(&videoParam, 0, sizeof(mfxVideoParam));
             sps_pps->Header.BufferId = MFX_EXTBUFF_CODING_OPTION_SPSPPS;
             sps_pps->Header.BufferSz = sizeof(mfxExtCodingOptionSPSPPS);
             sps_pps->SPSId           = 0;
-            sps_pps->SPSBufSize      = HB_CONFIG_MAX_SIZE;
-            sps_pps->SPSBuffer       = malloc(sps_pps->SPSBufSize);
+            sps_pps->SPSBuffer       = config->h264.sps;
+            sps_pps->SPSBufSize      = sizeof(config->h264.sps);
             sps_pps->PPSId           = 0;
-            sps_pps->PPSBufSize      = HB_CONFIG_MAX_SIZE;
-            sps_pps->PPSBuffer       = malloc(sps_pps->PPSBufSize);
+            sps_pps->PPSBuffer       = config->h264.pps;
+            sps_pps->PPSBufSize      = sizeof(config->h264.pps);
             videoParam.NumExtParam   = 1;
             videoParam.ExtParam      = (mfxExtBuffer**)&sps_pps;
             err = MFXVideoENCODE_GetVideoParam(session, &videoParam);
             if (err == MFX_ERR_NONE)
             {
-                // Sequence Parameter Set
-                config->h264.sps_length = sps_pps->SPSBufSize - sizeof(ff_prefix_code);
-                memcpy(config->h264.sps,  sps_pps->SPSBuffer  + sizeof(ff_prefix_code),
-                       config->h264.sps_length);
-                // Picture Parameter Set
-                config->h264.pps_length = sps_pps->PPSBufSize - sizeof(ff_prefix_code);
-                memcpy(config->h264.pps,  sps_pps->PPSBuffer  + sizeof(ff_prefix_code),
-                       config->h264.pps_length);
+                // remove 32-bit NAL prefix (00 00 00 01)
+                config->h264.sps_length = sps_pps->SPSBufSize - 4;
+                memmove(config->h264.sps, config->h264.sps + 4, config->h264.sps_length);
+                config->h264.pps_length = sps_pps->PPSBufSize - 4;
+                memmove(config->h264.pps, config->h264.pps + 4, config->h264.pps_length);
             }
-            free(sps_pps->SPSBuffer);
-            free(sps_pps->PPSBuffer);
             MFXVideoENCODE_Close(session);
             MFXClose(session);
         }
