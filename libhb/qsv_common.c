@@ -743,11 +743,10 @@ int hb_qsv_param_parse(hb_qsv_param_t *param,
     /*
      * TODO:
      * - trellis
-     * - fake-interlaced (see mfxExtCodingOption.FramePicture)
-     * - intra-refresh
-     * - open-gop
-     * - overscan control
      * - slice count control
+     * - open-gop
+     * - fake-interlaced (mfxExtCodingOption.FramePicture???)
+     * - intra-refresh
      */
     else
     {
