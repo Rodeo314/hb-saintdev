@@ -35,8 +35,8 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 int nal_find_start_code(uint8_t** pb, size_t* size);
 void parse_nalus( uint8_t *nal_inits, size_t length, hb_buffer_t *buf, uint32_t frame_num);
 
-void hb_qsv_h264_param_setup_for_job(hb_qsv_param_t *param, hb_job_t *job);
-int  hb_qsv_h264_get_sps_pps(hb_qsv_param_t *param, mfxExtCodingOptionSPSPPS *sps_pps);
+int       hb_qsv_h264_param_setup_for_job(hb_qsv_param_t *param, hb_job_t *job);
+mfxStatus hb_qsv_h264_get_sps_pps(hb_qsv_param_t *param, mfxExtCodingOptionSPSPPS *sps_pps);
 
 
 #define QSV_NAME_async_depth    "async-depth"

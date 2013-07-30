@@ -1286,7 +1286,7 @@ void parse_nalus(uint8_t *nal_inits, size_t length, hb_buffer_t *buf, uint32_t f
         }
 }
 
-void hb_qsv_h264_param_setup_for_job(hb_qsv_param_t *param, hb_job_t *job)
+int hb_qsv_h264_param_setup_for_job(hb_qsv_param_t *param, hb_job_t *job)
 {
     if (param != NULL && job != NULL)
     {
@@ -1467,8 +1467,7 @@ void hb_qsv_h264_param_setup_for_job(hb_qsv_param_t *param, hb_job_t *job)
         {
             hb_error("hb_qsv_h264_param_setup_for_job: invalid rate control (%d, %d)",
                      job->vquality, job->vbitrate);
-            *job->die = 1;
-            return;
+            return -1;
         }
 
         /* set the keyframe interval */
@@ -1491,18 +1490,18 @@ void hb_qsv_h264_param_setup_for_job(hb_qsv_param_t *param, hb_job_t *job)
     else
     {
         hb_error("hb_qsv_h264_param_setup_for_job: invalid param or job");
-        *job->die = 1;
-        return;
+        return -1;
     }
+    return 0;
 }
 
-int hb_qsv_h264_get_sps_pps(hb_qsv_param_t *param,
-                            mfxExtCodingOptionSPSPPS *sps_pps)
+mfxStatus hb_qsv_h264_get_sps_pps(hb_qsv_param_t *param,
+                                  mfxExtCodingOptionSPSPPS *sps_pps)
 {
-    mfxStatus err;
-    mfxSession session;
     mfxVersion version;
     mfxVideoParam videoParam;
+    mfxStatus err = MFX_ERR_NONE;
+    mfxSession session = (mfxSession)0;
     if (param != NULL && sps_pps != NULL)
     {
         version.Major = HB_QSV_MINVERSION_MAJOR;
@@ -1510,39 +1509,40 @@ int hb_qsv_h264_get_sps_pps(hb_qsv_param_t *param,
         err = MFXInit(MFX_IMPL_AUTO_ANY|MFX_IMPL_VIA_ANY, &version, &session);
         if (err != MFX_ERR_NONE)
         {
-            goto fail;
+            goto end;
         }
         err = MFXVideoENCODE_Init(session, &param->videoParam);
         if (err != MFX_ERR_NONE)
         {
-            goto fail;
+            goto end;
         }
         // SPS/PPS retrieval with NAL prefix: 00 00 00 01 for each
         memset(&videoParam, 0, sizeof(mfxVideoParam));
         sps_pps->Header.BufferId = MFX_EXTBUFF_CODING_OPTION_SPSPPS;
         sps_pps->Header.BufferSz = sizeof(mfxExtCodingOptionSPSPPS);
         sps_pps->SPSId           = 0;
-        sps_pps->SPSBuffer       = calloc(1, 1024);
         sps_pps->SPSBufSize      = 1024;
+        sps_pps->SPSBuffer       = malloc(sps_pps->SPSBufSize);
         sps_pps->PPSId           = 0;
-        sps_pps->PPSBuffer       = calloc(1, 1024);
         sps_pps->PPSBufSize      = 1024;
+        sps_pps->PPSBuffer       = malloc(sps_pps->PPSBufSize);
         videoParam.NumExtParam   = 1;
         videoParam.ExtParam      = (mfxExtBuffer**)&sps_pps;
         err = MFXVideoENCODE_GetVideoParam(session, &videoParam);
         if (err != MFX_ERR_NONE)
         {
-            goto fail;
+            sps_pps->SPSBufSize = 0;
+            free(sps_pps->SPSBuffer);
+            sps_pps->SPSBuffer = NULL;
+            sps_pps->PPSBufSize = 0;
+            free(sps_pps->PPSBuffer);
+            sps_pps->PPSBuffer = NULL;
         }
-        MFXVideoENCODE_Close(session);
-        MFXClose(session);
-        return 0;
     }
-fail:
-    // FIXME: log error message
+end:
     MFXVideoENCODE_Close(session);
     MFXClose(session);
-    return -1;
+    return err;
 }
 
 int qsv_param_parse( av_qsv_config* config, const char *name, const char *value){
