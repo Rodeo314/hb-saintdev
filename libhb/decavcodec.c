@@ -1203,7 +1203,7 @@ static int decavcodecvInit( hb_work_object_t * w, hb_job_t * job )
             pv->qsv_config.additional_buffers = 160;
         }
         pv->qsv_codec_name = hb_qsv_decode_get_codec_name(w->codec_param);
-        pv->qsv_decode     = 1;;
+        pv->qsv_decode     = 1;
     }
 #endif
 
