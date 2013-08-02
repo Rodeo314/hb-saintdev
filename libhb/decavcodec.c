@@ -341,9 +341,10 @@ static void closePrivData( hb_work_private_t ** ppv )
         }
         if ( pv->context && pv->context->codec )
         {
-            if(!(pv->context->priv_data != NULL && pv->job &&
-                pv->job->vcodec == HB_VCODEC_QSV_H264))
-            hb_avcodec_close( pv->context );
+            if (!pv->qsv_decode)
+            {
+                hb_avcodec_close(pv->context);
+            }
         }
         if ( pv->context )
         {
@@ -1187,6 +1188,10 @@ static int decavcodecvInit( hb_work_object_t * w, hb_job_t * job )
         }
         pv->qsv_codec_name = hb_qsv_decode_get_codec_name(w->codec_param);
         pv->qsv_decode     = 1;
+    }
+    else
+    {
+        pv->qsv_decode = 0;
     }
 #endif
 
