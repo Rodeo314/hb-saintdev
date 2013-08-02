@@ -136,6 +136,9 @@ static int    start_at_frame = 0;
 static int64_t stop_at_pts    = 0;
 static int    stop_at_frame = 0;
 static uint64_t min_title_duration = 10;
+#ifdef USE_QSV
+static int qsv_decode = 1;
+#endif
 
 /* Exit cleanly on Ctrl-C */
 static volatile int die = 0;
@@ -1873,6 +1876,10 @@ static int HandleEvents( hb_handle_t * h )
                 job->vcodec = vcodec;
             }
 
+#ifdef USE_QSV
+            job->qsv_decode = qsv_decode;
+#endif
+
             /* Grab audio tracks */
             if( atracks )
             {
@@ -3140,6 +3147,13 @@ else
     }
     if( len )
         fprintf( out, "%s\n", tmp );
+#ifdef USE_QSV
+if (hb_qsv_available())
+{
+    fprintf( out,
+    "    --disable-qsv-decoding  When using qsv, force software video decoding.\n");
+}
+#endif
     fprintf( out,
     "    -q, --quality <number>  Set video quality\n"
     "    -b, --vb <kb/s>         Set video bitrate (default: 1000)\n"
@@ -3647,6 +3661,7 @@ static int ParseOptions( int argc, char ** argv )
             { "no-dvdnav",   no_argument,       NULL,    DVDNAV },
 #ifdef USE_QSV
             { "qsv-baseline", no_argument,      NULL,    QSV_BASELINE },
+            { "disable-qsv-decoding", no_argument, &qsv_decode, 0 },
 #endif
 
             { "format",      required_argument, NULL,    'f' },
