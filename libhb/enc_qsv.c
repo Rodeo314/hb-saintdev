@@ -392,10 +392,6 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
             hb_log("encqsvInit: MFX_RATECONTROL_LA with TargetKbps %"PRIu16"",
                    pv->param.videoParam.mfx.TargetKbps);
             break;
-        case MFX_RATECONTROL_CBR:
-            hb_log("encqsvInit: MFX_RATECONTROL_CBR with TargetKbps %"PRIu16"",
-                   pv->param.videoParam.mfx.TargetKbps);
-            break;
         case MFX_RATECONTROL_AVBR:
             hb_log("encqsvInit: MFX_RATECONTROL_AVBR with TargetKbps %"PRIu16"",
                    pv->param.videoParam.mfx.TargetKbps);
@@ -406,8 +402,10 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
                    pv->param.videoParam.mfx.QPP,
                    pv->param.videoParam.mfx.QPB);
             break;
+        case MFX_RATECONTROL_CBR:
         case MFX_RATECONTROL_VBR:
-            hb_log("encqsvInit: MFX_RATECONTROL_VBR with TargetKbps %"PRIu16", MaxKbps %"PRIu16"",
+            hb_log("encqsvInit: MFX_RATECONTROL_%s with TargetKbps %"PRIu16", MaxKbps %"PRIu16"",
+                   pv->param.videoParam.mfx.RateControlMethod == MFX_RATECONTROL_CBR ? "CBR" : "VBR",
                    pv->param.videoParam.mfx.TargetKbps,
                    pv->param.videoParam.mfx.MaxKbps);
             hb_log("encqsvInit: VBV enabled with BufferSizeInKB %"PRIu16" and InitialDelayInKB %"PRIu16"",
