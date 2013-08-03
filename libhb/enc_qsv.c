@@ -212,16 +212,6 @@ int qsv_enc_init(av_qsv_context *qsv, hb_work_private_t *pv)
                             SWS_LANCZOS|SWS_ACCURATE_RND);
     }
 
-    // memory allocation
-    if (pv->is_sys_mem)
-    {
-        pv->param.videoParam.IOPattern = MFX_IOPATTERN_IN_SYSTEM_MEMORY;
-    }
-    else
-    {
-        pv->param.videoParam.IOPattern = MFX_IOPATTERN_IN_OPAQUE_MEMORY;
-    }
-
     // if not explicit value given - making atleast one
     int tasks_amount = pv->max_async_depth ? pv->max_async_depth : 1;
     qsv_encode->tasks = av_qsv_list_init(HAVE_THREADS);
@@ -235,6 +225,31 @@ int qsv_enc_init(av_qsv_context *qsv, hb_work_private_t *pv)
             task->bs->DataOffset = 0;
             task->bs->MaxLength = qsv_encode->p_buf_max_size;
             av_qsv_list_add( qsv_encode->tasks, task );
+    }
+
+    // setup memory allocation
+    if (pv->is_sys_mem)
+    {
+        pv->param.videoParam.IOPattern = MFX_IOPATTERN_IN_SYSTEM_MEMORY;
+    }
+    else
+    {
+        av_qsv_space *in_space = qsv->dec_space;
+        if (pv->is_vpp_present)
+        {
+            // we get our input from VPP instead
+            in_space = av_qsv_list_item(qsv->vpp_space,
+                                        av_qsv_list_count(qsv->vpp_space) - 1);
+        }
+        pv->param.videoParam.IOPattern = MFX_IOPATTERN_IN_OPAQUE_MEMORY;
+        // introduced in API 1.3
+        memset(&qsv_encode->ext_opaque_alloc, 0, sizeof(mfxExtOpaqueSurfaceAlloc));
+        qsv_encode->ext_opaque_alloc.Header.BufferId = MFX_EXTBUFF_OPAQUE_SURFACE_ALLOCATION;
+        qsv_encode->ext_opaque_alloc.Header.BufferSz = sizeof(mfxExtOpaqueSurfaceAlloc);
+        qsv_encode->ext_opaque_alloc.In.Surfaces     = in_space->p_surfaces;
+        qsv_encode->ext_opaque_alloc.In.NumSurface   = in_space->surface_num;
+        qsv_encode->ext_opaque_alloc.In.Type         = qsv_encode->request[0].Type;
+        pv->param.videoParam.ExtParam[pv->param.videoParam.NumExtParam++] = (mfxExtBuffer*)&qsv_encode->ext_opaque_alloc;
     }
 
     // allocation of surfaces to work with
@@ -263,14 +278,6 @@ int qsv_enc_init(av_qsv_context *qsv, hb_work_private_t *pv)
         AV_QSV_CHECK_POINTER(qsv_encode->p_syncp[i], MFX_ERR_MEMORY_ALLOC);
         qsv_encode->p_syncp[i]->p_sync = av_mallocz(sizeof(mfxSyncPoint));
         AV_QSV_CHECK_POINTER(qsv_encode->p_syncp[i]->p_sync, MFX_ERR_MEMORY_ALLOC);
-    }
-
-    //fixme
-    pv->param.videoParam.NumExtParam = qsv_encode->p_ext_param_num;
-    pv->param.videoParam.ExtParam    = qsv_encode->p_ext_params;
-    if (!pv->is_sys_mem)
-    {
-        qsv_encode->p_ext_param_num = 1; // for MFX_EXTBUFF_OPAQUE_SURFACE_ALLOCATION
     }
 
     sts = MFXVideoENCODE_Init(qsv->mfx_session, &pv->param.videoParam);
