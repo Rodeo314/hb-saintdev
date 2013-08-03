@@ -244,7 +244,7 @@ int qsv_enc_init(av_qsv_context *qsv, hb_work_private_t *pv)
     AV_QSV_IGNORE_MFX_STS(sts, MFX_WRN_PARTIAL_ACCELERATION);
     AV_QSV_CHECK_RESULT(sts, MFX_ERR_NONE, sts);
 
-    // allocate surfaces (system memory)
+    // allocate surfaces
     if (pv->is_sys_mem)
     {
         qsv_encode->surface_num = FFMIN(qsv_encode->request[0].NumFrameSuggested +
@@ -261,21 +261,7 @@ int qsv_enc_init(av_qsv_context *qsv, hb_work_private_t *pv)
                    &(qsv_encode->request[0].Info), sizeof(mfxFrameInfo));
         }
     }
-
-    // allocate sync points
-    qsv_encode->sync_num = (qsv_encode->surface_num ?
-                            FFMIN(qsv_encode->surface_num, AV_QSV_SYNC_NUM) :
-                            AV_QSV_SYNC_NUM);
-    for (i = 0; i < qsv_encode->sync_num; i++)
-    {
-        qsv_encode->p_syncp[i] = av_mallocz(sizeof(av_qsv_sync));
-        AV_QSV_CHECK_POINTER(qsv_encode->p_syncp[i], MFX_ERR_MEMORY_ALLOC);
-        qsv_encode->p_syncp[i]->p_sync = av_mallocz(sizeof(mfxSyncPoint));
-        AV_QSV_CHECK_POINTER(qsv_encode->p_syncp[i]->p_sync, MFX_ERR_MEMORY_ALLOC);
-    }
-
-    // "allocate" surfaces (opaque memory)
-    if (!pv->is_sys_mem)
+    else
     {
         av_qsv_space *in_space = qsv->dec_space;
         if (pv->is_vpp_present)
@@ -292,6 +278,18 @@ int qsv_enc_init(av_qsv_context *qsv, hb_work_private_t *pv)
         qsv_encode->ext_opaque_alloc.In.NumSurface   = in_space->surface_num;
         qsv_encode->ext_opaque_alloc.In.Type         = qsv_encode->request[0].Type;
         pv->param.videoParam.ExtParam[pv->param.videoParam.NumExtParam++] = (mfxExtBuffer*)&qsv_encode->ext_opaque_alloc;
+    }
+
+    // allocate sync points
+    qsv_encode->sync_num = (qsv_encode->surface_num ?
+                            FFMIN(qsv_encode->surface_num, AV_QSV_SYNC_NUM) :
+                            AV_QSV_SYNC_NUM);
+    for (i = 0; i < qsv_encode->sync_num; i++)
+    {
+        qsv_encode->p_syncp[i] = av_mallocz(sizeof(av_qsv_sync));
+        AV_QSV_CHECK_POINTER(qsv_encode->p_syncp[i], MFX_ERR_MEMORY_ALLOC);
+        qsv_encode->p_syncp[i]->p_sync = av_mallocz(sizeof(mfxSyncPoint));
+        AV_QSV_CHECK_POINTER(qsv_encode->p_syncp[i]->p_sync, MFX_ERR_MEMORY_ALLOC);
     }
 
     sts = MFXVideoENCODE_Init(qsv->mfx_session, &pv->param.videoParam);
