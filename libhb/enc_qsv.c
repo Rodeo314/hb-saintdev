@@ -189,7 +189,7 @@ int qsv_enc_init(av_qsv_context *qsv, hb_work_private_t *pv)
             hb_error("qsv_enc_init: decode enabled but no context!");
             return 3;
         }
-        qsv = calloc(1, sizeof(av_qsv_context));
+        qsv = av_mallocz(sizeof(av_qsv_context));
     }
 
     av_qsv_space* qsv_encode = qsv->enc_space;
