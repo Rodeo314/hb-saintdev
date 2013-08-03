@@ -331,12 +331,55 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
         hb_error("encqsvInit: hb_qsv_h264_param_init_for_job failed");
         return -1;
     }
+
     // get the SPS/PPS
-    mfxStatus err = hb_qsv_h264_param_get_esconfig(&pv->param, w->config);
+    mfxStatus err;
+    mfxVersion version;
+    mfxVideoParam videoParam;
+    mfxSession session = (mfxSession)0;
+    mfxExtCodingOptionSPSPPS sps_pps_buf, *sps_pps = &sps_pps_buf;
+    version.Major = HB_QSV_MINVERSION_MAJOR;
+    version.Minor = HB_QSV_MINVERSION_MINOR;
+    err = MFXInit(MFX_IMPL_AUTO_ANY, &version, &session);
     if (err != MFX_ERR_NONE)
     {
-        hb_error("encqsvInit: hb_qsv_h264_param_get_esconfig failed (%d)", err);
         return err;
+    }
+    err = MFXVideoENCODE_Init(session, &pv->param.videoParam);
+    if (err != MFX_ERR_NONE &&
+        err != MFX_WRN_PARTIAL_ACCELERATION &&
+        err != MFX_WRN_INCOMPATIBLE_VIDEO_PARAM)
+    {
+        MFXClose(session);
+        return err;
+    }
+    memset(&videoParam, 0, sizeof(mfxVideoParam));
+    sps_pps->Header.BufferId = MFX_EXTBUFF_CODING_OPTION_SPSPPS;
+    sps_pps->Header.BufferSz = sizeof(mfxExtCodingOptionSPSPPS);
+    sps_pps->SPSId           = 0;
+    sps_pps->SPSBuffer       = w->config->h264.sps;
+    sps_pps->SPSBufSize      = sizeof(w->config->h264.sps);
+    sps_pps->PPSId           = 0;
+    sps_pps->PPSBuffer       = w->config->h264.pps;
+    sps_pps->PPSBufSize      = sizeof(w->config->h264.pps);
+    videoParam.NumExtParam   = 1;
+    videoParam.ExtParam      = (mfxExtBuffer**)&sps_pps;
+    err = MFXVideoENCODE_GetVideoParam(session, &videoParam);
+    MFXVideoENCODE_Close(session);
+    MFXClose(session);
+    if (err == MFX_ERR_NONE)
+    {
+        // remove 32-bit NAL prefix (0x00 0x00 0x00 0x01)
+        w->config->h264.sps_length = sps_pps->SPSBufSize - 4;
+        memmove(w->config->h264.sps, w->config->h264.sps + 4,
+                w->config->h264.sps_length);
+        w->config->h264.pps_length = sps_pps->PPSBufSize - 4;
+        memmove(w->config->h264.pps, w->config->h264.pps + 4,
+                w->config->h264.pps_length);
+    }
+    else
+    {
+        w->config->h264.sps_length = w->config->h264.pps_length = 0;
     }
 
     // set the Asynd Depth to match that of decode and VPP
@@ -345,7 +388,7 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     pv->async_depth                 = 0;
 
     // check whether B-frames are used
-    switch (pv->param.videoParam.mfx.CodecProfile)
+    switch (videoParam.mfx.CodecProfile)
     {
         case MFX_PROFILE_AVC_BASELINE:
         case MFX_PROFILE_AVC_CONSTRAINED_HIGH:
@@ -356,15 +399,13 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
             pv->bfrm_delay = 1;
             break;
     }
-    if (pv->param.videoParam.mfx.GopRefDist > 0)
+    if (videoParam.mfx.GopRefDist > 0)
     {
-        pv->bfrm_delay = FFMIN(pv->bfrm_delay,
-                               pv->param.videoParam.mfx.GopRefDist - 1);
+        pv->bfrm_delay = FFMIN(pv->bfrm_delay, videoParam.mfx.GopRefDist - 1);
     }
-    if (pv->param.videoParam.mfx.GopPicSize > 0)
+    if (videoParam.mfx.GopPicSize > 0)
     {
-        pv->bfrm_delay = FFMIN(pv->bfrm_delay,
-                               pv->param.videoParam.mfx.GopPicSize - 2);
+        pv->bfrm_delay = FFMIN(pv->bfrm_delay, videoParam.mfx.GopPicSize - 2);
     }
     // sanitize
     pv->bfrm_delay = FFMAX(pv->bfrm_delay, 0);
@@ -386,47 +427,39 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     job->areBframes = !!pv->bfrm_delay;
 
     // FIXME: log some output settings
-    switch (pv->param.videoParam.mfx.RateControlMethod)
+    switch (videoParam.mfx.RateControlMethod)
     {
         case MFX_RATECONTROL_LA:
             hb_log("encqsvInit: MFX_RATECONTROL_LA with TargetKbps %"PRIu16"",
-                   pv->param.videoParam.mfx.TargetKbps);
+                   videoParam.mfx.TargetKbps);
             break;
         case MFX_RATECONTROL_AVBR:
             hb_log("encqsvInit: MFX_RATECONTROL_AVBR with TargetKbps %"PRIu16"",
-                   pv->param.videoParam.mfx.TargetKbps);
+                   videoParam.mfx.TargetKbps);
             break;
         case MFX_RATECONTROL_CQP:
             hb_log("encqsvInit: MFX_RATECONTROL_CQP with QPI %"PRIu16", QPP %"PRIu16", QPB %"PRIu16"",
-                   pv->param.videoParam.mfx.QPI,
-                   pv->param.videoParam.mfx.QPP,
-                   pv->param.videoParam.mfx.QPB);
+                   videoParam.mfx.QPI, videoParam.mfx.QPP, videoParam.mfx.QPB);
             break;
         case MFX_RATECONTROL_CBR:
         case MFX_RATECONTROL_VBR:
             hb_log("encqsvInit: MFX_RATECONTROL_%s with TargetKbps %"PRIu16", MaxKbps %"PRIu16"",
-                   pv->param.videoParam.mfx.RateControlMethod == MFX_RATECONTROL_CBR ? "CBR" : "VBR",
-                   pv->param.videoParam.mfx.TargetKbps,
-                   pv->param.videoParam.mfx.MaxKbps);
+                   videoParam.mfx.RateControlMethod == MFX_RATECONTROL_CBR ? "CBR" : "VBR",
+                   videoParam.mfx.TargetKbps, videoParam.mfx.MaxKbps);
             hb_log("encqsvInit: VBV enabled with BufferSizeInKB %"PRIu16" and InitialDelayInKB %"PRIu16"",
-                   pv->param.videoParam.mfx.BufferSizeInKB,
-                   pv->param.videoParam.mfx.InitialDelayInKB);
+                   videoParam.mfx.BufferSizeInKB, videoParam.mfx.InitialDelayInKB);
             break;
         default:
             hb_log("encqsvInit: invalid rate control method %"PRIu16"",
-                   pv->param.videoParam.mfx.RateControlMethod);
+                   videoParam.mfx.RateControlMethod);
             return -1;
     }
     hb_log("encqsvInit: GopRefDist %"PRIu16" GopPicSize %"PRIu16" NumRefFrame %"PRIu16"",
-           pv->param.videoParam.mfx.GopRefDist,
-           pv->param.videoParam.mfx.GopPicSize,
-           pv->param.videoParam.mfx.NumRefFrame);
+           videoParam.mfx.GopRefDist, videoParam.mfx.GopPicSize, videoParam.mfx.NumRefFrame);
     hb_log("encqsvInit: TargetUsage %"PRIu16" AsyncDepth %"PRIu16"",
-           pv->param.videoParam.mfx.TargetUsage,
-           pv->param.videoParam.AsyncDepth);
+           videoParam.mfx.TargetUsage, videoParam.AsyncDepth);
     hb_log("encqsvInit: H.264 Profile %"PRIu16" H.264 Level %"PRIu16"",
-           pv->param.videoParam.mfx.CodecProfile,
-           pv->param.videoParam.mfx.CodecLevel);
+           videoParam.mfx.CodecProfile, videoParam.mfx.CodecLevel);
 
     return 0;
 }
@@ -1235,6 +1268,7 @@ mfxStatus hb_qsv_h264_param_get_esconfig(hb_qsv_param_t *param,
     mfxStatus err = MFX_ERR_NONE;
     if (param != NULL && config != NULL)
     {
+        mfxStatus err;
         mfxVersion version;
         mfxVideoParam videoParam;
         mfxSession session = (mfxSession)0;
@@ -1244,7 +1278,7 @@ mfxStatus hb_qsv_h264_param_get_esconfig(hb_qsv_param_t *param,
         err = MFXInit(MFX_IMPL_AUTO_ANY, &version, &session);
         if (err != MFX_ERR_NONE)
         {
-            goto end;
+            return err;
         }
         err = MFXVideoENCODE_Init(session, &param->videoParam);
         if (err != MFX_ERR_NONE &&
@@ -1252,9 +1286,9 @@ mfxStatus hb_qsv_h264_param_get_esconfig(hb_qsv_param_t *param,
             err != MFX_WRN_INCOMPATIBLE_VIDEO_PARAM)
         {
             MFXClose(session);
-            goto end;
+            return err;
         }
-        /* Get the SPS/PPS and store it in the provided hb_esconfig_t */
+        /* Get the SPS/PPS */
         memset(&videoParam, 0, sizeof(mfxVideoParam));
         sps_pps->Header.BufferId = MFX_EXTBUFF_CODING_OPTION_SPSPPS;
         sps_pps->Header.BufferSz = sizeof(mfxExtCodingOptionSPSPPS);
@@ -1267,6 +1301,8 @@ mfxStatus hb_qsv_h264_param_get_esconfig(hb_qsv_param_t *param,
         videoParam.NumExtParam   = 1;
         videoParam.ExtParam      = (mfxExtBuffer**)&sps_pps;
         err = MFXVideoENCODE_GetVideoParam(session, &videoParam);
+        MFXVideoENCODE_Close(session);
+        MFXClose(session);
         if (err == MFX_ERR_NONE)
         {
             // remove 32-bit NAL prefix (0x00 0x00 0x00 0x01)
@@ -1275,8 +1311,10 @@ mfxStatus hb_qsv_h264_param_get_esconfig(hb_qsv_param_t *param,
             config->h264.pps_length = sps_pps->PPSBufSize - 4;
             memmove(config->h264.pps, config->h264.pps + 4, config->h264.pps_length);
         }
-        MFXVideoENCODE_Close(session);
-        MFXClose(session);
+        else
+        {
+            config->h264.sps_length = config->h264.pps_length = 0;
+        }
     }
     else
     {
