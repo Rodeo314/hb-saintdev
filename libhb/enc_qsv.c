@@ -293,16 +293,19 @@ int qsv_enc_init(av_qsv_context *qsv, hb_work_private_t *pv)
  ***********************************************************************
  *
  **********************************************************************/
-int encqsvInit( hb_work_object_t * w, hb_job_t * job )
+int encqsvInit(hb_work_object_t *w, hb_job_t *job)
 {
-    hb_work_private_t * pv = calloc( 1, sizeof( hb_work_private_t ) );
-    w->private_data = pv;
+    hb_work_private_t *pv = calloc(1, sizeof(hb_work_private_t));
+    w->private_data       = pv;
 
-    pv->job = job;
+    pv->job                = job;
     pv->delayed_processing = hb_list_init();
-    pv->frames_in = 0;
-    pv->frames_out = 0;
-    pv->last_start = INT64_MIN;
+    pv->last_start         = INT64_MIN;
+    pv->frames_in          = 0;
+    pv->frames_out         = 0;
+    pv->init_done          = 0;
+    pv->is_sys_mem         = 0;
+    pv->is_vpp_present     = 0;
 
     // set up a re-usable mfxEncodeCtrl to force keyframes (e.g. for chapters)
     pv->force_keyframe = calloc(1, sizeof(mfxEncodeCtrl));
@@ -321,16 +324,15 @@ int encqsvInit( hb_work_object_t * w, hb_job_t * job )
     pv->next_chapter.index = 0;
     pv->next_chapter.start = INT64_MIN;
 
-    pv->is_vpp_present = 0;
-
-    hb_qsv_param_t param;
+    // set encoding settings
     hb_qsv_param_default(&pv->param);
     if (hb_qsv_h264_param_init_for_job(&pv->param, job))
     {
         hb_error("encqsvInit: hb_qsv_h264_param_init_for_job failed");
         return -1;
     }
-    mfxStatus err = hb_qsv_h264_param_get_esconfig(&param, w->config);
+    // get the SPS/PPS
+    mfxStatus err = hb_qsv_h264_param_get_esconfig(&pv->param, w->config);
     if (err != MFX_ERR_NONE)
     {
         hb_error("encqsvInit: hb_qsv_h264_param_get_esconfig failed (%d)", err);
@@ -366,8 +368,6 @@ int encqsvInit( hb_work_object_t * w, hb_job_t * job )
     }
     // sanitize
     pv->bfrm_delay = FFMAX(pv->bfrm_delay, 0);
-    // let the muxer know whether to expect B-frames or not
-    job->areBframes = !!pv->bfrm_delay;
     // check whether we need to generate DTS ourselves (MSDK API < 1.6 or VFR)
     pv->bfrm_workaround = job->cfr != 1 || !(hb_qsv_info->capabilities &
                                              HB_QSV_CAP_MSDK_API_1_6);
@@ -381,6 +381,9 @@ int encqsvInit( hb_work_object_t * w, hb_job_t * job )
         pv->bfrm_workaround = 0;
         pv->list_dts        = NULL;
     }
+
+    // let the muxer know whether to expect B-frames or not
+    job->areBframes = !!pv->bfrm_delay;
 
     // FIXME: log some output settings
     switch (pv->param.videoParam.mfx.RateControlMethod)
@@ -535,22 +538,32 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
     hb_job_t * job = pv->job;
     hb_buffer_t * in = *buf_in, *buf;
     av_qsv_context *qsv = job->qsv;
-    av_qsv_space* qsv_encode;
+    av_qsv_space* qsv_encode = NULL;
     hb_buffer_t *last_buf = NULL;
     mfxStatus sts = MFX_ERR_NONE;
     int is_end = 0;
     av_qsv_list* received_item = 0;
     av_qsv_stage* stage = 0;
 
+    //fixme
     while (!pv->init_done)
     {
         int ret = qsv_enc_init(qsv, pv);
-        qsv = job->qsv;
-        qsv_encode = qsv->enc_space;
         if(ret >= 2)
+        {
             av_qsv_sleep(1);
+        }
+        else if (pv->init_done)
+        {
+            qsv        = job->qsv;
+            qsv_encode = qsv->enc_space;
+        }
         else
-            break;
+        {
+            *buf_in  = NULL;
+            *buf_out = NULL;
+            return HB_WORK_OK;
+        }
     }
     *buf_out = NULL;
 
@@ -592,7 +605,6 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
             }
 
             work_surface->Data.TimeStamp = in->s.start;
-            av_qsv_dts_ordered_insert(qsv, 0, 0, work_surface->Data.TimeStamp, 0);
 
             /*
              * Debugging code to check that the upstream modules have generated
@@ -857,9 +869,6 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
                 buf->s.new_chap = pv->next_chapter.index;
                 pv->next_chapter.index = 0;
             }
-
-            // FIXME: what's the point of this?
-            av_qsv_dts_pop(qsv);
 
                 // shift for fifo
                 if(pv->async_depth){
