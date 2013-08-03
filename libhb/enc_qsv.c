@@ -428,7 +428,7 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     // let the muxer know whether to expect B-frames or not
     job->areBframes = !!pv->bfrm_delay;
 
-    // FIXME: log some output settings
+    // log principal output settings
     switch (videoParam.mfx.RateControlMethod)
     {
         case MFX_RATECONTROL_LA:
