@@ -255,6 +255,7 @@ int qsv_enc_init(av_qsv_context *qsv, hb_work_private_t *pv)
     // allocation of surfaces to work with
     memset(&qsv_encode->request, 0, sizeof(mfxFrameAllocRequest)*2);
     sts = MFXVideoENCODE_QueryIOSurf(qsv->mfx_session, &pv->param.videoParam, &qsv_encode->request);
+    AV_QSV_IGNORE_MFX_STS(sts, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
     AV_QSV_IGNORE_MFX_STS(sts, MFX_WRN_PARTIAL_ACCELERATION);
     AV_QSV_CHECK_RESULT(sts, MFX_ERR_NONE, sts);
 
@@ -281,6 +282,7 @@ int qsv_enc_init(av_qsv_context *qsv, hb_work_private_t *pv)
     }
 
     sts = MFXVideoENCODE_Init(qsv->mfx_session, &pv->param.videoParam);
+    AV_QSV_IGNORE_MFX_STS(sts, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
     AV_QSV_IGNORE_MFX_STS(sts, MFX_WRN_PARTIAL_ACCELERATION);
     AV_QSV_CHECK_RESULT(sts, MFX_ERR_NONE, sts);
 
