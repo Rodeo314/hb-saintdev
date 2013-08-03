@@ -31,9 +31,10 @@ typedef struct hb_qsv_info_s
     // supported version-specific or hardware-specific capabilities
     int capabilities;
 #define HB_QSV_CAP_H264_BPYRAMID     (1 << 0) // H.264: reference B-frames
-#define HB_QSV_CAP_BITSTREAM_DTS     (1 << 1) // mfxBitStream: DecodeTimeStamp
+#define HB_QSV_CAP_MSDK_API_1_6      (1 << 1) // Support for API 1.6 or later
 #define HB_QSV_CAP_OPTION2_BRC       (1 << 2) // mfxExtCodingOption2: MBBRC/ExtBRC
 #define HB_QSV_CAP_OPTION2_LOOKAHEAD (1 << 3) // mfxExtCodingOption2: LookAhead
+#define HB_QSV_CAP_OPTION2_TRELLIS   (1 << 4) // mfxExtCodingOption2: Trellis
 
     // if a feature depends on the cpu generation
     enum
@@ -63,5 +64,58 @@ void hb_qsv_info_print();
 const char* hb_qsv_decode_get_codec_name(enum AVCodecID codec_id);
 int hb_qsv_decode_is_enabled(hb_job_t *job);
 int hb_qsv_decode_is_supported(enum AVCodecID codec_id, enum AVPixelFormat pix_fmt);
+
+/* Media SDK parameters handling */
+enum
+{
+    HB_QSV_PARAM_OK,
+    HB_QSV_PARAM_ERROR,
+    HB_QSV_PARAM_BAD_NAME,
+    HB_QSV_PARAM_BAD_VALUE,
+    HB_QSV_PARAM_UNSUPPORTED,
+};
+
+typedef struct
+{
+    /*
+     * Supported mfxExtBuffer.BufferId values:
+     *
+     * MFX_EXTBUFF_CODING_OPTION             (1)
+     * MFX_EXTBUFF_CODING_OPTION2            (2)
+     * MFX_EXTBUFF_OPAQUE_SURFACE_ALLOCATION (3)
+     * MFX_EXTBUFF_VIDEO_SIGNAL_INFO         (4)
+     */
+#define HB_QSV_ENC_NUM_EXT_PARAM_MAX 4
+    mfxExtBuffer*         ExtParamArray[HB_QSV_ENC_NUM_EXT_PARAM_MAX];
+    mfxVideoParam         videoParam;
+    mfxExtCodingOption    codingOption;
+    mfxExtCodingOption2   codingOption2;
+    mfxExtVideoSignalInfo videoSignalInfo;
+    struct
+    {
+        int gop_pic_size;
+        int int_ref_cycle_size;
+    } gop;
+    struct
+    {
+        int   lookahead;
+        int   cqp_offsets[3];
+        int   vbv_max_bitrate;
+        int   vbv_buffer_size;
+        float vbv_buffer_init;
+    } rc;
+} hb_qsv_param_t;
+
+#define HB_QSV_CLIP3(min, max, val) ((val < min) ? min : (val > max) ? max : val)
+int   hb_qsv_codingoption_xlat(int val);
+int   hb_qsv_trellisvalue_xlat(int val);
+int   hb_qsv_atoindex(const char* const *arr, const char *str, int *err);
+int   hb_qsv_atobool (const char *str, int *err);
+int   hb_qsv_atoi    (const char *str, int *err);
+float hb_qsv_atof    (const char *str, int *err);
+
+void hb_qsv_param_default(hb_qsv_param_t *param);
+void hb_qsv_param_parse_all(hb_qsv_param_t *param, const char *advanced_opts, int vcodec);
+int  hb_qsv_param_parse(hb_qsv_param_t *param, const char *key, const char *value, int vcodec);
 
 #endif
