@@ -30,11 +30,8 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define ENC_QSV_H
 
 #include "hb.h"
-#include "qsv_common.h"
 
-int nal_find_start_code(uint8_t** pb, size_t* size);
-void parse_nalus( uint8_t *nal_inits, size_t length, hb_buffer_t *buf, uint32_t frame_num);
+int  nal_find_start_code(uint8_t **pb, size_t *size);
+void parse_nalus(uint8_t *nal_inits, size_t length, hb_buffer_t *buf, uint32_t frame_num);
 
-int hb_qsv_h264_param_init_for_job(hb_qsv_param_t *param, hb_job_t *job);
-
-#endif //ENC_QSV_H
+#endif // ENC_QSV_H
