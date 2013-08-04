@@ -841,24 +841,16 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
     av_qsv_list* received_item = 0;
     av_qsv_stage* stage = 0;
 
-    while (!pv->init_done)
-    {
+    while(1){
         int ret = qsv_enc_init(qsv, pv);
-        if (ret >= 2)
-        {
+        qsv = job->qsv;
+        qsv_encode = qsv->enc_space;
+        if(ret >= 2)
             av_qsv_sleep(1);
-            continue;
-        }
-        else if (ret || !pv->init_done)
-        {
-            *buf_in  = NULL;
-            *buf_out = NULL;
-            return HB_WORK_ERROR;
-        }
+        else
+            break;
     }
-    *buf_out   = NULL;
-    qsv        = job->qsv;
-    qsv_encode = qsv->enc_space;
+    *buf_out = NULL;
 
     if( in->size <= 0 )
     {
