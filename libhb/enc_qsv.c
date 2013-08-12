@@ -408,6 +408,7 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
             {
                 case HB_QSV_PARAM_OK:
                     break;
+
                 case HB_QSV_PARAM_BAD_NAME:
                     hb_log("encqsvInit: hb_qsv_param_parse: bad key %s",
                            option->key);
@@ -420,6 +421,7 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
                     hb_log("encqsvInit: hb_qsv_param_parse: unsupported option %s",
                            option->key);
                     break;
+
                 case HB_QSV_PARAM_ERROR:
                 default:
                     hb_log("encqsvInit: hb_qsv_param_parse: unknown error");
@@ -445,27 +447,35 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
         job->color_matrix      = HB_COLR_MAT_UNDEF;
     }
 
-    /* encode to H.264 and set FrameInfo */
-    param->videoParam.mfx.CodecId                 = MFX_CODEC_AVC;
-    param->videoParam.mfx.CodecLevel              = MFX_LEVEL_UNKNOWN;
-    param->videoParam.mfx.CodecProfile            = MFX_PROFILE_UNKNOWN;
-    param->videoParam.mfx.FrameInfo.FourCC        = MFX_FOURCC_NV12;
-    param->videoParam.mfx.FrameInfo.ChromaFormat  = MFX_CHROMAFORMAT_YUV420;
-    param->videoParam.mfx.FrameInfo.CropX         = 0;
-    param->videoParam.mfx.FrameInfo.CropY         = 0;
-    param->videoParam.mfx.FrameInfo.CropW         = job->width;
-    param->videoParam.mfx.FrameInfo.CropH         = job->height;
-    param->videoParam.mfx.FrameInfo.AspectRatioW  = job->anamorphic.par_width;
-    param->videoParam.mfx.FrameInfo.AspectRatioH  = job->anamorphic.par_height;
-    param->videoParam.mfx.FrameInfo.Width         = AV_QSV_ALIGN16(job->width);
-    param->videoParam.mfx.FrameInfo.Height        = AV_QSV_ALIGN16(job->height);
+    // encode to H.264 and set FrameInfo
+    param->videoParam.mfx.CodecId                = MFX_CODEC_AVC;
+    param->videoParam.mfx.CodecLevel             = MFX_LEVEL_UNKNOWN;
+    param->videoParam.mfx.CodecProfile           = MFX_PROFILE_UNKNOWN;
+    param->videoParam.mfx.FrameInfo.FourCC       = MFX_FOURCC_NV12;
+    param->videoParam.mfx.FrameInfo.ChromaFormat = MFX_CHROMAFORMAT_YUV420;
+    param->videoParam.mfx.FrameInfo.CropX        = 0;
+    param->videoParam.mfx.FrameInfo.CropY        = 0;
+    param->videoParam.mfx.FrameInfo.CropW        = job->width;
+    param->videoParam.mfx.FrameInfo.CropH        = job->height;
+    param->videoParam.mfx.FrameInfo.Width        = AV_QSV_ALIGN16(job->width);
+    param->videoParam.mfx.FrameInfo.Height       = AV_QSV_ALIGN16(job->height);
     if (param->videoParam.mfx.FrameInfo.PicStruct != MFX_PICSTRUCT_PROGRESSIVE)
     {
         param->videoParam.mfx.FrameInfo.Height = AV_QSV_ALIGN32(job->height);
     }
     hb_limit_rational64((int64_t*)&param->videoParam.mfx.FrameInfo.FrameRateExtN,
                         (int64_t*)&param->videoParam.mfx.FrameInfo.FrameRateExtD,
-                        job->vrate, job->vrate_base, UINT32_MAX);
+                        job->vrate,
+                        job->vrate_base, UINT32_MAX);
+    // FIXME: setting PAR via hb_limit_rational64 fails :-(
+    param->videoParam.mfx.FrameInfo.AspectRatioW = job->anamorphic.par_width;
+    param->videoParam.mfx.FrameInfo.AspectRatioH = job->anamorphic.par_height;
+    /*
+    hb_limit_rational64((int64_t*)&param->videoParam.mfx.FrameInfo.AspectRatioW,
+                        (int64_t*)&param->videoParam.mfx.FrameInfo.AspectRatioH,
+                        job->anamorphic.par_width,
+                        job->anamorphic.par_height, UINT16_MAX);
+     */
 
     // set codec-specific parameters
     if (hb_qsv_h264_param_init_for_job(param, job))
