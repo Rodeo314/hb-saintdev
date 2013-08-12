@@ -359,7 +359,7 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     pv->max_async_depth             = job->qsv_async_depth;
     pv->async_depth                 = 0;
 
-    /* enable and set colorimetry (video signal information) */
+    // enable and set colorimetry (video signal information)
     param->videoSignalInfo.ColourDescriptionPresent = 1;
     switch (job->color_matrix_code)
     {
@@ -395,16 +395,37 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
             break;
     }
 
-    // parse advanced options and set codec-specific parameters
+    // parse user-specified advanced options
+    hb_qsv_param_parse_all(param, job->advanced_opts, job->vcodec);
+
+    // reload colorimetry in case values were set in advanced_opts
+    if (param->videoSignalInfo.ColourDescriptionPresent)
+    {
+        job->color_matrix_code = 4;
+        job->color_prim        = param->videoSignalInfo.ColourPrimaries;
+        job->color_transfer    = param->videoSignalInfo.TransferCharacteristics;
+        job->color_matrix      = param->videoSignalInfo.MatrixCoefficients;
+    }
+    else
+    {
+        job->color_matrix_code = 0;
+        job->color_prim        = HB_COLR_PRI_UNDEF;
+        job->color_transfer    = HB_COLR_TRA_UNDEF;
+        job->color_matrix      = HB_COLR_MAT_UNDEF;
+    }
+
+    // set codec-specific parameters
     if (hb_qsv_h264_param_init_for_job(param, job))
     {
         hb_error("encqsvInit: hb_qsv_h264_param_init_for_job failed");
         return -1;
     }
 
-    // init a dummy encode-only session to get the SPS/PPS
-    // this is fine since the actual encode will use the same
-    // values for all parameters relevant to the H.264 bitstream
+    /*
+     * init a dummy encode-only session to get the SPS/PPS
+     * this is fine since the actual encode will use the same
+     * values for all parameters relevant to the H.264 bitstream
+     */
     mfxStatus err;
     mfxVersion version;
     mfxVideoParam videoParam;
@@ -525,6 +546,7 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
            videoParam.mfx.GopRefDist, videoParam.mfx.GopPicSize, videoParam.mfx.NumRefFrame);
     hb_log("encqsvInit: TargetUsage %"PRIu16" AsyncDepth %"PRIu16"",
            videoParam.mfx.TargetUsage, videoParam.AsyncDepth);
+    // FIXME: translate to human-readable values
     hb_log("encqsvInit: H.264 Profile %"PRIu16" H.264 Level %"PRIu16"",
            videoParam.mfx.CodecProfile, videoParam.mfx.CodecLevel);
 
@@ -1067,15 +1089,6 @@ int hb_qsv_h264_param_init_for_job(hb_qsv_param_t *param, hb_job_t *job)
 {
     if (param != NULL && job != NULL)
     {
-        /* parse user-specified advanced options */
-        hb_qsv_param_parse_all(param, job->advanced_opts, job->vcodec);
-
-        /* reload colorimetry in case values were set in advanced_opts */
-        job->color_matrix_code = 4;
-        job->color_prim        = param->videoSignalInfo.ColourPrimaries;
-        job->color_transfer    = param->videoSignalInfo.TransferCharacteristics;
-        job->color_matrix      = param->videoSignalInfo.MatrixCoefficients;
-
         /* encode to H.264 and set FrameInfo */
         param->videoParam.mfx.CodecId                 = MFX_CODEC_AVC;
         param->videoParam.mfx.CodecLevel              = MFX_LEVEL_UNKNOWN;
