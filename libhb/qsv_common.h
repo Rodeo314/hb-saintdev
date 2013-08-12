@@ -115,7 +115,6 @@ int   hb_qsv_atoi    (const char *str, int *err);
 float hb_qsv_atof    (const char *str, int *err);
 
 void hb_qsv_param_default(hb_qsv_param_t *param);
-void hb_qsv_param_parse_all(hb_qsv_param_t *param, const char *advanced_opts, int vcodec);
 int  hb_qsv_param_parse(hb_qsv_param_t *param, const char *key, const char *value, int vcodec);
 
 #endif

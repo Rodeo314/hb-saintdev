@@ -316,6 +316,7 @@ int hb_qsv_atoindex(const char* const *arr, const char *str, int *err)
     *err = (arr[i] == NULL);
     return i;
 }
+
 // adapted from libx264
 int hb_qsv_atobool(const char *str, int *err)
 {
@@ -334,6 +335,8 @@ int hb_qsv_atobool(const char *str, int *err)
     *err = 1;
     return 0;
 }
+
+// adapted from libx264
 int hb_qsv_atoi(const char *str, int *err)
 {
     char *end;
@@ -344,6 +347,8 @@ int hb_qsv_atoi(const char *str, int *err)
     }
     return v;
 }
+
+// adapted from libx264
 float hb_qsv_atof(const char *str, int *err)
 {
     char *end;
@@ -353,40 +358,6 @@ float hb_qsv_atof(const char *str, int *err)
         *err = 1;
     }
     return v;
-}
-
-void hb_qsv_param_parse_all(hb_qsv_param_t *param,
-                            const char *advanced_opts, int vcodec)
-{
-    if (advanced_opts != NULL && advanced_opts[0] != '\0')
-    {
-        hb_dict_entry_t *option = NULL;
-        hb_dict_t *options_list = hb_encopts_to_dict(advanced_opts, vcodec);
-        while ((option = hb_dict_next(options_list, option)) != NULL)
-        {
-            switch (hb_qsv_param_parse(param, option->key, option->value, vcodec))
-            {
-                case HB_QSV_PARAM_OK:
-                    break;
-                case HB_QSV_PARAM_BAD_NAME:
-                    hb_log("hb_qsv_param_parse_all: bad key %s", option->key);
-                    break;
-                case HB_QSV_PARAM_BAD_VALUE:
-                    hb_log("hb_qsv_param_parse_all: bad value %s for key %s",
-                           option->value, option->key);
-                    break;
-                case HB_QSV_PARAM_UNSUPPORTED:
-                    hb_log("hb_qsv_param_parse_all: unsupported option %s",
-                           option->key);
-                    break;
-                case HB_QSV_PARAM_ERROR:
-                default:
-                    hb_log("hb_qsv_param_parse_all: unknown error");
-                    break;
-            }
-        }
-        hb_dict_free(&options_list);
-    }
 }
 
 int hb_qsv_param_parse(hb_qsv_param_t *param,
@@ -730,7 +701,8 @@ int hb_qsv_param_parse(hb_qsv_param_t *param,
         {
             if (!error)
             {
-                param->codingOption2.LookAheadDepth = HB_QSV_CLIP3(10, 100, ivalue);
+                param->codingOption2.LookAheadDepth = HB_QSV_CLIP3(10, 100,
+                                                                   ivalue);
             }
         }
         else

@@ -395,8 +395,39 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
             break;
     }
 
-    // parse user-specified advanced options
-    hb_qsv_param_parse_all(param, job->advanced_opts, job->vcodec);
+    // parse user-specified advanced options, if present
+    if (job->advanced_opts != NULL && job->advanced_opts[0] != '\0')
+    {
+        hb_dict_t *options_list;
+        hb_dict_entry_t *option = NULL;
+        options_list = hb_encopts_to_dict(job->advanced_opts, job->vcodec);
+        while ((option = hb_dict_next(options_list, option)) != NULL)
+        {
+            switch (hb_qsv_param_parse(param,
+                                       option->key, option->value, job->vcodec))
+            {
+                case HB_QSV_PARAM_OK:
+                    break;
+                case HB_QSV_PARAM_BAD_NAME:
+                    hb_log("encqsvInit: hb_qsv_param_parse: bad key %s",
+                           option->key);
+                    break;
+                case HB_QSV_PARAM_BAD_VALUE:
+                    hb_log("encqsvInit: hb_qsv_param_parse: bad value %s for key %s",
+                           option->value, option->key);
+                    break;
+                case HB_QSV_PARAM_UNSUPPORTED:
+                    hb_log("encqsvInit: hb_qsv_param_parse: unsupported option %s",
+                           option->key);
+                    break;
+                case HB_QSV_PARAM_ERROR:
+                default:
+                    hb_log("encqsvInit: hb_qsv_param_parse: unknown error");
+                    break;
+            }
+        }
+        hb_dict_free(&options_list);
+    }
 
     // reload colorimetry in case values were set in advanced_opts
     if (param->videoSignalInfo.ColourDescriptionPresent)
