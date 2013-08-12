@@ -499,15 +499,17 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     err = MFXInit(MFX_IMPL_AUTO_ANY, &version, &session);
     if (err != MFX_ERR_NONE)
     {
-        return err;
+        hb_error("encqsvInit: MFXInit failed (%d)", err);
+        return -1;
     }
     err = MFXVideoENCODE_Init(session, &param->videoParam);
     if (err != MFX_ERR_NONE &&
         err != MFX_WRN_PARTIAL_ACCELERATION &&
         err != MFX_WRN_INCOMPATIBLE_VIDEO_PARAM)
     {
+        hb_error("encqsvInit: MFXVideoENCODE_Init failed (%d)", err);
         MFXClose(session);
-        return err;
+        return -1;
     }
     memset(&videoParam, 0, sizeof(mfxVideoParam));
     sps_pps->Header.BufferId = MFX_EXTBUFF_CODING_OPTION_SPSPPS;
@@ -535,7 +537,8 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     }
     else
     {
-        w->config->h264.sps_length = w->config->h264.pps_length = 0;
+        hb_error("encqsvInit: MFXVideoENCODE_GetVideoParam failed (%d)", err);
+        return -1;
     }
 
     // check whether B-frames are used
@@ -1170,8 +1173,8 @@ int hb_qsv_h264_param_init_for_job(hb_qsv_param_t *param, hb_job_t *job)
             }
             else
             {
-                hb_log("hb_qsv_h264_param_init_for_job: bad profile %s",
-                       job->h264_profile);
+                hb_error("hb_qsv_h264_param_init_for_job: bad profile %s",
+                         job->h264_profile);
                 return -1;
             }
         }
@@ -1183,8 +1186,8 @@ int hb_qsv_h264_param_init_for_job(hb_qsv_param_t *param, hb_job_t *job)
             if (err || i >= (sizeof(hb_h264_level_values) /
                              sizeof(hb_h264_level_values[0])))
             {
-                hb_log("hb_qsv_h264_param_init_for_job: bad level %s",
-                       job->h264_level);
+                hb_error("hb_qsv_h264_param_init_for_job: bad level %s",
+                         job->h264_level);
                 return -1;
             }
             else if (hb_qsv_info->capabilities & HB_QSV_CAP_MSDK_API_1_6)
