@@ -348,20 +348,63 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     pv->next_chapter.index = 0;
     pv->next_chapter.start = INT64_MIN;
 
-    // set encoding settings
-    hb_qsv_param_default(&pv->param);
-    if (hb_qsv_h264_param_init_for_job(&pv->param, job))
+    // FIXME
+    hb_qsv_param_t *param = &pv->param;
+
+    // default encoding parameters
+    hb_qsv_param_default(param);
+
+    // set AsyncDepth to match that of decode and VPP
+    pv->param.videoParam.AsyncDepth = job->qsv_async_depth;
+    pv->max_async_depth             = job->qsv_async_depth;
+    pv->async_depth                 = 0;
+
+    /* enable and set colorimetry (video signal information) */
+    param->videoSignalInfo.ColourDescriptionPresent = 1;
+    switch (job->color_matrix_code)
+    {
+        case 4:
+            // custom
+            param->videoSignalInfo.ColourPrimaries         = job->color_prim;
+            param->videoSignalInfo.TransferCharacteristics = job->color_transfer;
+            param->videoSignalInfo.MatrixCoefficients      = job->color_matrix;
+            break;
+        case 3:
+            // ITU BT.709 HD content
+            param->videoSignalInfo.ColourPrimaries         = HB_COLR_PRI_BT709;
+            param->videoSignalInfo.TransferCharacteristics = HB_COLR_TRA_BT709;
+            param->videoSignalInfo.MatrixCoefficients      = HB_COLR_MAT_BT709;
+            break;
+        case 2:
+            // ITU BT.601 DVD or SD TV content (PAL)
+            param->videoSignalInfo.ColourPrimaries         = HB_COLR_PRI_EBUTECH;
+            param->videoSignalInfo.TransferCharacteristics = HB_COLR_TRA_BT709;
+            param->videoSignalInfo.MatrixCoefficients      = HB_COLR_MAT_SMPTE170M;
+            break;
+        case 1:
+            // ITU BT.601 DVD or SD TV content (NTSC)
+            param->videoSignalInfo.ColourPrimaries         = HB_COLR_PRI_SMPTEC;
+            param->videoSignalInfo.TransferCharacteristics = HB_COLR_TRA_BT709;
+            param->videoSignalInfo.MatrixCoefficients      = HB_COLR_MAT_SMPTE170M;
+            break;
+        default:
+            // detected during scan
+            param->videoSignalInfo.ColourPrimaries         = job->title->color_prim;
+            param->videoSignalInfo.TransferCharacteristics = job->title->color_transfer;
+            param->videoSignalInfo.MatrixCoefficients      = job->title->color_matrix;
+            break;
+    }
+
+    // parse advanced options and set codec-specific parameters
+    if (hb_qsv_h264_param_init_for_job(param, job))
     {
         hb_error("encqsvInit: hb_qsv_h264_param_init_for_job failed");
         return -1;
     }
 
-    // set the Asynd Depth to match that of decode and VPP
-    pv->param.videoParam.AsyncDepth = job->qsv_async_depth;
-    pv->max_async_depth             = job->qsv_async_depth;
-    pv->async_depth                 = 0;
-
-    // get the SPS/PPS
+    // init a dummy encode-only session to get the SPS/PPS
+    // this is fine since the actual encode will use the same
+    // values for all parameters relevant to the H.264 bitstream
     mfxStatus err;
     mfxVersion version;
     mfxVideoParam videoParam;
@@ -374,7 +417,7 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     {
         return err;
     }
-    err = MFXVideoENCODE_Init(session, &pv->param.videoParam);
+    err = MFXVideoENCODE_Init(session, &param->videoParam);
     if (err != MFX_ERR_NONE &&
         err != MFX_WRN_PARTIAL_ACCELERATION &&
         err != MFX_WRN_INCOMPATIBLE_VIDEO_PARAM)
@@ -1024,42 +1067,6 @@ int hb_qsv_h264_param_init_for_job(hb_qsv_param_t *param, hb_job_t *job)
 {
     if (param != NULL && job != NULL)
     {
-        /* enable and set colorimetry (video signal information) */
-        param->videoSignalInfo.ColourDescriptionPresent = 1;
-        switch (job->color_matrix_code)
-        {
-            case 4:
-                // custom
-                param->videoSignalInfo.ColourPrimaries         = job->color_prim;
-                param->videoSignalInfo.TransferCharacteristics = job->color_transfer;
-                param->videoSignalInfo.MatrixCoefficients      = job->color_matrix;
-                break;
-            case 3:
-                // ITU BT.709 HD content
-                param->videoSignalInfo.ColourPrimaries         = HB_COLR_PRI_BT709;
-                param->videoSignalInfo.TransferCharacteristics = HB_COLR_TRA_BT709;
-                param->videoSignalInfo.MatrixCoefficients      = HB_COLR_MAT_BT709;
-                break;
-            case 2:
-                // ITU BT.601 DVD or SD TV content (PAL)
-                param->videoSignalInfo.ColourPrimaries         = HB_COLR_PRI_EBUTECH;
-                param->videoSignalInfo.TransferCharacteristics = HB_COLR_TRA_BT709;
-                param->videoSignalInfo.MatrixCoefficients      = HB_COLR_MAT_SMPTE170M;
-                break;
-            case 1:
-                // ITU BT.601 DVD or SD TV content (NTSC)
-                param->videoSignalInfo.ColourPrimaries         = HB_COLR_PRI_SMPTEC;
-                param->videoSignalInfo.TransferCharacteristics = HB_COLR_TRA_BT709;
-                param->videoSignalInfo.MatrixCoefficients      = HB_COLR_MAT_SMPTE170M;
-                break;
-            default:
-                // detected during scan
-                param->videoSignalInfo.ColourPrimaries         = job->title->color_prim;
-                param->videoSignalInfo.TransferCharacteristics = job->title->color_transfer;
-                param->videoSignalInfo.MatrixCoefficients      = job->title->color_matrix;
-                break;
-        }
-
         /* parse user-specified advanced options */
         hb_qsv_param_parse_all(param, job->advanced_opts, job->vcodec);
 
