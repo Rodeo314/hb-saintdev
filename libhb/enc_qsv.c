@@ -247,13 +247,10 @@ int qsv_enc_init(av_qsv_context *qsv, hb_work_private_t *pv)
                                                      SWS_LANCZOS|SWS_ACCURATE_RND);
     }
 
-    // if we don't know how many tasks we may have, make it at least one
-    int tasks_amount           = pv->max_async_depth ? pv->max_async_depth : 1;
-    qsv_encode->tasks          = av_qsv_list_init(HAVE_THREADS);
-    qsv_encode->p_buf_max_size = AV_QSV_BUF_SIZE_DEFAULT;
-
     // allocate tasks
-    for (i = 0; i < tasks_amount; i++)
+    qsv_encode->p_buf_max_size = AV_QSV_BUF_SIZE_DEFAULT;
+    qsv_encode->tasks          = av_qsv_list_init(HAVE_THREADS);
+    for (i = 0; i < pv->max_async_depth; i++)
     {
         av_qsv_task *task    = av_mallocz(sizeof(av_qsv_task));
         task->bs             = av_mallocz(sizeof(mfxBitstream));
@@ -848,7 +845,7 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
            qsv_h264_profile_xlat(videoParam.mfx.CodecProfile),
            qsv_h264_level_xlat  (videoParam.mfx.CodecLevel));
 
-    // AsyncDepth can be modified by Media SDK
+    // AsyncDepth has now been set and/or modified by Media SDK
     pv->max_async_depth = videoParam.AsyncDepth;
     pv->async_depth     = 0;
 
