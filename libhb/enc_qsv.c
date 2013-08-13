@@ -659,9 +659,9 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
             // Accuracy is in units of 0.1%
             // Convergence in units of 100 frames
             pv->param.videoParam.mfx.RateControlMethod = MFX_RATECONTROL_AVBR;
+            pv->param.videoParam.mfx.Accuracy          = 50;
             pv->param.videoParam.mfx.TargetKbps        = job->vbitrate;
             pv->param.videoParam.mfx.Convergence       = (frame_rate + 9) / 10;
-            pv->param.videoParam.mfx.Accuracy          = 50;
         }
     }
     else
