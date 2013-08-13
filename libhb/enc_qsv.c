@@ -687,13 +687,16 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
 
     /*
      * init a dummy encode-only session to get the SPS/PPS
+     * and the final output settings sanitized by Media SDK
      * this is fine since the actual encode will use the same
      * values for all parameters relevant to the H.264 bitstream
      */
     mfxStatus err;
     mfxVersion version;
     mfxVideoParam videoParam;
+    mfxExtBuffer* ExtParamArray[2];
     mfxSession session = (mfxSession)0;
+    mfxExtCodingOption2 option2_buf, *option2 = &option2_buf;
     mfxExtCodingOptionSPSPPS sps_pps_buf, *sps_pps = &sps_pps_buf;
     version.Major = HB_QSV_MINVERSION_MAJOR;
     version.Minor = HB_QSV_MINVERSION_MINOR;
@@ -713,6 +716,10 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
         return -1;
     }
     memset(&videoParam, 0, sizeof(mfxVideoParam));
+    videoParam.ExtParam    = ExtParamArray;
+    videoParam.NumExtParam = 0;
+    // introduced in API 1.3
+    memset(sps_pps, 0, sizeof(mfxExtCodingOptionSPSPPS));
     sps_pps->Header.BufferId = MFX_EXTBUFF_CODING_OPTION_SPSPPS;
     sps_pps->Header.BufferSz = sizeof(mfxExtCodingOptionSPSPPS);
     sps_pps->SPSId           = 0;
@@ -721,8 +728,16 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     sps_pps->PPSId           = 0;
     sps_pps->PPSBuffer       = w->config->h264.pps;
     sps_pps->PPSBufSize      = sizeof(w->config->h264.pps);
-    videoParam.NumExtParam   = 1;
-    videoParam.ExtParam      = (mfxExtBuffer**)&sps_pps;
+    videoParam.ExtParam[videoParam.NumExtParam++] = (mfxExtBuffer*)sps_pps;
+    // introduced in API 1.6
+    memset(option2, 0, sizeof(mfxExtCodingOption2));
+    option2->Header.BufferId = MFX_EXTBUFF_CODING_OPTION2;
+    option2->Header.BufferSz = sizeof(mfxExtCodingOption2);
+    if (hb_qsv_info->capabilities & HB_QSV_CAP_MSDK_API_1_6)
+    {
+        // attach to get the final output mfxExtCodingOption2 settings
+        videoParam.ExtParam[videoParam.NumExtParam++] = (mfxExtBuffer*)option2;
+    }
     err = MFXVideoENCODE_GetVideoParam(session, &videoParam);
     MFXVideoENCODE_Close(session);
     MFXClose(session);
