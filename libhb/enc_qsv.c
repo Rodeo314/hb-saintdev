@@ -788,17 +788,17 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
            videoParam.mfx.GopRefDist, videoParam.mfx.GopPicSize, videoParam.mfx.NumRefFrame);
     switch (videoParam.mfx.RateControlMethod)
     {
-        case MFX_RATECONTROL_LA:
-            hb_log("encqsvInit: MFX_RATECONTROL_LA with TargetKbps %"PRIu16"",
-                   videoParam.mfx.TargetKbps);
+        case MFX_RATECONTROL_CQP:
+            hb_log("encqsvInit: MFX_RATECONTROL_CQP with QPI %"PRIu16", QPP %"PRIu16", QPB %"PRIu16"",
+                   videoParam.mfx.QPI, videoParam.mfx.QPP, videoParam.mfx.QPB);
             break;
         case MFX_RATECONTROL_AVBR:
             hb_log("encqsvInit: MFX_RATECONTROL_AVBR with TargetKbps %"PRIu16"",
                    videoParam.mfx.TargetKbps);
             break;
-        case MFX_RATECONTROL_CQP:
-            hb_log("encqsvInit: MFX_RATECONTROL_CQP with QPI %"PRIu16", QPP %"PRIu16", QPB %"PRIu16"",
-                   videoParam.mfx.QPI, videoParam.mfx.QPP, videoParam.mfx.QPB);
+        case MFX_RATECONTROL_LA:
+            hb_log("encqsvInit: MFX_RATECONTROL_LA with TargetKbps %"PRIu16", LookaheadDepth %"PRIu16"",
+                   videoParam.mfx.TargetKbps, pv->param.codingOption2.LookaheadDepth);
             break;
         case MFX_RATECONTROL_CBR:
         case MFX_RATECONTROL_VBR:
