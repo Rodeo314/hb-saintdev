@@ -782,6 +782,10 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     job->areBframes = !!pv->bfrm_delay;
 
     // log main output settings
+    hb_log("encqsvInit: TargetUsage %"PRIu16" AsyncDepth %"PRIu16"",
+           videoParam.mfx.TargetUsage, videoParam.AsyncDepth);
+    hb_log("encqsvInit: GopRefDist %"PRIu16" GopPicSize %"PRIu16" NumRefFrame %"PRIu16"",
+           videoParam.mfx.GopRefDist, videoParam.mfx.GopPicSize, videoParam.mfx.NumRefFrame);
     switch (videoParam.mfx.RateControlMethod)
     {
         case MFX_RATECONTROL_LA:
@@ -809,13 +813,27 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
                    videoParam.mfx.RateControlMethod);
             return -1;
     }
-    hb_log("encqsvInit: GopRefDist %"PRIu16" GopPicSize %"PRIu16" NumRefFrame %"PRIu16"",
-           videoParam.mfx.GopRefDist, videoParam.mfx.GopPicSize, videoParam.mfx.NumRefFrame);
-    hb_log("encqsvInit: TargetUsage %"PRIu16" AsyncDepth %"PRIu16"",
-           videoParam.mfx.TargetUsage, videoParam.AsyncDepth);
+    if (hb_qsv_info->capabilities & HB_QSV_CAP_OPTION2_TRELLIS)
+    {
+        switch (pv->param.codingOption2.Trellis)
+        {
+            case MFX_TRELLIS_UNKNOWN:
+                hb_log("encqsvInit: Trellis default (unknown)");
+                break;
+            case MFX_TRELLIS_OFF:
+                hb_log("encqsvInit: Trellis disabled");
+                break;
+            default:
+                hb_log("encqsvInit: Trellis enabled (%s%s%s)",
+                       pv->param.codingOption2.Trellis & MFX_TRELLIS_I ? "I" : "",
+                       pv->param.codingOption2.Trellis & MFX_TRELLIS_P ? "P" : "",
+                       pv->param.codingOption2.Trellis & MFX_TRELLIS_B ? "B" : "");
+                break;
+        }
+    }
     hb_log("encqsvInit: H.264 %s profile @ level %s",
            qsv_h264_profile_xlat(videoParam.mfx.CodecProfile),
-           qsv_h264_level_xlat  (videoParam.mfx.CodecLevel  ));
+           qsv_h264_level_xlat  (videoParam.mfx.CodecLevel));
 
     return 0;
 }

@@ -710,7 +710,6 @@ int hb_qsv_param_parse(hb_qsv_param_t *param,
             return HB_QSV_PARAM_UNSUPPORTED;
         }
     }
-    /* not yet validated
     else if (!strcasecmp(key, "trellis"))
     {
         switch (vcodec)
@@ -732,7 +731,7 @@ int hb_qsv_param_parse(hb_qsv_param_t *param,
         {
             return HB_QSV_PARAM_UNSUPPORTED;
         }
-    }*/
+    }
     else
     {
         /*
