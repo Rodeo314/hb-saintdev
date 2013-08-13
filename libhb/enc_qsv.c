@@ -170,6 +170,7 @@ int qsv_enc_init(av_qsv_context *qsv, hb_work_private_t *pv)
             return 3;
         }
         qsv = av_mallocz(sizeof(av_qsv_context));
+        job->qsv = qsv;
     }
     
     av_qsv_space *qsv_encode = qsv->enc_space;
@@ -179,10 +180,14 @@ int qsv_enc_init(av_qsv_context *qsv, hb_work_private_t *pv)
         // if only for encode
         if (pv->is_sys_mem)
         {
-            memset(&qsv->mfx_session, 0, sizeof(mfxSession));
+            // no need to use additional sync as encode only -> single thread
+            // XXX: this zeroes the session handle, so it must be called first
+            av_qsv_add_context_usage(qsv, 0);
+
+            // initialize the session
+            qsv->impl      = MFX_IMPL_AUTO_ANY;
             qsv->ver.Major = AV_QSV_MSDK_VERSION_MAJOR;
             qsv->ver.Minor = AV_QSV_MSDK_VERSION_MINOR;
-            qsv->impl      = MFX_IMPL_AUTO_ANY;
             sts = MFXInit(qsv->impl, &qsv->ver, &qsv->mfx_session);
             if (sts != MFX_ERR_NONE)
             {
@@ -190,14 +195,6 @@ int qsv_enc_init(av_qsv_context *qsv, hb_work_private_t *pv)
                 *job->die = 1;
                 return -1;
             }
-
-            // no need to use additional sync as encode only -> single thread
-            av_qsv_add_context_usage(qsv, 0);
-            job->qsv = qsv;
-        }
-        else
-        {
-            av_qsv_add_context_usage(qsv, HAVE_THREADS);
         }
         qsv->enc_space = qsv_encode;
     }
@@ -332,6 +329,7 @@ int qsv_enc_init(av_qsv_context *qsv, hb_work_private_t *pv)
         AV_QSV_CHECK_POINTER(qsv_encode->p_syncp[i]->p_sync, MFX_ERR_MEMORY_ALLOC);
     }
 
+    // initialize the encoder
     sts = MFXVideoENCODE_Init(qsv->mfx_session, &pv->param.videoParam);
     if (sts != MFX_ERR_NONE &&
         sts != MFX_WRN_PARTIAL_ACCELERATION &&
