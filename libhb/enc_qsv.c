@@ -851,15 +851,9 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
             pv->bfrm_delay = 1;
             break;
     }
-    if (videoParam.mfx.GopRefDist > 0)
-    {
-        pv->bfrm_delay = FFMIN(pv->bfrm_delay, videoParam.mfx.GopRefDist - 1);
-    }
-    if (videoParam.mfx.GopPicSize > 0)
-    {
-        pv->bfrm_delay = FFMIN(pv->bfrm_delay, videoParam.mfx.GopPicSize - 2);
-    }
     // sanitize
+    pv->bfrm_delay = FFMIN(pv->bfrm_delay, videoParam.mfx.GopRefDist - 1);
+    pv->bfrm_delay = FFMIN(pv->bfrm_delay, videoParam.mfx.GopPicSize - 2);
     pv->bfrm_delay = FFMAX(pv->bfrm_delay, 0);
     // check whether we need to generate DTS ourselves (MSDK API < 1.6 or VFR)
     pv->bfrm_workaround = job->cfr != 1 || !(hb_qsv_info->capabilities &
