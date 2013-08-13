@@ -184,7 +184,12 @@ int qsv_enc_init(av_qsv_context *qsv, hb_work_private_t *pv)
             qsv->ver.Minor = AV_QSV_MSDK_VERSION_MINOR;
             qsv->impl      = MFX_IMPL_AUTO_ANY;
             sts = MFXInit(qsv->impl, &qsv->ver, &qsv->mfx_session);
-            AV_QSV_CHECK_RESULT(sts, MFX_ERR_NONE, sts);
+            if (sts != MFX_ERR_NONE)
+            {
+                hb_error("qsv_enc_init: MFXInit failed (%d)", sts);
+                *job->die = 1;
+                return -1;
+            }
 
             // no need to use additional sync as encode only -> single thread
             av_qsv_add_context_usage(qsv, 0);
@@ -195,10 +200,6 @@ int qsv_enc_init(av_qsv_context *qsv, hb_work_private_t *pv)
             av_qsv_add_context_usage(qsv, HAVE_THREADS);
         }
         qsv->enc_space = qsv_encode;
-    }
-    if (qsv_encode->is_init_done)
-    {
-        return 0;
     }
     
     if (!pv->is_sys_mem)
@@ -273,9 +274,14 @@ int qsv_enc_init(av_qsv_context *qsv, hb_work_private_t *pv)
     sts = MFXVideoENCODE_QueryIOSurf(qsv->mfx_session,
                                      &pv->param.videoParam,
                                      &qsv_encode->request);
-    AV_QSV_IGNORE_MFX_STS(sts, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
-    AV_QSV_IGNORE_MFX_STS(sts, MFX_WRN_PARTIAL_ACCELERATION);
-    AV_QSV_CHECK_RESULT(sts, MFX_ERR_NONE, sts);
+    if (sts != MFX_ERR_NONE &&
+        sts != MFX_WRN_PARTIAL_ACCELERATION &&
+        sts != MFX_WRN_INCOMPATIBLE_VIDEO_PARAM)
+    {
+        hb_error("qsv_enc_init: MFXVideoENCODE_QueryIOSurf failed (%d)", sts);
+        *job->die = 1;
+        return -1;
+    }
 
     // allocate surfaces
     if (pv->is_sys_mem)
@@ -326,9 +332,14 @@ int qsv_enc_init(av_qsv_context *qsv, hb_work_private_t *pv)
     }
 
     sts = MFXVideoENCODE_Init(qsv->mfx_session, &pv->param.videoParam);
-    AV_QSV_IGNORE_MFX_STS(sts, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
-    AV_QSV_IGNORE_MFX_STS(sts, MFX_WRN_PARTIAL_ACCELERATION);
-    AV_QSV_CHECK_RESULT(sts, MFX_ERR_NONE, sts);
+    if (sts != MFX_ERR_NONE &&
+        sts != MFX_WRN_PARTIAL_ACCELERATION &&
+        sts != MFX_WRN_INCOMPATIBLE_VIDEO_PARAM)
+    {
+        hb_error("qsv_enc_init: MFXVideoENCODE_Init failed (%d)", sts);
+        *job->die = 1;
+        return -1;
+    }
     qsv_encode->is_init_done = 1;
 
     if (pv->is_sys_mem)
