@@ -255,6 +255,7 @@ int qsv_enc_init(av_qsv_context *qsv, hb_work_private_t *pv)
     qsv_encode->tasks          = av_qsv_list_init(HAVE_THREADS);
     qsv_encode->p_buf_max_size = AV_QSV_BUF_SIZE_DEFAULT;
 
+    // allocate tasks
     for (i = 0; i < tasks_amount; i++)
     {
         av_qsv_task *task    = av_mallocz(sizeof(av_qsv_task));
@@ -268,7 +269,7 @@ int qsv_enc_init(av_qsv_context *qsv, hb_work_private_t *pv)
 
     // setup surface allocation
     memset(&qsv_encode->request, 0, sizeof(mfxFrameAllocRequest) * 2);
-    pv->param.videoParam.IOPattern = (pv->is_sys_mem ?
+    pv->param.videoParam.IOPattern = (pv->is_sys_mem                 ?
                                       MFX_IOPATTERN_IN_SYSTEM_MEMORY :
                                       MFX_IOPATTERN_IN_OPAQUE_MEMORY);
     sts = MFXVideoENCODE_QueryIOSurf(qsv->mfx_session,
@@ -287,7 +288,7 @@ int qsv_enc_init(av_qsv_context *qsv, hb_work_private_t *pv)
     if (pv->is_sys_mem)
     {
         qsv_encode->surface_num = FFMIN(qsv_encode->request[0].NumFrameSuggested +
-                                        pv->job->qsv_async_depth, AV_QSV_SURFACE_NUM);
+                                        pv->max_async_depth, AV_QSV_SURFACE_NUM);
         if (qsv_encode->surface_num <= 0)
         {
             qsv_encode->surface_num = AV_QSV_SURFACE_NUM;
@@ -320,7 +321,7 @@ int qsv_enc_init(av_qsv_context *qsv, hb_work_private_t *pv)
     }
 
     // allocate sync points
-    qsv_encode->sync_num = (qsv_encode->surface_num ?
+    qsv_encode->sync_num = (qsv_encode->surface_num                         ?
                             FFMIN(qsv_encode->surface_num, AV_QSV_SYNC_NUM) :
                             AV_QSV_SYNC_NUM);
     for (i = 0; i < qsv_encode->sync_num; i++)
@@ -935,9 +936,6 @@ void encqsvClose( hb_work_object_t * w )
                 av_freep(&qsv_encode->p_surfaces[i]);
             }
             qsv_encode->surface_num = 0;
-
-                if( qsv_encode->p_ext_param_num || qsv_encode->p_ext_params )
-                    av_freep(&qsv_encode->p_ext_params);
 
             for (i = 0; i < qsv_encode->sync_num; i++){
                     av_freep(&qsv_encode->p_syncp[i]->p_sync);
