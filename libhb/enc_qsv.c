@@ -557,6 +557,9 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
         }
     }
 
+    // avrage frame rate, rounded to the nearest integer
+    int frame_rate = (int)((double)job->vrate / (double)job->vrate_base + 0.5);
+
     // set rate control paremeters
     if (job->vquality >= 0)
     {
@@ -653,10 +656,12 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
         else
         {
             // introduced in API 1.3
+            // Accuracy is in units of 0.1%
+            // Convergence in units of 100 frames
             pv->param.videoParam.mfx.RateControlMethod = MFX_RATECONTROL_AVBR;
             pv->param.videoParam.mfx.TargetKbps        = job->vbitrate;
-            pv->param.videoParam.mfx.Convergence       = 10; // 1000 frames
-            pv->param.videoParam.mfx.Accuracy          = 50; // +/- 5.0%
+            pv->param.videoParam.mfx.Convergence       = (frame_rate + 9) / 10;
+            pv->param.videoParam.mfx.Accuracy          = 50;
         }
     }
     else
@@ -669,7 +674,6 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     // set the keyframe interval
     if (pv->param.gop.gop_pic_size < 0)
     {
-        int rate = (int)((double)job->vrate / (double)job->vrate_base + 0.5);
         if (pv->param.videoParam.mfx.RateControlMethod == MFX_RATECONTROL_CQP)
         {
             // ensure B-pyramid is enabled for CQP on Haswell
@@ -677,8 +681,8 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
         }
         else
         {
-            // set the keyframe interval based on the framerate
-            pv->param.gop.gop_pic_size = 5 * rate + 1;
+            // set the keyframe interval based on the frame rate
+            pv->param.gop.gop_pic_size = 5 * frame_rate + 1;
         }
     }
     pv->param.videoParam.mfx.GopPicSize = pv->param.gop.gop_pic_size;
