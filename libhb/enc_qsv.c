@@ -831,7 +831,7 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
                 break;
         }
     }
-    hb_log("encqsvInit: H.264 %s profile @ level %s",
+    hb_log("encqsvInit: H.264 profile %s @ level %s",
            qsv_h264_profile_xlat(videoParam.mfx.CodecProfile),
            qsv_h264_level_xlat  (videoParam.mfx.CodecLevel));
 
