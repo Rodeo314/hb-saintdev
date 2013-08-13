@@ -181,7 +181,7 @@ int qsv_enc_init(av_qsv_context *qsv, hb_work_private_t *pv)
         if (pv->is_sys_mem)
         {
             // no need to use additional sync as encode only -> single thread
-            // XXX: this zeroes the session handle, so it must be called first
+            // XXX: this zeroes the session handle, so call it before MFXInit
             av_qsv_add_context_usage(qsv, 0);
 
             // initialize the session
