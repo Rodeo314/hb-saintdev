@@ -820,7 +820,6 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
             hb_log("encqsvInit: MFX_RATECONTROL_%s with TargetKbps %"PRIu16", MaxKbps %"PRIu16"",
                    videoParam.mfx.RateControlMethod == MFX_RATECONTROL_CBR ? "CBR" : "VBR",
                    videoParam.mfx.TargetKbps, videoParam.mfx.MaxKbps);
-            // FIXME: test this
             hb_log("encqsvInit: VBV enabled with BufferSizeInKB %"PRIu16" and InitialDelayInKB %"PRIu16"",
                    videoParam.mfx.BufferSizeInKB, videoParam.mfx.InitialDelayInKB);
             break;
