@@ -68,20 +68,20 @@ struct hb_work_private_s
     int64_t        init_pts[BFRM_DELAY_MAX + 1];
     hb_list_t     *list_dts;
 
-    hb_list_t*  delayed_processing;
-
     int async_depth;
     int max_async_depth;
 
-    // is only encode/system memory used
+    // if encode-only, system memory used
     int is_sys_mem;
-    struct SwsContext* sws_context_to_nv12;
+    struct SwsContext *sws_context_to_nv12;
 
-    // is to expect VPP before
+    // whether to expect input from VPP or from QSV decode
     int is_vpp_present;
 
     // whether the encoder is initialized
     int init_done;
+
+    hb_list_t *delayed_processing;
 };
 
 // for DTS generation (when MSDK API < 1.6 or VFR)
