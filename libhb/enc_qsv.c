@@ -582,7 +582,7 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
                 else
                 {
                     // set automatically based on target usage
-                    pv->param.rc.lookahead = (pv->param.videoParam.mfx.TargetUsage >= MFX_TARGETUSAGE_2);
+                    pv->param.rc.lookahead = (pv->param.videoParam.mfx.TargetUsage <= MFX_TARGETUSAGE_2);
                 }
             }
             else
