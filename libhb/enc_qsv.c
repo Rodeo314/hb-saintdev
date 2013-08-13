@@ -58,7 +58,7 @@ struct hb_work_private_s
 
     hb_qsv_param_t param;
 
-    mfxEncodeCtrl *force_keyframe;
+    mfxEncodeCtrl force_keyframe;
     struct
     {
         int     index;
@@ -369,18 +369,12 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     pv->is_vpp_present     = 0;
 
     // set up a re-usable mfxEncodeCtrl to force keyframes (e.g. for chapters)
-    pv->force_keyframe = calloc(1, sizeof(mfxEncodeCtrl));
-    if (pv->force_keyframe == NULL)
-    {
-        hb_error("encqsvInit: mfxEncodeCtrl allocation failure");
-        return -1;
-    }
-    pv->force_keyframe->QP          = 0;
-    pv->force_keyframe->FrameType   = MFX_FRAMETYPE_I|MFX_FRAMETYPE_IDR|MFX_FRAMETYPE_REF;
-    pv->force_keyframe->NumExtParam = 0;
-    pv->force_keyframe->NumPayload  = 0;
-    pv->force_keyframe->ExtParam    = NULL;
-    pv->force_keyframe->Payload     = NULL;
+    pv->force_keyframe.QP          = 0;
+    pv->force_keyframe.FrameType   = MFX_FRAMETYPE_I|MFX_FRAMETYPE_IDR|MFX_FRAMETYPE_REF;
+    pv->force_keyframe.NumExtParam = 0;
+    pv->force_keyframe.NumPayload  = 0;
+    pv->force_keyframe.ExtParam    = NULL;
+    pv->force_keyframe.Payload     = NULL;
 
     pv->next_chapter.index = 0;
     pv->next_chapter.start = INT64_MIN;
@@ -982,11 +976,6 @@ void encqsvClose( hb_work_object_t * w )
             }
             hb_list_close(&pv->list_dts);
         }
-        if (pv->force_keyframe != NULL)
-        {
-            free(pv->force_keyframe);
-            pv->force_keyframe = NULL;
-        }
     }
 
     free( pv );
@@ -1096,7 +1085,7 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
                 {
                     pv->next_chapter.start = work_surface->Data.TimeStamp;
                     pv->next_chapter.index = in->s.new_chap;
-                    work_control           = pv->force_keyframe;
+                    work_control           = &pv->force_keyframe;
                 }
                 else
                 {
