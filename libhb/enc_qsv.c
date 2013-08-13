@@ -858,7 +858,7 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
                 extbrc = "adaptive";
                 break;
             default:
-                hb_error("Invalid MBBRC value %"PRIu16"", option2->ExtBRC);
+                hb_error("Invalid ExtBRC value %"PRIu16"", option2->ExtBRC);
                 return -1;
         }
         hb_log("encqsvInit: MBBRC %s ExtBRC %s", mbbrc, extbrc);
