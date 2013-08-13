@@ -798,7 +798,7 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
             break;
         case MFX_RATECONTROL_LA:
             hb_log("encqsvInit: MFX_RATECONTROL_LA with TargetKbps %"PRIu16", LookaheadDepth %"PRIu16"",
-                   videoParam.mfx.TargetKbps, pv->param.codingOption2.LookaheadDepth);
+                   videoParam.mfx.TargetKbps, pv->param.codingOption2.LookAheadDepth);
             break;
         case MFX_RATECONTROL_CBR:
         case MFX_RATECONTROL_VBR:
