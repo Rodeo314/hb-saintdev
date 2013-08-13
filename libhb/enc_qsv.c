@@ -26,7 +26,6 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 \* ********************************************************************* */
 
-#include <stdarg.h>
 #include "hb.h"
 #include "enc_qsv.h"
 #include "qsv_common.h"
@@ -46,15 +45,12 @@ hb_work_object_t hb_encqsv =
     encqsvClose
 };
 
-#define SPSPPS_SIZE     1024
-
 struct hb_work_private_s
 {
-    hb_job_t       *job;
-    hb_esconfig_t  *config;
-    uint32_t       frames_in;
-    uint32_t       frames_out;
-    int64_t        last_start;
+    hb_job_t *job;
+    uint32_t  frames_in;
+    uint32_t  frames_out;
+    int64_t   last_start;
 
     hb_qsv_param_t param;
 
