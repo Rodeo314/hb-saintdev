@@ -117,6 +117,43 @@ static int64_t hb_qsv_pop_next_dts(hb_list_t *list)
     return next_dts;
 }
 
+static const char* qsv_h264_profile_xlat(int profile)
+{
+    switch (profile)
+    {
+        case MFX_PROFILE_AVC_CONSTRAINED_BASELINE:
+            return "Constrained Baseline";
+        case MFX_PROFILE_AVC_BASELINE:
+            return "Baseline";
+        case MFX_PROFILE_AVC_EXTENDED:
+            return "Extended";
+        case MFX_PROFILE_AVC_MAIN:
+            return "Main";
+        case MFX_PROFILE_AVC_CONSTRAINED_HIGH:
+            return "Constrained High";
+        case MFX_PROFILE_AVC_PROGRESSIVE_HIGH:
+            return "Progressive High";
+        case MFX_PROFILE_AVC_HIGH:
+            return "High";
+        case MFX_PROFILE_UNKNOWN:
+        default:
+            return NULL;
+    }
+}
+
+static const char* qsv_h264_level_xlat(int level)
+{
+    int i;
+    for (i = 0; hb_h264_level_names[i] != NULL; i++)
+    {
+        if (hb_h264_level_values[i] == level)
+        {
+            return hb_h264_level_names[i];
+        }
+    }
+    return NULL;
+}
+
 int qsv_enc_init(av_qsv_context *qsv, hb_work_private_t *pv)
 {
     int i = 0;
@@ -779,9 +816,9 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
            videoParam.mfx.GopRefDist, videoParam.mfx.GopPicSize, videoParam.mfx.NumRefFrame);
     hb_log("encqsvInit: TargetUsage %"PRIu16" AsyncDepth %"PRIu16"",
            videoParam.mfx.TargetUsage, videoParam.AsyncDepth);
-    // FIXME: translate to human-readable values
-    hb_log("encqsvInit: H.264 Profile %"PRIu16" H.264 Level %"PRIu16"",
-           videoParam.mfx.CodecProfile, videoParam.mfx.CodecLevel);
+    hb_log("encqsvInit: H.264 %s profile @ level %s",
+           qsv_h264_profile_xlat(videoParam.mfx.CodecProfile),
+           qsv_h264_level_xlat  (videoParam.mfx.CodecLevel  ));
 
     return 0;
 }
