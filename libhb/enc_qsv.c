@@ -390,8 +390,6 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
 
     // set AsyncDepth to match that of decode and VPP
     pv->param.videoParam.AsyncDepth = job->qsv_async_depth;
-    pv->max_async_depth             = job->qsv_async_depth;
-    pv->async_depth                 = 0;
 
     // enable and set colorimetry (video signal information)
     pv->param.videoSignalInfo.ColourDescriptionPresent = 1;
@@ -757,45 +755,6 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
         return -1;
     }
 
-    // check whether B-frames are used
-    switch (videoParam.mfx.CodecProfile)
-    {
-        case MFX_PROFILE_AVC_BASELINE:
-        case MFX_PROFILE_AVC_CONSTRAINED_HIGH:
-        case MFX_PROFILE_AVC_CONSTRAINED_BASELINE:
-            pv->bfrm_delay = 0;
-            break;
-        default:
-            pv->bfrm_delay = 1;
-            break;
-    }
-    if (videoParam.mfx.GopRefDist > 0)
-    {
-        pv->bfrm_delay = FFMIN(pv->bfrm_delay, videoParam.mfx.GopRefDist - 1);
-    }
-    if (videoParam.mfx.GopPicSize > 0)
-    {
-        pv->bfrm_delay = FFMIN(pv->bfrm_delay, videoParam.mfx.GopPicSize - 2);
-    }
-    // sanitize
-    pv->bfrm_delay = FFMAX(pv->bfrm_delay, 0);
-    // check whether we need to generate DTS ourselves (MSDK API < 1.6 or VFR)
-    pv->bfrm_workaround = job->cfr != 1 || !(hb_qsv_info->capabilities &
-                                             HB_QSV_CAP_MSDK_API_1_6);
-    if (pv->bfrm_delay && pv->bfrm_workaround)
-    {
-        pv->bfrm_workaround = 1;
-        pv->list_dts        = hb_list_init();
-    }
-    else
-    {
-        pv->bfrm_workaround = 0;
-        pv->list_dts        = NULL;
-    }
-
-    // let the muxer know whether to expect B-frames or not
-    job->areBframes = !!pv->bfrm_delay;
-
     // log main output settings
     hb_log("encqsvInit: TargetUsage %"PRIu16" AsyncDepth %"PRIu16"",
            videoParam.mfx.TargetUsage, videoParam.AsyncDepth);
@@ -884,6 +843,49 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     hb_log("encqsvInit: H.264 %s profile @ level %s",
            qsv_h264_profile_xlat(videoParam.mfx.CodecProfile),
            qsv_h264_level_xlat  (videoParam.mfx.CodecLevel));
+
+    // AsyncDepth can be modified by Media SDK
+    pv->max_async_depth = videoParam.AsyncDepth;
+    pv->async_depth     = 0;
+
+    // check whether B-frames are used
+    switch (videoParam.mfx.CodecProfile)
+    {
+        case MFX_PROFILE_AVC_BASELINE:
+        case MFX_PROFILE_AVC_CONSTRAINED_HIGH:
+        case MFX_PROFILE_AVC_CONSTRAINED_BASELINE:
+            pv->bfrm_delay = 0;
+            break;
+        default:
+            pv->bfrm_delay = 1;
+            break;
+    }
+    if (videoParam.mfx.GopRefDist > 0)
+    {
+        pv->bfrm_delay = FFMIN(pv->bfrm_delay, videoParam.mfx.GopRefDist - 1);
+    }
+    if (videoParam.mfx.GopPicSize > 0)
+    {
+        pv->bfrm_delay = FFMIN(pv->bfrm_delay, videoParam.mfx.GopPicSize - 2);
+    }
+    // sanitize
+    pv->bfrm_delay = FFMAX(pv->bfrm_delay, 0);
+    // check whether we need to generate DTS ourselves (MSDK API < 1.6 or VFR)
+    pv->bfrm_workaround = job->cfr != 1 || !(hb_qsv_info->capabilities &
+                                             HB_QSV_CAP_MSDK_API_1_6);
+    if (pv->bfrm_delay && pv->bfrm_workaround)
+    {
+        pv->bfrm_workaround = 1;
+        pv->list_dts        = hb_list_init();
+    }
+    else
+    {
+        pv->bfrm_workaround = 0;
+        pv->list_dts        = NULL;
+    }
+
+    // let the muxer know whether to expect B-frames or not
+    job->areBframes = !!pv->bfrm_delay;
 
     return 0;
 }
