@@ -841,7 +841,7 @@ void hb_qsv_param_default(hb_qsv_param_t *param)
         param->rc.cqp_offsets[2]      =  4;
         param->rc.vbv_max_bitrate     =  0;
         param->rc.vbv_buffer_size     =  0;
-        param->rc.vbv_buffer_init     = .9;
+        param->rc.vbv_buffer_init     = .5;
 
         // attach supported mfxExtBuffer structures to the mfxVideoParam
         param->videoParam.NumExtParam = 0;
