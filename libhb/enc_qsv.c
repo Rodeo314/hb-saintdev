@@ -813,13 +813,14 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
             break;
         case MFX_RATECONTROL_LA:
             hb_log("encqsvInit: MFX_RATECONTROL_LA with TargetKbps %"PRIu16", LookaheadDepth %"PRIu16"",
-                   videoParam.mfx.TargetKbps, pv->param.codingOption2.LookAheadDepth);
+                   videoParam.mfx.TargetKbps, option2->LookAheadDepth);
             break;
         case MFX_RATECONTROL_CBR:
         case MFX_RATECONTROL_VBR:
             hb_log("encqsvInit: MFX_RATECONTROL_%s with TargetKbps %"PRIu16", MaxKbps %"PRIu16"",
                    videoParam.mfx.RateControlMethod == MFX_RATECONTROL_CBR ? "CBR" : "VBR",
                    videoParam.mfx.TargetKbps, videoParam.mfx.MaxKbps);
+            // FIXME: test this
             hb_log("encqsvInit: VBV enabled with BufferSizeInKB %"PRIu16" and InitialDelayInKB %"PRIu16"",
                    videoParam.mfx.BufferSizeInKB, videoParam.mfx.InitialDelayInKB);
             break;
@@ -828,21 +829,56 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
                    videoParam.mfx.RateControlMethod);
             return -1;
     }
-    if (hb_qsv_info->capabilities & HB_QSV_CAP_OPTION2_TRELLIS)
+    if (hb_qsv_info->capabilities & HB_QSV_CAP_OPTION2_BRC)
     {
-        switch (pv->param.codingOption2.Trellis)
+        const char *mbbrc, *extbrc;
+        switch (option2->MBBRC)
         {
-            case MFX_TRELLIS_UNKNOWN:
-                hb_log("encqsvInit: Trellis default (unknown)");
+            case MFX_CODINGOPTION_ON:
+                mbbrc = "on";
                 break;
-            case MFX_TRELLIS_OFF:
-                hb_log("encqsvInit: Trellis disabled");
+            case MFX_CODINGOPTION_OFF:
+                mbbrc = "off";
+                break;
+            case MFX_CODINGOPTION_ADAPTIVE:
+                mbbrc = "adaptive";
                 break;
             default:
-                hb_log("encqsvInit: Trellis enabled (%s%s%s)",
-                       pv->param.codingOption2.Trellis & MFX_TRELLIS_I ? "I" : "",
-                       pv->param.codingOption2.Trellis & MFX_TRELLIS_P ? "P" : "",
-                       pv->param.codingOption2.Trellis & MFX_TRELLIS_B ? "B" : "");
+                hb_error("Invalid MBBRC value %"PRIu16"", option2->MBBRC);
+                return -1;
+        }
+        switch (option2->ExtBRC)
+        {
+            case MFX_CODINGOPTION_ON:
+                extbrc = "on";
+                break;
+            case MFX_CODINGOPTION_OFF:
+                extbrc = "off";
+                break;
+            case MFX_CODINGOPTION_ADAPTIVE:
+                extbrc = "adaptive";
+                break;
+            default:
+                hb_error("Invalid MBBRC value %"PRIu16"", option2->ExtBRC);
+                return -1;
+        }
+        hb_log("encqsvInit: MBBRC %s ExtBRC %s", mbbrc, extbrc);
+    }
+    if (hb_qsv_info->capabilities & HB_QSV_CAP_OPTION2_TRELLIS)
+    {
+        switch (option2->Trellis)
+        {
+            case MFX_TRELLIS_OFF:
+                hb_log("encqsvInit: Trellis off");
+                break;
+            case MFX_TRELLIS_UNKNOWN:
+                hb_log("encqsvInit: Trellis unknown (auto)");
+                break;
+            default:
+                hb_log("encqsvInit: Trellis on (%s%s%s)",
+                       option2->Trellis & MFX_TRELLIS_I ? "I" : "",
+                       option2->Trellis & MFX_TRELLIS_P ? "P" : "",
+                       option2->Trellis & MFX_TRELLIS_B ? "B" : "");
                 break;
         }
     }
