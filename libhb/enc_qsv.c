@@ -865,6 +865,8 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     pv->bfrm_delay = FFMIN(pv->bfrm_delay, videoParam.mfx.GopRefDist - 1);
     pv->bfrm_delay = FFMIN(pv->bfrm_delay, videoParam.mfx.GopPicSize - 2);
     pv->bfrm_delay = FFMAX(pv->bfrm_delay, 0);
+    // let the muxer know whether to expect B-frames or not
+    job->areBframes = !!pv->bfrm_delay;
     // check whether we need to generate DTS ourselves (MSDK API < 1.6 or VFR)
     pv->bfrm_workaround = job->cfr != 1 || !(hb_qsv_info->capabilities &
                                              HB_QSV_CAP_MSDK_API_1_6);
@@ -878,9 +880,6 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
         pv->bfrm_workaround = 0;
         pv->list_dts        = NULL;
     }
-
-    // let the muxer know whether to expect B-frames or not
-    job->areBframes = !!pv->bfrm_delay;
 
     return 0;
 }
