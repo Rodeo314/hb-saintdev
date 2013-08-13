@@ -658,6 +658,7 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
             // introduced in API 1.3
             // Accuracy is in units of 0.1%
             // Convergence in units of 100 frames
+            // allow +/-5.0% over 300 frames (at 24-30 fps)
             pv->param.videoParam.mfx.RateControlMethod = MFX_RATECONTROL_AVBR;
             pv->param.videoParam.mfx.Accuracy          = 50;
             pv->param.videoParam.mfx.TargetKbps        = job->vbitrate;
