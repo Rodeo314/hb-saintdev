@@ -508,7 +508,7 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     pv->param.videoParam->mfx.FrameInfo.CropW         = job->width;
     pv->param.videoParam->mfx.FrameInfo.CropH         = job->height;
     pv->param.videoParam->mfx.FrameInfo.Width         = AV_QSV_ALIGN16(job->width);
-    pv->param.videoParam->mfx.FrameInfo.Height        = AV_QSV_ALIGN16(job->height);
+    pv->param.videoParam->mfx.FrameInfo.Height        = AV_QSV_ALIGN32(job->height);
     pv->param.videoParam->mfx.FrameInfo.PicStruct     = MFX_PICSTRUCT_PROGRESSIVE;
     /*
      * Note: interlaced encoding with the QSV H.264 encoder is explicitly

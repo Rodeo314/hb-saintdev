@@ -151,7 +151,7 @@ static int filter_init( av_qsv_context* qsv, hb_filter_private_t * pv ){
         qsv_vpp->m_mfxVideoParam.vpp.In.AspectRatioH    = qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.AspectRatioH;
         qsv_vpp->m_mfxVideoParam.vpp.In.Width           = AV_QSV_ALIGN16(pv->width_in);
         qsv_vpp->m_mfxVideoParam.vpp.In.Height          = (MFX_PICSTRUCT_PROGRESSIVE == qsv_vpp->m_mfxVideoParam.vpp.In.PicStruct)?
-                                                            AV_QSV_ALIGN16(pv->height_in) : AV_QSV_ALIGN32(pv->height_in);
+                                                            AV_QSV_ALIGN32(pv->height_in) : AV_QSV_ALIGN32(pv->height_in);
 
         qsv_vpp->m_mfxVideoParam.vpp.Out.FourCC          = qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.FourCC;
         qsv_vpp->m_mfxVideoParam.vpp.Out.ChromaFormat    = qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.ChromaFormat;
@@ -165,7 +165,7 @@ static int filter_init( av_qsv_context* qsv, hb_filter_private_t * pv ){
         qsv_vpp->m_mfxVideoParam.vpp.Out.AspectRatioH    = qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.AspectRatioH;
         qsv_vpp->m_mfxVideoParam.vpp.Out.Width           = AV_QSV_ALIGN16(pv->width_out);
         qsv_vpp->m_mfxVideoParam.vpp.Out.Height          = (MFX_PICSTRUCT_PROGRESSIVE == qsv_vpp->m_mfxVideoParam.vpp.Out.PicStruct)?
-                                                            AV_QSV_ALIGN16(pv->height_out) : AV_QSV_ALIGN32(pv->height_out);
+                                                            AV_QSV_ALIGN32(pv->height_out) : AV_QSV_ALIGN32(pv->height_out);
 
         hb_log("VPP: Input  %"PRIu16"x%"PRIu16", %"PRIu16"/%"PRIu16", %"PRIu16"/%"PRIu16"",
                qsv_vpp->m_mfxVideoParam.vpp.In.Width, qsv_vpp->m_mfxVideoParam.vpp.In.Height,
