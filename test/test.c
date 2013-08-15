@@ -1589,11 +1589,8 @@ static int HandleEvents( hb_handle_t * h )
                 }
             }
 
-            if( crop[0] >= 0 && crop[1] >= 0 &&
-                crop[2] >= 0 && crop[3] >= 0 )
-            {
-                memcpy( job->crop, crop, 4 * sizeof( int ) );
-            }
+            // XXX: hack to test VPP without scaling or cropping
+            memcpy(job->crop, crop, 4 * sizeof(int));
 
             if( loose_crop >= 0 )
             {

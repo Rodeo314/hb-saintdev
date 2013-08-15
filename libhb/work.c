@@ -757,12 +757,24 @@ static void do_job(hb_job_t *job)
             }
             if (vpp_settings[0] != job->title->width  ||
                 vpp_settings[1] != job->title->height ||
-                vpp_settings[2] >= 1 /* crop */       ||
-                vpp_settings[3] >= 1 /* crop */       ||
-                vpp_settings[4] >= 1 /* crop */       ||
-                vpp_settings[5] >= 1 /* crop */       ||
+                vpp_settings[2] != 0 /* crop */       ||
+                vpp_settings[3] != 0 /* crop */       ||
+                vpp_settings[4] != 0 /* crop */       ||
+                vpp_settings[5] != 0 /* crop */       ||
                 vpp_settings[6] >= 1 /* deinterlace */)
             {
+                if (vpp_settings[2] < 0 || vpp_settings[3] < 0 ||
+                    vpp_settings[4] < 0 || vpp_settings[5] < 0)
+                {
+                    // XXX: hack to test VPP without scaling or cropping
+                    vpp_settings[0] = job->title-> width;
+                    vpp_settings[1] = job->title->height;
+                    vpp_settings[2] = 0;
+                    vpp_settings[3] = 0;
+                    vpp_settings[4] = 0;
+                    vpp_settings[5] = 0;
+                    vpp_settings[6] = 0;
+                }
                 // we need the VPP filter
                 char *settings = hb_strdup_printf("%d:%d:%d:%d:%d:%d_dei:%d",
                                                   vpp_settings[0],
