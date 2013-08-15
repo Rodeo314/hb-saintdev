@@ -401,7 +401,8 @@ int hb_qsv_param_parse(hb_qsv_param_t *param,
                                                               ivalue);
         }
     }
-    else if (!strcasecmp(key, "num-ref-frame"))
+    else if (!strcasecmp(key, "num-ref-frame") ||
+             !strcasecmp(key, "ref"))
     {
         ivalue = hb_qsv_atoi(value, &error);
         if (!error)
@@ -409,7 +410,16 @@ int hb_qsv_param_parse(hb_qsv_param_t *param,
             param->videoParam->mfx.NumRefFrame = HB_QSV_CLIP3(0, 16, ivalue);
         }
     }
-    else if (!strcasecmp(key, "gop-ref-dist"))
+    else if (!strcasecmp(key, "bframes")) // FIXME
+    {
+        ivalue = hb_qsv_atoi(value, &error) + 1;
+        if (!error)
+        {
+            param->videoParam->mfx.GopRefDist = HB_QSV_CLIP3(0, 32, ivalue);
+        }
+    }
+    else if (!strcasecmp(key, "gop-ref-dist") ||
+             !strcasecmp(key, "min-keyint") // FIXME
     {
         ivalue = hb_qsv_atoi(value, &error);
         if (!error)
@@ -417,7 +427,8 @@ int hb_qsv_param_parse(hb_qsv_param_t *param,
             param->videoParam->mfx.GopRefDist = HB_QSV_CLIP3(0, 32, ivalue);
         }
     }
-    else if (!strcasecmp(key, "gop-pic-size"))
+    else if (!strcasecmp(key, "gop-pic-size") ||
+             !strcasecmp(key, "keyint")
     {
         ivalue = hb_qsv_atoi(value, &error);
         if (!error)
@@ -425,7 +436,8 @@ int hb_qsv_param_parse(hb_qsv_param_t *param,
             param->gop.gop_pic_size = HB_QSV_CLIP3(-1, UINT16_MAX, ivalue);
         }
     }
-    else if (!strcasecmp(key, "scenecut"))
+    else if (!strcasecmp(key, "strict-gop") || // FIXME
+             !strcasecmp(key, "scenecut"))
     {
         ivalue = hb_qsv_atobool(value, &error);
         if (!error)
