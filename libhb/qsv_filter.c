@@ -122,6 +122,19 @@ static int filter_init( av_qsv_context* qsv, hb_filter_private_t * pv ){
             qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.FrameRateExtD = pv->job->title->rate_base;
         }
 
+        /*
+         * Input may be progressive, interlaced or even mixed, so initialize
+         * with MFX_PICSTRUCT_UNKNOWN and use mfxFrameSurface1.Info.PicStruct
+         *
+         * Note: only progressive output is supported
+         * - our QSV encoder doesn't support interlacing (assumes progressive)
+         * - pv->height_out == job->height, but there can be a mismatch between
+         *   VPP and ENCODE Width/Height due to differing alignment (32 for
+         *   interlaced vs. 16 for progressive pictures)
+         */
+        qsv_vpp->m_mfxVideoParam.vpp.In.PicStruct  = MFX_PICSTRUCT_UNKNOWN;
+        qsv_vpp->m_mfxVideoParam.vpp.Out.PicStruct = MFX_PICSTRUCT_PROGRESSIVE;
+
         qsv_vpp->m_mfxVideoParam.vpp.In.FourCC          = qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.FourCC;
         qsv_vpp->m_mfxVideoParam.vpp.In.ChromaFormat    = qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.ChromaFormat;
         qsv_vpp->m_mfxVideoParam.vpp.In.CropX           = pv->crop[2];
@@ -271,11 +284,6 @@ static int filter_init( av_qsv_context* qsv, hb_filter_private_t * pv ){
             qsv_vpp->p_ext_params[1] = (mfxExtBuffer*)&pv->frc_config;
         }
 
-        if (pv->deinterlace)
-        {
-            qsv_vpp->m_mfxVideoParam.vpp.In.PicStruct  = qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.PicStruct;
-            qsv_vpp->m_mfxVideoParam.vpp.Out.PicStruct = MFX_PICSTRUCT_PROGRESSIVE;
-        }
         sts = MFXVideoVPP_Init(qsv->mfx_session, &qsv_vpp->m_mfxVideoParam);
 
         AV_QSV_IGNORE_MFX_STS(sts, MFX_WRN_PARTIAL_ACCELERATION);
@@ -449,11 +457,18 @@ int process_frame(av_qsv_list* received_item, av_qsv_context* qsv, hb_filter_pri
                 ret = 0;
                 break;
             }
-            if (work_surface) {
-                    work_surface->Info.CropX           = pv->crop[2];
-                    work_surface->Info.CropY           = pv->crop[0];
-                    work_surface->Info.CropW           = pv->width_in - pv->crop[3] - pv->crop[2];
-                    work_surface->Info.CropH           = pv->height_in - pv->crop[1] - pv->crop[0];
+            if (work_surface != NULL)
+            {
+                work_surface->Info.CropX = pv->crop[2];
+                work_surface->Info.CropY = pv->crop[0];
+                work_surface->Info.CropW = pv-> width_in - pv->crop[3] - pv->crop[2];
+                work_surface->Info.CropH = pv->height_in - pv->crop[1] - pv->crop[0];
+                if (!pv->deinterlace)
+                {
+                    // deinterlace is disabled, ignore PicStruct
+                    // instead, assume progressive (passthrough)
+                    work_surface->Info.PicStruct = MFX_PICSTRUCT_PROGRESSIVE;
+                }
             }
 
             sts = MFXVideoVPP_RunFrameVPPAsync(qsv->mfx_session, work_surface, qsv_vpp->p_surfaces[surface_idx] , NULL, qsv_vpp->p_syncp[sync_idx]->p_sync);
