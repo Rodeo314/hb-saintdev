@@ -419,7 +419,7 @@ int hb_qsv_param_parse(hb_qsv_param_t *param,
         }
     }
     else if (!strcasecmp(key, "gop-ref-dist") ||
-             !strcasecmp(key, "min-keyint") // FIXME
+             !strcasecmp(key, "min-keyint")) // FIXME
     {
         ivalue = hb_qsv_atoi(value, &error);
         if (!error)
@@ -428,7 +428,7 @@ int hb_qsv_param_parse(hb_qsv_param_t *param,
         }
     }
     else if (!strcasecmp(key, "gop-pic-size") ||
-             !strcasecmp(key, "keyint")
+             !strcasecmp(key, "keyint"))
     {
         ivalue = hb_qsv_atoi(value, &error);
         if (!error)
