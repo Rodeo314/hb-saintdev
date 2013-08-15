@@ -309,6 +309,38 @@ int qsv_enc_init(av_qsv_context *qsv, hb_work_private_t *pv)
         qsv_encode->ext_opaque_alloc.In.NumSurface   = in_space->surface_num;
         qsv_encode->ext_opaque_alloc.In.Type         = qsv_encode->request[0].Type;
         qsv_encode->m_mfxVideoParam.ExtParam[qsv_encode->m_mfxVideoParam.NumExtParam++] = (mfxExtBuffer*)&qsv_encode->ext_opaque_alloc;
+
+        // log the decode and VPP PicStructs, and adjust height if necessary
+        if (pv->is_vpp_present)
+        {
+            if (qsv_encode->m_mfxVideoParam.mfx.FrameInfo.Height !=
+                in_space  ->m_mfxVideoParam.vpp.Out.Height)
+            {
+                hb_log("qsv_enc_init: adjusting height from %"PRIu16" to %"PRIu16"",
+                        qsv_encode->m_mfxVideoParam.mfx.FrameInfo.Height,
+                        in_space  ->m_mfxVideoParam.vpp.Out.Height);
+                qsv_encode->m_mfxVideoParam.mfx.FrameInfo.Height =
+                in_space  ->m_mfxVideoParam.vpp.Out.Height;
+            }
+            hb_log("qsv_enc_init: PicStruct for decode 0x%"PRIx16", VPP In 0x%"PRIx16", VPP Out 0x%"PRIx16"",
+                    qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.PicStruct,
+                          in_space->m_mfxVideoParam.vpp.In.PicStruct,
+                          in_space->m_mfxVideoParam.vpp.Out.PicStruct);
+        }
+        else
+        {
+            if (qsv_encode    ->m_mfxVideoParam.mfx.FrameInfo.Height !=
+                qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.Height)
+            {
+                hb_log("qsv_enc_init: adjusting height from %"PRIu16" to %"PRIu16"",
+                        qsv_encode    ->m_mfxVideoParam.mfx.FrameInfo.Height,
+                        qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.Height);
+                qsv_encode    ->m_mfxVideoParam.mfx.FrameInfo.Height =
+                qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.Height;
+            }
+            hb_log("qsv_enc_init: PicStruct for decode 0x%"PRIx16"",
+                    qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.PicStruct);
+        }
     }
 
     // allocate sync points
@@ -332,6 +364,15 @@ int qsv_enc_init(av_qsv_context *qsv, hb_work_private_t *pv)
         return -1;
     }
     qsv_encode->is_init_done = 1;
+
+    // check and log H.264 Profile, Level
+    mfxVideoParam check;
+    if (MFXVideoENCODE_GetVideoParam(qsv->mfx_session, &check) == MFX_ERR_NONE)
+    {
+        hb_log("qsv_enc_init: H.264 profile %s @ level %s",
+                qsv_h264_profile_xlat(check.mfx.CodecProfile),
+                qsv_h264_level_xlat  (check.mfx.CodecLevel));
+    }
 
     if (pv->is_sys_mem)
     {

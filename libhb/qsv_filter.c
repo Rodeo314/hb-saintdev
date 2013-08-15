@@ -122,6 +122,10 @@ static int filter_init( av_qsv_context* qsv, hb_filter_private_t * pv ){
             qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.FrameRateExtD = pv->job->title->rate_base;
         }
 
+        // log PicStruct for decode
+        hb_log("filter_init: PicStruct for decode 0x%"PRIx16"",
+               qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.PicStruct);
+
         qsv_vpp->m_mfxVideoParam.vpp.In.FourCC          = qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.FourCC;
         qsv_vpp->m_mfxVideoParam.vpp.In.ChromaFormat    = qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.ChromaFormat;
         qsv_vpp->m_mfxVideoParam.vpp.In.CropX           = pv->crop[2];
