@@ -1105,6 +1105,9 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
              * the frame implicitly - but we do not want that to happen here;
              * in HandBrake, deinterlace only happens if and when specifically
              * requested by the user, via a filter (so not here, in any event)
+             *
+             * this would be especially bad if we are downscaling via VPP, as
+             * deinterlace would then happen after downscaling - very wrong
              */
             work_surface->Data.PicStruct = pv->param.videoParam->mfx.FrameInfo.PicStruct;
 
