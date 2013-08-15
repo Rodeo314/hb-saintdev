@@ -301,6 +301,15 @@ int qsv_enc_init(av_qsv_context *qsv, hb_work_private_t *pv)
             in_space = av_qsv_list_item(qsv->vpp_space,
                                         av_qsv_list_count(qsv->vpp_space) - 1);
         }
+        if (in_space  ->m_mfxVideoParam.vpp.Out.Height !=
+            qsv_encode->m_mfxVideoParam.mfx.FrameInfo.Height)
+        {
+            hb_error("qsv_enc_init: output height mismatch (%"PRIu16" in, %"PRIu16" out)",
+                     in_space  ->m_mfxVideoParam.vpp.Out.Height,
+                     qsv_encode->m_mfxVideoParam.mfx.FrameInfo.Height);
+            *job->die = 1;
+            return -1;
+        }
         // introduced in API 1.3
         memset(&qsv_encode->ext_opaque_alloc, 0, sizeof(mfxExtOpaqueSurfaceAlloc));
         qsv_encode->ext_opaque_alloc.Header.BufferId = MFX_EXTBUFF_OPAQUE_SURFACE_ALLOCATION;

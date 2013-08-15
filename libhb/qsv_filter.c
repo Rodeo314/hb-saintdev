@@ -173,6 +173,9 @@ static int filter_init( av_qsv_context* qsv, hb_filter_private_t * pv ){
                qsv_vpp->m_mfxVideoParam.vpp.Out.Width, qsv_vpp->m_mfxVideoParam.vpp.Out.Height,
                qsv_vpp->m_mfxVideoParam.vpp.Out.CropX, qsv_vpp->m_mfxVideoParam.vpp.Out.CropY,
                qsv_vpp->m_mfxVideoParam.vpp.Out.CropW, qsv_vpp->m_mfxVideoParam.vpp.Out.CropH);
+        hb_log("VPP: Output height %d (0), %d (16), %d (32), %"PRIu16" (actual), PicStruct 0x%"PRIx16"",
+               pv->height_out, AV_QSV_ALIGN16(pv->height_out), AV_QSV_ALIGN32(pv->height_out),
+               qsv_vpp->m_mfxVideoParam.vpp.Out.Height, qsv_vpp->m_mfxVideoParam.vpp.Out.PicStruct);
 
         qsv_vpp->m_mfxVideoParam.IOPattern = MFX_IOPATTERN_IN_OPAQUE_MEMORY | MFX_IOPATTERN_OUT_OPAQUE_MEMORY;
 
