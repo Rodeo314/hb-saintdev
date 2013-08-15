@@ -1101,6 +1101,14 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
             work_surface->Data.TimeStamp = in->s.start;
 
             /*
+             * if input and output PicStruct to not match, QSV may filter
+             * the frame implicitly - but we do not want that to happen here;
+             * in HandBrake, deinterlace only happens if and when specifically
+             * requested by the user, via a filter (so not here, in any event)
+             */
+            work_surface->Data.PicStruct = pv->param.videoParam->mfx.FrameInfo.PicStruct;
+
+            /*
              * Debugging code to check that the upstream modules have generated
              * a continuous, self-consistent frame stream.
              */

@@ -126,11 +126,15 @@ static int filter_init( av_qsv_context* qsv, hb_filter_private_t * pv ){
          * Input may be progressive, interlaced or even mixed, so initialize
          * with MFX_PICSTRUCT_UNKNOWN and use mfxFrameSurface1.Info.PicStruct
          *
-         * Note: only progressive output is supported
-         * - our QSV encoder doesn't support interlacing (assumes progressive)
-         * - pv->height_out == job->height, but there can be a mismatch between
-         *   VPP and ENCODE Width/Height due to differing alignment (32 for
-         *   interlaced vs. 16 for progressive pictures)
+         * Note: we currently always align VPP output height to 16, not 32
+         * pv->height_out == job->height, but there can be a mismatch between
+         * VPP and encode width/height due to differing alignment, unless we use
+         * the same alignment in both places; also, while we can adjust the
+         * output height in either place, adjusting it in encode can increase
+         * coded height from 720 to 736 even though we actually encode
+         * progressive video, which does not match how our other encoders
+         * behave - libx264 will not actually align coded height to 32 unless
+         * interlaced encoding is specifically requested by the user
          */
         qsv_vpp->m_mfxVideoParam.vpp.In.PicStruct  = MFX_PICSTRUCT_UNKNOWN;
         qsv_vpp->m_mfxVideoParam.vpp.Out.PicStruct = MFX_PICSTRUCT_PROGRESSIVE;
