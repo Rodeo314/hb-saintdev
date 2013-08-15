@@ -165,6 +165,15 @@ static int filter_init( av_qsv_context* qsv, hb_filter_private_t * pv ){
         qsv_vpp->m_mfxVideoParam.vpp.Out.Height          = (MFX_PICSTRUCT_PROGRESSIVE == qsv_vpp->m_mfxVideoParam.vpp.Out.PicStruct)?
                                                             AV_QSV_ALIGN16(pv->height_out) : AV_QSV_ALIGN32(pv->height_out);
 
+        hb_log("VPP: Input  %"PRIu16"x%"PRIu16", %"PRIu16"/%"PRIu16", %"PRIu16"/%"PRIu16"",
+               qsv_vpp->m_mfxVideoParam.vpp.In.Width, qsv_vpp->m_mfxVideoParam.vpp.In.Height,
+               qsv_vpp->m_mfxVideoParam.vpp.In.CropX, qsv_vpp->m_mfxVideoParam.vpp.In.CropY,
+               qsv_vpp->m_mfxVideoParam.vpp.In.CropW, qsv_vpp->m_mfxVideoParam.vpp.In.CropH);
+        hb_log("VPP: Output %"PRIu16"x%"PRIu16", %"PRIu16"/%"PRIu16", %"PRIu16"/%"PRIu16"",
+               qsv_vpp->m_mfxVideoParam.vpp.Out.Width, qsv_vpp->m_mfxVideoParam.vpp.Out.Height,
+               qsv_vpp->m_mfxVideoParam.vpp.Out.CropX, qsv_vpp->m_mfxVideoParam.vpp.Out.CropY,
+               qsv_vpp->m_mfxVideoParam.vpp.Out.CropW, qsv_vpp->m_mfxVideoParam.vpp.Out.CropH);
+
         qsv_vpp->m_mfxVideoParam.IOPattern = MFX_IOPATTERN_IN_OPAQUE_MEMORY | MFX_IOPATTERN_OUT_OPAQUE_MEMORY;
 
         qsv_vpp->m_mfxVideoParam.AsyncDepth = pv->job->qsv_async_depth;
@@ -469,6 +478,10 @@ int process_frame(av_qsv_list* received_item, av_qsv_context* qsv, hb_filter_pri
                     // instead, assume progressive (passthrough)
                     work_surface->Info.PicStruct = MFX_PICSTRUCT_PROGRESSIVE;
                 }
+                hb_log("mfxFrameSurface1: %"PRIu16"x%"PRIu16", %"PRIu16"/%"PRIu16", %"PRIu16"/%"PRIu16"",
+                       work_surface->Info.Width, work_surface->Info.Height,
+                       work_surface->Info.CropX, work_surface->Info.CropY,
+                       work_surface->Info.CropW, work_surface->Info.CropH);
             }
 
             sts = MFXVideoVPP_RunFrameVPPAsync(qsv->mfx_session, work_surface, qsv_vpp->p_surfaces[surface_idx] , NULL, qsv_vpp->p_syncp[sync_idx]->p_sync);
