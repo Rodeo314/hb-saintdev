@@ -1109,7 +1109,7 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
              * this would be especially bad if we are downscaling via VPP, as
              * deinterlace would then happen after downscaling - very wrong
              */
-            work_surface->Data.PicStruct = pv->param.videoParam->mfx.FrameInfo.PicStruct;
+            work_surface->Info.PicStruct = pv->param.videoParam->mfx.FrameInfo.PicStruct;
 
             /*
              * Debugging code to check that the upstream modules have generated
