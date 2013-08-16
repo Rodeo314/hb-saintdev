@@ -49,8 +49,10 @@ struct hb_filter_private_s
 
     av_qsv_space           *vpp_space;
 
-    // FRC param(s)
-    mfxExtVPPFrameRateConversion    frc_config;
+    int                          dnu_cnt;
+    mfxU32                       dnu_lst[16];
+    mfxExtVPPDoNotUse            dnu_cfg;
+    mfxExtVPPFrameRateConversion frc_config;
 };
 
 static int hb_qsv_filter_init( hb_filter_object_t * filter,
@@ -247,9 +249,10 @@ static int filter_init( av_qsv_context* qsv, hb_filter_private_t * pv ){
             pv->is_frc_used = 1;
         }
 
-        qsv_vpp->m_mfxVideoParam.NumExtParam        = qsv_vpp->p_ext_param_num = 1 + pv->is_frc_used;
-
-        qsv_vpp->p_ext_params = av_mallocz(sizeof(mfxExtBuffer *)*qsv_vpp->p_ext_param_num);
+        qsv_vpp->m_mfxVideoParam.NumExtParam = 0;
+        qsv_vpp->p_ext_param_num = 2 + pv->is_frc_used;
+        qsv_vpp->p_ext_params    = av_mallocz(sizeof(mfxExtBuffer *) *
+                                              qsv_vpp->p_ext_param_num);
         AV_QSV_CHECK_POINTER(qsv_vpp->p_ext_params, MFX_ERR_MEMORY_ALLOC);
 
         qsv_vpp->m_mfxVideoParam.ExtParam           = qsv_vpp->p_ext_params;
@@ -264,7 +267,7 @@ static int filter_init( av_qsv_context* qsv, hb_filter_private_t * pv ){
 
         qsv_vpp->ext_opaque_alloc.Header.BufferId   = MFX_EXTBUFF_OPAQUE_SURFACE_ALLOCATION;
         qsv_vpp->ext_opaque_alloc.Header.BufferSz   = sizeof(mfxExtOpaqueSurfaceAlloc);
-        qsv_vpp->p_ext_params[0]                    = (mfxExtBuffer*)&qsv_vpp->ext_opaque_alloc;
+        qsv_vpp->p_ext_params[qsv_vpp->m_mfxVideoParam.NumExtParam++] = (mfxExtBuffer*)&qsv_vpp->ext_opaque_alloc;
 
         if(pv->is_frc_used)
         {
@@ -272,7 +275,7 @@ static int filter_init( av_qsv_context* qsv, hb_filter_private_t * pv ){
             pv->frc_config.Header.BufferSz  = sizeof(mfxExtVPPFrameRateConversion);
             pv->frc_config.Algorithm        = MFX_FRCALGM_PRESERVE_TIMESTAMP;
 
-            qsv_vpp->p_ext_params[1] = (mfxExtBuffer*)&pv->frc_config;
+            qsv_vpp->p_ext_params[qsv_vpp->m_mfxVideoParam.NumExtParam++] = (mfxExtBuffer*)&pv->frc_config;
         }
 
         if (pv->deinterlace)
@@ -280,11 +283,27 @@ static int filter_init( av_qsv_context* qsv, hb_filter_private_t * pv ){
             qsv_vpp->m_mfxVideoParam.vpp.In.PicStruct  = qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.PicStruct;
             qsv_vpp->m_mfxVideoParam.vpp.Out.PicStruct = MFX_PICSTRUCT_PROGRESSIVE;
         }
+
+        // some filters are enabled by default, whereas HandBrake does
+        // zero filtering unless specifically requested by the user
+        // make sure all configurable filters except FRC are disabled
+        pv->dnu_cnt                = 0;
+      //pv->dnu_lst[pv->dnu_cnt++] = MFX_EXTBUFF_VPP_DETAIL;
+        pv->dnu_lst[pv->dnu_cnt++] = MFX_EXTBUFF_VPP_DENOISE;
+      //pv->dnu_lst[pv->dnu_cnt++] = MFX_EXTBUFF_VPP_PROCAMP;
+        pv->dnu_lst[pv->dnu_cnt++] = MFX_EXTBUFF_VPP_SCENE_ANALYSIS; // deprecated
+      //pv->dnu_lst[pv->dnu_cnt++] = MFX_EXTBUFF_VPP_PICSTRUCT_DETECTION;
+      //pv->dnu_lst[pv->dnu_cnt++] = MFX_EXTBUFF_VPP_IMAGE_STABILIZATION;
+        memset(&pv->dnu_cfg, 0, sizeof(mfxExtVPPDoNotUse));
+        pv->dnu_cfg.Header.BufferId = MFX_EXTBUFF_VPP_DONOTUSE;
+        pv->dnu_cfg.Header.BufferSz = sizeof(mfxExtVPPDoNotUse);
+        pv->dnu_cfg.AlgList         = pv->dnu_lst;
+        pv->dnu_cfg.NumAlg          = pv->dnu_cnt;
+        qsv_vpp->p_ext_params[qsv_vpp->m_mfxVideoParam.NumExtParam++] = (mfxExtBuffer*)&pv->dnu_cfg;
+
         sts = MFXVideoVPP_Init(qsv->mfx_session, &qsv_vpp->m_mfxVideoParam);
-
         AV_QSV_IGNORE_MFX_STS(sts, MFX_WRN_PARTIAL_ACCELERATION);
-        AV_QSV_CHECK_RESULT(sts, MFX_ERR_NONE, sts);
-
+        AV_QSV_CHECK_RESULT  (sts, MFX_ERR_NONE, sts);
         qsv_vpp->is_init_done = 1;
     }
     return 0;
