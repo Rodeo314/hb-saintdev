@@ -314,7 +314,7 @@ int qsv_enc_init(av_qsv_context *qsv, hb_work_private_t *pv)
         if (pv->is_vpp_present)
         {
             if (qsv_encode->m_mfxVideoParam.mfx.FrameInfo.Height !=
-                in_space  ->m_mfxVideoParam.vpp.Out.Height)
+                in_space  ->m_mfxVideoParam.vpp.Out.Height       && 0)
             {
                 hb_log("qsv_enc_init: adjusting height from %"PRIu16" to %"PRIu16"",
                         qsv_encode->m_mfxVideoParam.mfx.FrameInfo.Height,
@@ -330,7 +330,7 @@ int qsv_enc_init(av_qsv_context *qsv, hb_work_private_t *pv)
         else
         {
             if (qsv_encode    ->m_mfxVideoParam.mfx.FrameInfo.Height !=
-                qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.Height)
+                qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.Height && 0)
             {
                 hb_log("qsv_enc_init: adjusting height from %"PRIu16" to %"PRIu16"",
                         qsv_encode    ->m_mfxVideoParam.mfx.FrameInfo.Height,
@@ -1131,6 +1131,11 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
             }
 
             work_surface->Data.TimeStamp = in->s.start;
+
+            // what do we have here?
+            hb_log("encqsvWork: %"PRIu16"x%"PRIu16" buffer, %"PRIu16"x%"PRIu16" area at %"PRIu16"/%"PRIu16" with pitch %"PRIu16"",
+                   work_surface->Info.Width, work_surface->Info.Height, work_surface->Info.CropW, work_surface->Info.CropH,
+                   work_surface->Info.CropX, work_surface->Info.CropY,  work_surface->Data.Pitch);
 
             /*
              * Debugging code to check that the upstream modules have generated
