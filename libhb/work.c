@@ -761,7 +761,7 @@ static void do_job(hb_job_t *job)
                 vpp_settings[3] >= 1 /* crop */       ||
                 vpp_settings[4] >= 1 /* crop */       ||
                 vpp_settings[5] >= 1 /* crop */       ||
-                vpp_settings[6] >= 1 /* deinterlace */)
+                vpp_settings[6] >= 1 /* deinterlace */|| 1)
             {
                 // we need the VPP filter
                 char *settings = hb_strdup_printf("%d:%d:%d:%d:%d:%d_dei:%d",
