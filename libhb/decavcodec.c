@@ -139,6 +139,7 @@ static void hb_av_add_new_pts(hb_list_t *list, int64_t new_pts)
                 }
             }
             hb_list_insert(list, index, new_item);
+            hb_log("inserting PTS %"PRId64" at index %d", *new_item, index);
         }
     }
 }
@@ -912,7 +913,14 @@ static int decodeFrame( hb_work_object_t *w, uint8_t *data, int size, int sequen
     if (pv->qsv_decode && got_picture)
     {
         // we got a decoded frame, restore the lowest available PTS
+        int64_t tmpts = frame.pkt_pts;
         frame.pkt_pts = hb_av_pop_next_pts(pv->qsv_pts_list);
+        if (pv->job != NULL)
+        {
+            static int counter = 0;
+            hb_log("PTS (%d): %"PRId64" instead of %"PRId64" (%+"PRId64")",
+                   ++counter, frame.pkt_pts, tmpts, frame.pkt_pts - tmpts);
+        }
     }
 #endif
 
