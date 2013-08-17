@@ -134,6 +134,7 @@ static int filter_init( av_qsv_context* qsv, hb_filter_private_t * pv ){
         else
         {
             // same PicStruct In/Out, so no filtering
+            // FIXME: what if this is progressive and we're encoding interlaced?
             qsv_vpp->m_mfxVideoParam.vpp.In.PicStruct  = qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.PicStruct;
             qsv_vpp->m_mfxVideoParam.vpp.Out.PicStruct = qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.PicStruct;
         }
