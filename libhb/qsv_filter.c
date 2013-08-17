@@ -308,6 +308,15 @@ static int filter_init( av_qsv_context* qsv, hb_filter_private_t * pv ){
         AV_QSV_CHECK_RESULT(sts, MFX_ERR_NONE, sts);
 
         qsv_vpp->is_init_done = 1;
+
+        hb_log("filter_init: In  %"PRIu16"x%"PRIu16" buffer, %"PRIu16"x%"PRIu16" area at %"PRIu16"/%"PRIu16" with picstruct 0x%"PRIx16"",
+               qsv_vpp->m_mfxVideoParam.vpp.In.Width, qsv_vpp->m_mfxVideoParam.vpp.In.Height,
+               qsv_vpp->m_mfxVideoParam.vpp.In.CropW, qsv_vpp->m_mfxVideoParam.vpp.In.CropH,
+               qsv_vpp->m_mfxVideoParam.vpp.In.CropX, qsv_vpp->m_mfxVideoParam.vpp.In.CropY,  qsv_vpp->m_mfxVideoParam.vpp.In.PicStruct);
+        hb_log("filter_init: Out %"PRIu16"x%"PRIu16" buffer, %"PRIu16"x%"PRIu16" area at %"PRIu16"/%"PRIu16" with picstruct 0x%"PRIx16"",
+               qsv_vpp->m_mfxVideoParam.vpp.Out.Width, qsv_vpp->m_mfxVideoParam.vpp.Out.Height,
+               qsv_vpp->m_mfxVideoParam.vpp.Out.CropW, qsv_vpp->m_mfxVideoParam.vpp.Out.CropH,
+               qsv_vpp->m_mfxVideoParam.vpp.Out.CropX, qsv_vpp->m_mfxVideoParam.vpp.Out.CropY,  qsv_vpp->m_mfxVideoParam.vpp.Out.PicStruct);
     }
     return 0;
 }
@@ -475,11 +484,15 @@ int process_frame(av_qsv_list* received_item, av_qsv_context* qsv, hb_filter_pri
                 ret = 0;
                 break;
             }
-            if (work_surface) {
-                    work_surface->Info.CropX           = pv->crop[2];
-                    work_surface->Info.CropY           = pv->crop[0];
-                    work_surface->Info.CropW           = pv->width_in - pv->crop[3] - pv->crop[2];
-                    work_surface->Info.CropH           = pv->height_in - pv->crop[1] - pv->crop[0];
+            if (work_surface != NULL)
+            {
+                work_surface->Info.CropX = pv->crop[2];
+                work_surface->Info.CropY = pv->crop[0];
+                work_surface->Info.CropW = pv-> width_in - pv->crop[3] - pv->crop[2];
+                work_surface->Info.CropH = pv->height_in - pv->crop[1] - pv->crop[0];
+                hb_log("process_frame: %"PRIu16"x%"PRIu16" buffer, %"PRIu16"x%"PRIu16" area at %"PRIu16"/%"PRIu16" with pitch %"PRIu16" and picstruct 0x%"PRIx16"",
+                       work_surface->Info.Width, work_surface->Info.Height, work_surface->Info.CropW, work_surface->Info.CropH,
+                       work_surface->Info.CropX, work_surface->Info.CropY,  work_surface->Data.Pitch, work_surface->Info.PicStruct);
             }
 
             sts = MFXVideoVPP_RunFrameVPPAsync(qsv->mfx_session, work_surface, qsv_vpp->p_surfaces[surface_idx] , NULL, qsv_vpp->p_syncp[sync_idx]->p_sync);
