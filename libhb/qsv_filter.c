@@ -167,8 +167,8 @@ static int filter_init( av_qsv_context* qsv, hb_filter_private_t * pv ){
         qsv_vpp->m_mfxVideoParam.vpp.In.FrameRateExtD   = qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.FrameRateExtD;
         qsv_vpp->m_mfxVideoParam.vpp.In.AspectRatioW    = qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.AspectRatioW;
         qsv_vpp->m_mfxVideoParam.vpp.In.AspectRatioH    = qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.AspectRatioH;
-        qsv_vpp->m_mfxVideoParam.vpp.In.Width           = AV_QSV_ALIGN16(pv->width_in);
-        qsv_vpp->m_mfxVideoParam.vpp.In.Height          = AV_QSV_ALIGN32(pv->height_in);
+        qsv_vpp->m_mfxVideoParam.vpp.In.Width           = qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.Width;
+        qsv_vpp->m_mfxVideoParam.vpp.In.Height          = qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.Height;
 
         qsv_vpp->m_mfxVideoParam.vpp.Out.FourCC          = qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.FourCC;
         qsv_vpp->m_mfxVideoParam.vpp.Out.ChromaFormat    = qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.ChromaFormat;
