@@ -133,10 +133,21 @@ static int filter_init( av_qsv_context* qsv, hb_filter_private_t * pv ){
         }
         else
         {
-            // same PicStruct In/Out, so no filtering
-            // FIXME: what if this is progressive and we're encoding interlaced?
-            qsv_vpp->m_mfxVideoParam.vpp.In.PicStruct  = qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.PicStruct;
-            qsv_vpp->m_mfxVideoParam.vpp.Out.PicStruct = qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.PicStruct;
+            /*
+             * Encode will use VPP's output PicStruct, regardless of what was
+             * set during encoder initialization (e.g. if TFF was requested but
+             * VPP output is flagged as progressive, the resulting bitstream
+             * will be progressive according to MediaInfo).
+             *
+             * We want to encode what the user asked for, so set input/output
+             * PicStruct to what was requested druging encoder initialization.
+             *
+             * Note: assume the user knows what he's doing; e.g. if we wants to
+             * encode a progressively-flagged source as interlaced, he may well
+             * have a good reason to do so (mis-flagged sources do exist).
+             */
+            qsv_vpp->m_mfxVideoParam.vpp.In.PicStruct  = pv->job->qsv_enc_info.pic_struct;
+            qsv_vpp->m_mfxVideoParam.vpp.Out.PicStruct = pv->job->qsv_enc_info.pic_struct;
         }
 
         // FrameRate is important for VPP to start with
@@ -157,8 +168,7 @@ static int filter_init( av_qsv_context* qsv, hb_filter_private_t * pv ){
         qsv_vpp->m_mfxVideoParam.vpp.In.AspectRatioW    = qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.AspectRatioW;
         qsv_vpp->m_mfxVideoParam.vpp.In.AspectRatioH    = qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.AspectRatioH;
         qsv_vpp->m_mfxVideoParam.vpp.In.Width           = AV_QSV_ALIGN16(pv->width_in);
-        qsv_vpp->m_mfxVideoParam.vpp.In.Height          = (MFX_PICSTRUCT_PROGRESSIVE == qsv_vpp->m_mfxVideoParam.vpp.In.PicStruct)?
-                                                            AV_QSV_ALIGN16(pv->height_in) : AV_QSV_ALIGN32(pv->height_in);
+        qsv_vpp->m_mfxVideoParam.vpp.In.Height          = AV_QSV_ALIGN32(pv->height_in);
 
         qsv_vpp->m_mfxVideoParam.vpp.Out.FourCC          = qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.FourCC;
         qsv_vpp->m_mfxVideoParam.vpp.Out.ChromaFormat    = qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.ChromaFormat;
