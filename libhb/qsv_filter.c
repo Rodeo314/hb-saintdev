@@ -290,13 +290,11 @@ static int filter_init( av_qsv_context* qsv, hb_filter_private_t * pv ){
             qsv_vpp->p_ext_params[1] = (mfxExtBuffer*)&pv->frc_config;
         }
 
-        sts = MFXVideoVPP_Init(qsv->mfx_session, &qsv_vpp->m_mfxVideoParam);
-
-        AV_QSV_IGNORE_MFX_STS(sts, MFX_WRN_PARTIAL_ACCELERATION);
-        AV_QSV_CHECK_RESULT(sts, MFX_ERR_NONE, sts);
-
-        qsv_vpp->is_init_done = 1;
-
+        hb_log("filter_init: Dec %"PRIu16"x%"PRIu16" buffer, %"PRIu16"x%"PRIu16" area at %"PRIu16"/%"PRIu16" with picstruct 0x%"PRIx16"",
+               qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.Width, qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.Height,
+               qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.CropW, qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.CropH,
+               qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.CropX, qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.CropY,
+               qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.PicStruct);
         hb_log("filter_init: In  %"PRIu16"x%"PRIu16" buffer, %"PRIu16"x%"PRIu16" area at %"PRIu16"/%"PRIu16" with picstruct 0x%"PRIx16"",
                qsv_vpp->m_mfxVideoParam.vpp.In.Width, qsv_vpp->m_mfxVideoParam.vpp.In.Height,
                qsv_vpp->m_mfxVideoParam.vpp.In.CropW, qsv_vpp->m_mfxVideoParam.vpp.In.CropH,
@@ -305,6 +303,13 @@ static int filter_init( av_qsv_context* qsv, hb_filter_private_t * pv ){
                qsv_vpp->m_mfxVideoParam.vpp.Out.Width, qsv_vpp->m_mfxVideoParam.vpp.Out.Height,
                qsv_vpp->m_mfxVideoParam.vpp.Out.CropW, qsv_vpp->m_mfxVideoParam.vpp.Out.CropH,
                qsv_vpp->m_mfxVideoParam.vpp.Out.CropX, qsv_vpp->m_mfxVideoParam.vpp.Out.CropY,  qsv_vpp->m_mfxVideoParam.vpp.Out.PicStruct);
+
+        sts = MFXVideoVPP_Init(qsv->mfx_session, &qsv_vpp->m_mfxVideoParam);
+
+        AV_QSV_IGNORE_MFX_STS(sts, MFX_WRN_PARTIAL_ACCELERATION);
+        AV_QSV_CHECK_RESULT(sts, MFX_ERR_NONE, sts);
+
+        qsv_vpp->is_init_done = 1;
     }
     return 0;
 }
