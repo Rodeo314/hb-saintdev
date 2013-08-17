@@ -1183,6 +1183,17 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
                 // don't let 'work_loop' put a chapter mark on the wrong buffer
                 in->s.new_chap = 0;
             }
+
+            /*
+             * If interlaced encoding is requested during encoder initialization,
+             * but the input mfxFrameSurface1 is flagged as progressive here,
+             * the output bitstream will be progressive (according to MediaInfo).
+             *
+             * Assume the user knows what he's doing (say he is e.g. encoding a
+             * progressive-flagged source using interlaced compression - he may
+             * well have a good reason to do so; mis-flagged sources do exist).
+             */
+            work_surface->Info.PicStruct = pv->enc_space.m_mfxVideoParam.mfx.FrameInfo.PicStruct;
         }
         else{
             work_surface = NULL;

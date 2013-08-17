@@ -133,21 +133,9 @@ static int filter_init( av_qsv_context* qsv, hb_filter_private_t * pv ){
         }
         else
         {
-            /*
-             * Encode will use VPP's output PicStruct, regardless of what was
-             * set during encoder initialization (e.g. if TFF was requested but
-             * VPP output is flagged as progressive, the resulting bitstream
-             * will be progressive according to MediaInfo).
-             *
-             * We want to encode what the user asked for, so set input/output
-             * PicStruct to what was requested druging encoder initialization.
-             *
-             * Note: assume the user knows what he's doing; e.g. if we wants to
-             * encode a progressively-flagged source as interlaced, he may well
-             * have a good reason to do so (mis-flagged sources do exist).
-             */
-            qsv_vpp->m_mfxVideoParam.vpp.In.PicStruct  = pv->job->qsv_enc_info.pic_struct;
-            qsv_vpp->m_mfxVideoParam.vpp.Out.PicStruct = pv->job->qsv_enc_info.pic_struct;
+            /* Same PicStruct in/out: no filtering */
+            qsv_vpp->m_mfxVideoParam.vpp.In.PicStruct  = qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.PicStruct;
+            qsv_vpp->m_mfxVideoParam.vpp.Out.PicStruct = qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.PicStruct;
         }
 
         // FrameRate is important for VPP to start with
