@@ -139,7 +139,7 @@ static void hb_av_add_new_pts(hb_list_t *list, int64_t new_pts)
                 }
             }
             hb_list_insert(list, index, new_item);
-            hb_log("inserting PTS %"PRId64" at index %d", *new_item, index);
+            hb_deep_log(2, "PTS: inserting %"PRId64" at %d", *new_item, index);
         }
     }
 }
@@ -918,8 +918,15 @@ static int decodeFrame( hb_work_object_t *w, uint8_t *data, int size, int sequen
         if (pv->job != NULL)
         {
             static int counter = 0;
-            hb_log("PTS (%d): %"PRId64" instead of %"PRId64" (%+"PRId64")",
-                   ++counter, frame.pkt_pts, tmpts, frame.pkt_pts - tmpts);
+            if (frame.pkt_pts != tmpts)
+            {
+                hb_log("PTS (%d): %"PRId64" instead of %"PRId64" (%+"PRId64")",
+                       ++counter, frame.pkt_pts, tmpts, frame.pkt_pts - tmpts);
+            }
+            else
+            {
+                ++counter;
+            }
         }
     }
 #endif
