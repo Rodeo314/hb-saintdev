@@ -147,10 +147,10 @@ static int filter_init( av_qsv_context* qsv, hb_filter_private_t * pv ){
 
         qsv_vpp->m_mfxVideoParam.vpp.In.FourCC          = qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.FourCC;
         qsv_vpp->m_mfxVideoParam.vpp.In.ChromaFormat    = qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.ChromaFormat;
-        qsv_vpp->m_mfxVideoParam.vpp.In.CropX           = qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.CropX + pv->crop[2];
-        qsv_vpp->m_mfxVideoParam.vpp.In.CropY           = qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.CropX + pv->crop[0];
-        qsv_vpp->m_mfxVideoParam.vpp.In.CropW           = qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.CropW - pv->crop[2] - pv->crop[3];
-        qsv_vpp->m_mfxVideoParam.vpp.In.CropH           = qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.CropH - pv->crop[0] - pv->crop[1];
+        qsv_vpp->m_mfxVideoParam.vpp.In.CropX           = pv->crop[2];
+        qsv_vpp->m_mfxVideoParam.vpp.In.CropY           = pv->crop[0];
+        qsv_vpp->m_mfxVideoParam.vpp.In.CropW           = pv-> width_in - pv->crop[3] - pv->crop[2];
+        qsv_vpp->m_mfxVideoParam.vpp.In.CropH           = pv->height_in - pv->crop[1] - pv->crop[0];
         qsv_vpp->m_mfxVideoParam.vpp.In.FrameRateExtN   = qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.FrameRateExtN;
         qsv_vpp->m_mfxVideoParam.vpp.In.FrameRateExtD   = qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.FrameRateExtD;
         qsv_vpp->m_mfxVideoParam.vpp.In.AspectRatioW    = qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.AspectRatioW;
@@ -160,8 +160,8 @@ static int filter_init( av_qsv_context* qsv, hb_filter_private_t * pv ){
 
         qsv_vpp->m_mfxVideoParam.vpp.Out.FourCC          = qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.FourCC;
         qsv_vpp->m_mfxVideoParam.vpp.Out.ChromaFormat    = qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.ChromaFormat;
-        qsv_vpp->m_mfxVideoParam.vpp.Out.CropX           = 0;
-        qsv_vpp->m_mfxVideoParam.vpp.Out.CropY           = 0;
+        qsv_vpp->m_mfxVideoParam.vpp.Out.CropX           = qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.CropX;
+        qsv_vpp->m_mfxVideoParam.vpp.Out.CropY           = qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.CropY;
         qsv_vpp->m_mfxVideoParam.vpp.Out.CropW           = pv->width_out;
         qsv_vpp->m_mfxVideoParam.vpp.Out.CropH           = pv->height_out;
         qsv_vpp->m_mfxVideoParam.vpp.Out.FrameRateExtN   = pv->job->vrate;
@@ -479,10 +479,10 @@ int process_frame(av_qsv_list* received_item, av_qsv_context* qsv, hb_filter_pri
             }
             if (work_surface != NULL)
             {
-                work_surface->Info.CropX -= pv->crop[2];
-                work_surface->Info.CropY -= pv->crop[0];
-                work_surface->Info.CropW -= pv->crop[3] - pv->crop[2];
-                work_surface->Info.CropH -= pv->crop[1] - pv->crop[0];
+                work_surface->Info.CropX = pv->crop[2];
+                work_surface->Info.CropY = pv->crop[0];
+                work_surface->Info.CropW = pv-> width_in - pv->crop[3] - pv->crop[2];
+                work_surface->Info.CropH = pv->height_in - pv->crop[1] - pv->crop[0];
                 hb_log("process_frame: %"PRIu16"x%"PRIu16" buffer, %"PRIu16"x%"PRIu16" area at %"PRIu16"/%"PRIu16" with pitch %"PRIu16" and picstruct 0x%"PRIx16"",
                        work_surface->Info.Width, work_surface->Info.Height, work_surface->Info.CropW, work_surface->Info.CropH,
                        work_surface->Info.CropX, work_surface->Info.CropY,  work_surface->Data.Pitch, work_surface->Info.PicStruct);
