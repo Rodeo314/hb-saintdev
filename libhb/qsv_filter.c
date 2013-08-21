@@ -299,6 +299,8 @@ static int filter_init( av_qsv_context* qsv, hb_filter_private_t * pv ){
         AV_QSV_CHECK_POINTER(qsv_vpp->p_ext_params, MFX_ERR_MEMORY_ALLOC);
 
         qsv_vpp->m_mfxVideoParam.ExtParam           = qsv_vpp->p_ext_params;
+    
+        // FIXME: check whether we're skipping VPP here and setup accordingly?
 
         qsv_vpp->ext_opaque_alloc.In.Surfaces       = qsv->dec_space->p_surfaces;
         qsv_vpp->ext_opaque_alloc.In.NumSurface     = qsv->dec_space->surface_num;
