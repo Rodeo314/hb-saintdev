@@ -119,6 +119,30 @@ static int filter_init( av_qsv_context* qsv, hb_filter_private_t * pv ){
         return 2;
     }
 
+    /*
+     * In theory, input width/height and decode CropW/CropH should be the
+     * same; however, due to some versions of Libav not applying the H.264
+     * "crop rect" properly, there can be a mismatch.
+     *
+     * Since we want the same bahevior regardless of whether we're using
+     * software or hardware-accelerated decoding, prefer the Libav values.
+     *
+     * Note that since CropW/CropH may be higher than the decode values, we
+     * need to adjust  CropX/CropY to make sure we don't exceed the input's
+     * Width/Height boundaries.
+     */
+    pv->CropW = pv-> width_in;
+    pv->CropH = pv->height_in;
+    pv->CropX = FFMIN(qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.CropX,
+                      qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.Width  - pv->CropW);
+    pv->CropY = FFMIN(qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.CropY,
+                      qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.Height - pv->CropH);
+    /* Then, apply additional cropping requested by the user, if any */
+    pv->CropX += pv->crop[2];
+    pv->CropY += pv->crop[0];
+    pv->CropW -= pv->crop[2] + pv->crop[3];
+    pv->CropH -= pv->crop[0] + pv->crop[1];
+
     av_qsv_add_context_usage(qsv,HAVE_THREADS);
 
     // see params needed like at mediasdk-man.pdf:"Appendix A: Configuration Parameter Constraints"
@@ -150,30 +174,6 @@ static int filter_init( av_qsv_context* qsv, hb_filter_private_t * pv ){
             qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.FrameRateExtN = pv->job->title->rate;
             qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.FrameRateExtD = pv->job->title->rate_base;
         }
-
-        /*
-         * In theory, input width/height and decode CropW/CropH should be the
-         * same; however, due to some versions of Libav not applying the H.264
-         * "crop rect" properly, there can be a mismatch.
-         *
-         * Since we want the same bahevior regardless of whether we're using
-         * software or hardware-accelerated decoding, prefer the Libav values.
-         *
-         * Note that since CropW/CropH may be higher than the decode values, we
-         * need to adjust  CropX/CropY to make sure we don't exceed the input's
-         * Width/Height boundaries.
-         */
-        pv->CropW = pv-> width_in;
-        pv->CropH = pv->height_in;
-        pv->CropX = FFMIN(qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.CropX,
-                          qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.Width  - pv->CropW);
-        pv->CropY = FFMIN(qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.CropY,
-                          qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.Height - pv->CropH);
-        /* Then, apply additional cropping requested by the user, if any */
-        pv->CropX += pv->crop[2];
-        pv->CropY += pv->crop[0];
-        pv->CropW -= pv->crop[2] + pv->crop[3];
-        pv->CropH -= pv->crop[0] + pv->crop[1];
 
         qsv_vpp->m_mfxVideoParam.vpp.In.FourCC          = qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.FourCC;
         qsv_vpp->m_mfxVideoParam.vpp.In.ChromaFormat    = qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.ChromaFormat;
