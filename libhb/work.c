@@ -755,27 +755,18 @@ static void do_job(hb_job_t *job)
                 filter = hb_filter_init(HB_FILTER_QSV_POST);
                 hb_add_filter(job, filter, NULL);
             }
-            if (vpp_settings[0] != job->title->width  ||
-                vpp_settings[1] != job->title->height ||
-                vpp_settings[2] >= 1 /* crop */       ||
-                vpp_settings[3] >= 1 /* crop */       ||
-                vpp_settings[4] >= 1 /* crop */       ||
-                vpp_settings[5] >= 1 /* crop */       ||
-                vpp_settings[6] >= 1 /* deinterlace */)
-            {
-                // we need the VPP filter
-                char *settings = hb_strdup_printf("%d:%d:%d:%d:%d:%d_dei:%d",
-                                                  vpp_settings[0],
-                                                  vpp_settings[1],
-                                                  vpp_settings[2],
-                                                  vpp_settings[3],
-                                                  vpp_settings[4],
-                                                  vpp_settings[5],
-                                                  vpp_settings[6]);
-                filter = hb_filter_init(HB_FILTER_QSV);
-                hb_add_filter(job, filter, settings);
-                free(settings);
-            }
+            // the VPP filter is mandatory here
+            char *settings = hb_strdup_printf("%d:%d:%d:%d:%d:%d_dei:%d",
+                                              vpp_settings[0],
+                                              vpp_settings[1],
+                                              vpp_settings[2],
+                                              vpp_settings[3],
+                                              vpp_settings[4],
+                                              vpp_settings[5],
+                                              vpp_settings[6]);
+            filter = hb_filter_init(HB_FILTER_QSV);
+            hb_add_filter(job, filter, settings);
+            free(settings);
         }
     }
 #endif
