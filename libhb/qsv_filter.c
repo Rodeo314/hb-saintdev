@@ -174,7 +174,6 @@ static int filter_init( av_qsv_context* qsv, hb_filter_private_t * pv ){
         pv->CropY += pv->crop[0];
         pv->CropW -= pv->crop[2] + pv->crop[3];
         pv->CropH -= pv->crop[0] + pv->crop[1];
-        
 
         qsv_vpp->m_mfxVideoParam.vpp.In.FourCC          = qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.FourCC;
         qsv_vpp->m_mfxVideoParam.vpp.In.ChromaFormat    = qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.ChromaFormat;
