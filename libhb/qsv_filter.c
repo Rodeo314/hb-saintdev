@@ -47,6 +47,12 @@ struct hb_filter_private_s
     int                 deinterlace;
     int                 is_frc_used;
 
+    // set during init, used to configure input surfaces' "area of interest"
+    mfxU16 CropX;
+    mfxU16 CropY;
+    mfxU16 CropH;
+    mfxU16 CropW;
+
     av_qsv_space           *vpp_space;
 
     // FRC param(s)
@@ -145,12 +151,37 @@ static int filter_init( av_qsv_context* qsv, hb_filter_private_t * pv ){
             qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.FrameRateExtD = pv->job->title->rate_base;
         }
 
+        /*
+         * In theory, input width/height and decode CropW/CropH should be the
+         * same; however, due to some versions of Libav not applying the H.264
+         * "crop rect" properly, there can be a mismatch.
+         *
+         * Since we want the same bahevior regardless of whether we're using
+         * software or hardware-accelerated decoding, prefer the Libav values.
+         *
+         * Note that since CropW/CropH may be higher than the decode values, we
+         * need to adjust  CropX/CropY to make sure we don't exceed the input's
+         * Width/Height boundaries.
+         */
+        pv->CropW = pv-> width_in;
+        pv->CropH = pv->height_in;
+        pv->CropX = FFMIN(qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.CropX,
+                          qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.Width  - pv->CropW);
+        pv->CropY = FFMIN(qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.CropY,
+                          qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.Height - pv->CropH);
+        /* Then, apply additional cropping requested by the user, if any */
+        pv->CropX += pv->crop[2];
+        pv->CropY += pv->crop[0];
+        pv->CropW -= pv->crop[2] + pv->crop[3];
+        pv->CropH -= pv->crop[0] + pv->crop[1];
+        
+
         qsv_vpp->m_mfxVideoParam.vpp.In.FourCC          = qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.FourCC;
         qsv_vpp->m_mfxVideoParam.vpp.In.ChromaFormat    = qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.ChromaFormat;
-        qsv_vpp->m_mfxVideoParam.vpp.In.CropX           = pv->crop[2];
-        qsv_vpp->m_mfxVideoParam.vpp.In.CropY           = pv->crop[0];
-        qsv_vpp->m_mfxVideoParam.vpp.In.CropW           = pv-> width_in - pv->crop[3] - pv->crop[2];
-        qsv_vpp->m_mfxVideoParam.vpp.In.CropH           = pv->height_in - pv->crop[1] - pv->crop[0];
+        qsv_vpp->m_mfxVideoParam.vpp.In.CropX           = pv->CropX;
+        qsv_vpp->m_mfxVideoParam.vpp.In.CropY           = pv->CropY;
+        qsv_vpp->m_mfxVideoParam.vpp.In.CropW           = pv->CropW;
+        qsv_vpp->m_mfxVideoParam.vpp.In.CropH           = pv->CropH;
         qsv_vpp->m_mfxVideoParam.vpp.In.FrameRateExtN   = qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.FrameRateExtN;
         qsv_vpp->m_mfxVideoParam.vpp.In.FrameRateExtD   = qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.FrameRateExtD;
         qsv_vpp->m_mfxVideoParam.vpp.In.AspectRatioW    = qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.AspectRatioW;
@@ -160,8 +191,8 @@ static int filter_init( av_qsv_context* qsv, hb_filter_private_t * pv ){
 
         qsv_vpp->m_mfxVideoParam.vpp.Out.FourCC          = qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.FourCC;
         qsv_vpp->m_mfxVideoParam.vpp.Out.ChromaFormat    = qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.ChromaFormat;
-        qsv_vpp->m_mfxVideoParam.vpp.Out.CropX           = qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.CropX;
-        qsv_vpp->m_mfxVideoParam.vpp.Out.CropY           = qsv->dec_space->m_mfxVideoParam.mfx.FrameInfo.CropY;
+        qsv_vpp->m_mfxVideoParam.vpp.Out.CropX           = 0; // no letterboxing
+        qsv_vpp->m_mfxVideoParam.vpp.Out.CropY           = 0; // no pillarboxing
         qsv_vpp->m_mfxVideoParam.vpp.Out.CropW           = pv->width_out;
         qsv_vpp->m_mfxVideoParam.vpp.Out.CropH           = pv->height_out;
         qsv_vpp->m_mfxVideoParam.vpp.Out.FrameRateExtN   = pv->job->vrate;
@@ -479,11 +510,12 @@ int process_frame(av_qsv_list* received_item, av_qsv_context* qsv, hb_filter_pri
                 ret = 0;
                 break;
             }
-            if (work_surface) {
-                    work_surface->Info.CropX           = pv->crop[2];
-                    work_surface->Info.CropY           = pv->crop[0];
-                    work_surface->Info.CropW           = pv->width_in - pv->crop[3] - pv->crop[2];
-                    work_surface->Info.CropH           = pv->height_in - pv->crop[1] - pv->crop[0];
+            if (work_surface != NULL)
+            {
+                work_surface->Info.CropX = pv->CropX;
+                work_surface->Info.CropY = pv->CropY;
+                work_surface->Info.CropW = pv->CropW;
+                work_surface->Info.CropH = pv->CropH;
             }
 
         if (work_surface != NULL)
