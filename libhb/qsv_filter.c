@@ -311,6 +311,9 @@ static int filter_init( av_qsv_context* qsv, hb_filter_private_t * pv ){
         qsv_vpp->ext_opaque_alloc.Out.NumSurface    = qsv_vpp->surface_num;
         qsv_vpp->ext_opaque_alloc.Out.Type          = qsv->dec_space->request[0].Type;
 
+        hb_log("filter_init: surface_num In %d Out %d",
+               qsv->dec_space->surface_num, qsv_vpp->surface_num);
+
         qsv_vpp->ext_opaque_alloc.Header.BufferId   = MFX_EXTBUFF_OPAQUE_SURFACE_ALLOCATION;
         qsv_vpp->ext_opaque_alloc.Header.BufferSz   = sizeof(mfxExtOpaqueSurfaceAlloc);
         qsv_vpp->p_ext_params[0]                    = (mfxExtBuffer*)&qsv_vpp->ext_opaque_alloc;
