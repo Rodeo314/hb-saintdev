@@ -301,6 +301,7 @@ static int filter_init( av_qsv_context* qsv, hb_filter_private_t * pv ){
         qsv_vpp->m_mfxVideoParam.ExtParam           = qsv_vpp->p_ext_params;
     
         // FIXME: check whether we're skipping VPP here and setup accordingly?
+        // FIXME: or just set p_surfaces and surface_num where we skip_vpp = 1
 
         qsv_vpp->ext_opaque_alloc.In.Surfaces       = qsv->dec_space->p_surfaces;
         qsv_vpp->ext_opaque_alloc.In.NumSurface     = qsv->dec_space->surface_num;
