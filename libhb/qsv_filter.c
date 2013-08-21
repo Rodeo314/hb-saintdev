@@ -44,6 +44,7 @@ struct hb_filter_private_s
     int                 width_out;
     int                 height_out;
     int                 crop[4];
+    int                 skip_vpp;
     int                 deinterlace;
     int                 is_frc_used;
 
@@ -341,6 +342,27 @@ static int filter_init( av_qsv_context* qsv, hb_filter_private_t * pv ){
         AV_QSV_IGNORE_MFX_STS(sts, MFX_WRN_PARTIAL_ACCELERATION);
         AV_QSV_CHECK_RESULT(sts, MFX_ERR_NONE, sts);
 
+        // check whether filtering is actually needed
+        if (pv->deinterlace                         <= 0                                     &&
+            pv->is_frc_used                         <= 0                                     &&
+            qsv_vpp->m_mfxVideoParam.vpp.Out.CropX  == qsv_vpp->m_mfxVideoParam.vpp.In.CropX &&
+            qsv_vpp->m_mfxVideoParam.vpp.Out.CropY  == qsv_vpp->m_mfxVideoParam.vpp.In.CropY &&
+            qsv_vpp->m_mfxVideoParam.vpp.Out.CropW  == qsv_vpp->m_mfxVideoParam.vpp.In.CropW &&
+            qsv_vpp->m_mfxVideoParam.vpp.Out.CropH  == qsv_vpp->m_mfxVideoParam.vpp.In.CropH &&
+            qsv_vpp->m_mfxVideoParam.vpp.Out.Width  == qsv_vpp->m_mfxVideoParam.vpp.In.Width &&
+            qsv_vpp->m_mfxVideoParam.vpp.Out.Height == qsv_vpp->m_mfxVideoParam.vpp.In.Height)
+        {
+            /*
+             * We setup and initialized for nothing, but we had to do it as the
+             * encoder expects VPP to be initialized if HB_FILTER_QSV is present
+             * in the job's filter_list.
+             *
+             * We'll just close everything at the end of the encode, and bypass
+             * actual VPP filtering in hb_qsv_filter_work().
+             */
+            pv->skip_vpp = 1;
+        }
+
         qsv_vpp->is_init_done = 1;
     }
     return 0;
@@ -370,6 +392,7 @@ static int hb_qsv_filter_init( hb_filter_object_t * filter,
     }
 
     pv->job = init->job;
+    pv->skip_vpp = 0;
 
     // will be later as more params will be known
     // filter_init(pv->job->qsv, pv);
@@ -633,6 +656,23 @@ static int hb_qsv_filter_work( hb_filter_object_t * filter,
     }
 
     *buf_in = NULL;
+
+    if (pv->skip_vpp)
+    {
+        /*
+         * Just pass the input buffers through.
+         * This is fine as long as do it early enough (i.e. before calling
+         * MFXVideoVPP_RunFrameVPPAsync or anything leading up to it).
+         *
+         * See also MSDK Reference Manual, API Version 1.7, Example 5.
+         */
+        *buf_out = in;
+        if (in->size <= 0)
+        {
+            return HB_FILTER_DONE;
+        }
+        return HB_FILTER_OK;
+    }
 
     if ( in->size <= 0 )
     {
