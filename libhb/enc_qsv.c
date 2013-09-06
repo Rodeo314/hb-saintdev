@@ -604,31 +604,15 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
             // lookahead not supported
             pv->param.rc.lookahead = 0;
         }
-        else if (pv->param.rc.lookahead > 0 &&
+        else if (pv->param.rc.lookahead &&
                  pv->param.videoParam->mfx.FrameInfo.PicStruct != MFX_PICSTRUCT_PROGRESSIVE)
         {
-            // user force-enabled lookahead but we can't use it
+            // lookahead enabled but we can't use it
             hb_log("encqsvInit: MFX_RATECONTROL_LA not used (LookAhead is progressive-only)");
             pv->param.rc.lookahead = 0;
         }
-        else if (pv->param.rc.lookahead < 0)
-        {
-            if (pv->param.rc.vbv_max_bitrate > 0 ||
-                pv->param.rc.vbv_buffer_size > 0 ||
-                pv->param.videoParam->mfx.FrameInfo.PicStruct != MFX_PICSTRUCT_PROGRESSIVE)
-            {
-                // lookahead doesn't support VBV or interlaced encoding
-                pv->param.rc.lookahead = 0;
-            }
-            else
-            {
-                // set automatically based on target usage
-                pv->param.rc.lookahead = (pv->param.videoParam->mfx.TargetUsage <= MFX_TARGETUSAGE_2);
-            }
-        }
         else
         {
-            // user force-enabled or force-disabled lookahead
             pv->param.rc.lookahead = !!pv->param.rc.lookahead;
         }
         if (pv->param.rc.lookahead)

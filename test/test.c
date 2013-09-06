@@ -137,8 +137,9 @@ static int64_t stop_at_pts    = 0;
 static int    stop_at_frame = 0;
 static uint64_t min_title_duration = 10;
 #ifdef USE_QSV
-static int qsv_decode      =  1;
-static int qsv_async_depth = -1;
+static int         qsv_async_depth = -1;
+static int         qsv_decode      =  1;
+static const char *qsv_preset      = NULL;
 #endif
 
 /* Exit cleanly on Ctrl-C */
@@ -1883,6 +1884,7 @@ static int HandleEvents( hb_handle_t * h )
                 job->qsv.async_depth = qsv_async_depth;
             }
             job->qsv.decode = qsv_decode;
+            job->qsv.preset = qsv_preset;
 #endif
 
             /* Grab audio tracks */
@@ -3089,6 +3091,36 @@ static void ShowHelp()
     }
     if( len )
         fprintf( out, "%s\n", tmp );
+#ifdef USE_QSV
+if (hb_qsv_available())
+{
+    fprintf(out,
+            "        --qsv-preset        When using qsv, selects the qsv preset:\n"
+            "          <string>          ");
+    x264_opts = hb_qsv_presets();
+    tmp[0]    = 0;
+    len       = 0;
+    while (x264_opts != NULL && *x264_opts)
+    {
+        strncat(tmp, *x264_opts++, sizeof(tmp) - 1 - len);
+        if (*x264_opts)
+        {
+            strcat(tmp, "/");
+        }
+        len = strlen(tmp);
+        if (len > 40 && *x264_opts)
+        {
+            fprintf(out, "%s\n                            ", tmp);
+            tmp[0] = 0;
+            len    = 0;
+        }
+    }
+    if (len > 0 && *x264_opts)
+    {
+        fprintf(out, "%s\n", tmp);
+    }
+}
+#endif
     fprintf(out,
     "    -x, --encopts <string>  Specify advanced encoder options in the\n");
 #ifdef USE_QSV
@@ -3610,6 +3642,7 @@ static int ParseOptions( int argc, char ** argv )
     #define AUDIO_DITHER        288
     #define QSV_BASELINE        289
     #define QSV_ASYNC_DEPTH     290
+    #define QSV_PRESET          291
 
     for( ;; )
     {
@@ -3619,10 +3652,12 @@ static int ParseOptions( int argc, char ** argv )
             { "update",      no_argument,       NULL,    'u' },
             { "verbose",     optional_argument, NULL,    'v' },
             { "no-dvdnav",   no_argument,       NULL,    DVDNAV },
+
 #ifdef USE_QSV
-            { "qsv-baseline", no_argument,      NULL,    QSV_BASELINE },
-            { "qsv-async-depth", required_argument, NULL, QSV_ASYNC_DEPTH },
-            { "disable-qsv-decoding", no_argument, &qsv_decode, 0 },
+            { "qsv-preset",           required_argument, NULL,        QSV_PRESET,      },
+            { "qsv-baseline",         no_argument,       NULL,        QSV_BASELINE,    },
+            { "qsv-async-depth",      required_argument, NULL,        QSV_ASYNC_DEPTH, },
+            { "disable-qsv-decoding", no_argument,       &qsv_decode, 0,               },
 #endif
 
             { "format",      required_argument, NULL,    'f' },
@@ -4253,6 +4288,9 @@ static int ParseOptions( int argc, char ** argv )
                 break;
             case QSV_ASYNC_DEPTH:
                 qsv_async_depth = atoi(optarg);
+                break;
+            case QSV_PRESET:
+                qsv_preset = strdup(optarg);
                 break;
 #endif
             default:
