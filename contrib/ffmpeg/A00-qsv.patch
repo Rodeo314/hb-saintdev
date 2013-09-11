@@ -1234,10 +1234,10 @@ index 0000000..52378cf
 +#endif                          //AVCODEC_QSV_H
 diff --git a/libavcodec/qsv_h264.c b/libavcodec/qsv_h264.c
 new file mode 100644
-index 0000000..ac9db63
+index 0000000..c0943f6
 --- /dev/null
 +++ b/libavcodec/qsv_h264.c
-@@ -0,0 +1,974 @@
+@@ -0,0 +1,975 @@
 +/* ********************************************************************* *\
 +
 +Copyright (C) 2013 Intel Corporation.  All rights reserved.
@@ -1862,6 +1862,7 @@ index 0000000..ac9db63
 +    }
 +
 +    if (frame_processed) {
++        mfxFrameSurface1 *surface;
 +
 +        if (current_size) {
 +            *got_picture_ptr    = 1;
@@ -1875,31 +1876,31 @@ index 0000000..ac9db63
 +                return 0;
 +            }
 +        }
++        surface = new_stage->out.p_surface;
 +
-+        picture->pkt_pts            = new_stage->out.p_surface->Data.TimeStamp;
-+        picture->pts                = new_stage->out.p_surface->Data.TimeStamp;
++        picture->pkt_pts = surface->Data.TimeStamp;
++        picture->pts     = surface->Data.TimeStamp;
 +
-+        picture->repeat_pict        = (qsv_decode->m_mfxVideoParam.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_FIELD_REPEATED);
-+        picture->interlaced_frame   = !(qsv_decode->m_mfxVideoParam.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PROGRESSIVE);
-+        picture->top_field_first    = (qsv_decode->m_mfxVideoParam.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_FIELD_TFF);
++        picture->repeat_pict      = ( qsv_decode->m_mfxVideoParam.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_FIELD_REPEATED);
++        picture->interlaced_frame = !(qsv_decode->m_mfxVideoParam.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PROGRESSIVE);
++        picture->top_field_first  = ( qsv_decode->m_mfxVideoParam.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_FIELD_TFF);
 +
 +        // since we do not know it yet from MSDK, let's do just a simple way for now
 +        picture->key_frame          = (avctx->frame_number == 0) ? 1 : 0;
 +
 +        if (qsv_decode->m_mfxVideoParam.IOPattern == MFX_IOPATTERN_OUT_SYSTEM_MEMORY) {
-+            picture->data[0]        = new_stage->out.p_surface->Data.Y;
-+            picture->data[1]        = new_stage->out.p_surface->Data.VU;
-+            picture->linesize[0]    = new_stage->out.p_surface->Info.Width;
-+            picture->linesize[1]    = new_stage->out.p_surface->Info.Width;
++            picture->data[0]     = surface->Data.Y;
++            picture->data[1]     = surface->Data.VU;
++            picture->linesize[0] = surface->Info.Width;
++            picture->linesize[1] = surface->Info.Width;
 +        } else {
-+            picture->data[0]        = 0;
-+            picture->data[1]        = 0;
-+            picture->linesize[0]    = 0;
-+            picture->linesize[1]    = 0;
++            picture->data[0]     = NULL;
++            picture->data[1]     = NULL;
++            picture->linesize[0] = NULL;
++            picture->linesize[1] = NULL;
 +        }
-+
-+        picture->data[2]            = qsv_atom;
-+        picture->linesize[2]        = 0;
++        picture->data[2]     = qsv_atom;
++        picture->linesize[2] = 0;
 +    }
 +
 +    return ret_value;
