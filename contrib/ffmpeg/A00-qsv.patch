@@ -1234,7 +1234,7 @@ index 0000000..52378cf
 +#endif                          //AVCODEC_QSV_H
 diff --git a/libavcodec/qsv_h264.c b/libavcodec/qsv_h264.c
 new file mode 100644
-index 0000000..3440811
+index 0000000..9204141
 --- /dev/null
 +++ b/libavcodec/qsv_h264.c
 @@ -0,0 +1,975 @@
@@ -1881,9 +1881,9 @@ index 0000000..3440811
 +        picture->pkt_pts = surface->Data.TimeStamp;
 +        picture->pts     = surface->Data.TimeStamp;
 +
-+        picture->repeat_pict      = ( qsv_decode->m_mfxVideoParam.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_FIELD_REPEATED);
-+        picture->interlaced_frame = !(qsv_decode->m_mfxVideoParam.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PROGRESSIVE);
-+        picture->top_field_first  = ( qsv_decode->m_mfxVideoParam.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_FIELD_TFF);
++        picture->repeat_pict      = !!(qsv_decode->m_mfxVideoParam.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_FIELD_REPEATED);
++        picture->interlaced_frame = ! (qsv_decode->m_mfxVideoParam.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PROGRESSIVE);
++        picture->top_field_first  = !!(qsv_decode->m_mfxVideoParam.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_FIELD_TFF);
 +
 +        // since we do not know it yet from MSDK, let's do just a simple way for now
 +        picture->key_frame          = (avctx->frame_number == 0) ? 1 : 0;
