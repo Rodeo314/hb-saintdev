@@ -1234,7 +1234,7 @@ index 0000000..52378cf
 +#endif                          //AVCODEC_QSV_H
 diff --git a/libavcodec/qsv_h264.c b/libavcodec/qsv_h264.c
 new file mode 100644
-index 0000000..9296949
+index 0000000..5cabed5
 --- /dev/null
 +++ b/libavcodec/qsv_h264.c
 @@ -0,0 +1,975 @@
@@ -1891,8 +1891,8 @@ index 0000000..9296949
 +        if (qsv_decode->m_mfxVideoParam.IOPattern == MFX_IOPATTERN_OUT_SYSTEM_MEMORY) {
 +            picture->data[0]     = surface->Data.Y;
 +            picture->data[1]     = surface->Data.VU;
-+            picture->linesize[0] = surface->Info.Pitch;
-+            picture->linesize[1] = surface->Info.Pitch;
++            picture->linesize[0] = surface->Data.Pitch;
++            picture->linesize[1] = surface->Data.Pitch;
 +        } else {
 +            picture->data[0]     = NULL;
 +            picture->data[1]     = NULL;
