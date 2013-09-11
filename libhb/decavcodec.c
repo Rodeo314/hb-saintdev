@@ -717,11 +717,26 @@ static hb_buffer_t *copy_frame( hb_work_private_t *pv, AVFrame *frame )
         {
             if (pv->sws_context != NULL)
                 sws_freeContext(pv->sws_context);
-            pv->sws_context = hb_sws_get_context(context->width,
-                                                 context->height,
-                                                 context->pix_fmt,
-                                                 w, h, AV_PIX_FMT_YUV420P,
-                                                  SWS_LANCZOS|SWS_ACCURATE_RND);
+#ifdef USE_QSV
+            if (pv->qsv.decode)
+            {
+                pv->sws_context = hb_sws_get_context(context->width,
+                                                     context->height,
+                                                     AV_PIX_FMT_NV12,
+                                                     context->width,
+                                                     context->height,
+                                                     AV_PIX_FMT_YUV420P,
+                                                     SWS_LANCZOS|SWS_ACCURATE_RND);
+            }
+            else
+#endif
+            {
+                pv->sws_context = hb_sws_get_context(context->width,
+                                                     context->height,
+                                                     context->pix_fmt,
+                                                     w, h, AV_PIX_FMT_YUV420P,
+                                                     SWS_LANCZOS|SWS_ACCURATE_RND);
+            }
             pv->sws_width   = context->width;
             pv->sws_height  = context->height;
             pv->sws_pix_fmt = context->pix_fmt;
@@ -1200,7 +1215,6 @@ static int decavcodecvInit( hb_work_object_t * w, hb_job_t * job )
     if (hb_qsv_decode_is_enabled(job))
     {
         // setup the QSV configuration
-        pv->qsv.config.io_pattern         = MFX_IOPATTERN_OUT_OPAQUE_MEMORY;
         pv->qsv.config.impl_requested     = hb_qsv_impl_get_preferred();
         pv->qsv.config.async_depth        = job->qsv.async_depth;
         pv->qsv.config.sync_need          =  0;
@@ -1210,6 +1224,14 @@ static int decavcodecvInit( hb_work_object_t * w, hb_job_t * job )
         {
             // more surfaces may be needed for the lookahead
             pv->qsv.config.additional_buffers = 160;
+        }
+        if (job->vcodec & HB_VCODEC_QSV_MASK)
+        {
+            pv->qsv.config.io_pattern = MFX_IOPATTERN_OUT_OPAQUE_MEMORY;
+        }
+        else
+        {
+            pv->qsv.config.io_pattern = MFX_IOPATTERN_OUT_SYSTEM_MEMORY;
         }
         pv->qsv.codec_name = hb_qsv_decode_get_codec_name(w->codec_param);
         pv->qsv.decode     = 1;
