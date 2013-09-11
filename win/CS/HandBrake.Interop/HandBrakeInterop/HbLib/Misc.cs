@@ -39,6 +39,40 @@ namespace HandBrake.Interop.HbLib
 	}
 
 	[StructLayout(LayoutKind.Sequential)]
+	public struct hb_qsv_enc_info_substruct
+	{
+		/// int
+		public int pic_struct;
+
+		/// int
+		public int align_width;
+
+		/// int
+		public int align_height;
+
+		/// int
+		public int is_init_done;
+	}
+
+	[StructLayout(LayoutKind.Sequential)]
+	public struct hb_qsv_substruct
+	{
+		/// int
+		public int decode;
+
+		/// int
+		public int async_depth;
+
+		/// const char*
+		public IntPtr preset;
+
+		/// av_qsv_context*
+		public IntPtr ctx;
+
+		public hb_qsv_enc_info_substruct enc_info;
+	}
+
+	[StructLayout(LayoutKind.Sequential)]
 	public struct hb_list_s
 	{
 		/// void**
