@@ -1234,10 +1234,10 @@ index 0000000..52378cf
 +#endif                          //AVCODEC_QSV_H
 diff --git a/libavcodec/qsv_h264.c b/libavcodec/qsv_h264.c
 new file mode 100644
-index 0000000..08295e3
+index 0000000..ac2de42
 --- /dev/null
 +++ b/libavcodec/qsv_h264.c
-@@ -0,0 +1,987 @@
+@@ -0,0 +1,990 @@
 +/* ********************************************************************* *\
 +
 +Copyright (C) 2013 Intel Corporation.  All rights reserved.
@@ -1888,23 +1888,26 @@ index 0000000..08295e3
 +        // since we do not know it yet from MSDK, let's do just a simple way for now
 +        picture->key_frame          = (avctx->frame_number == 0) ? 1 : 0;
 +
-+        av_log(NULL, AV_LOG_QUIET,
-+               "PicStruct: global 0x%"PRIx16" local 0x%"PRIx16"\n",
-+               qsv_decode->m_mfxVideoParam.mfx.FrameInfo.PicStruct,
-+               surface->Info.PicStruct);
-+
 +        if (qsv_decode->m_mfxVideoParam.IOPattern == MFX_IOPATTERN_OUT_SYSTEM_MEMORY) {
-+            av_log(NULL, AV_LOG_QUIET,
-+                   "Width: %"PRIu16", Pitch: %"PRIu16", linesize: %d/%d/%d\n",
-+                   surface->Info.Width,
-+                   surface->Data.Pitch,
-+                   picture->linesize[0],
-+                   picture->linesize[1],
-+                   picture->linesize[2]);
-+            picture->data[0]     = surface->Data.Y;
-+            picture->data[1]     = surface->Data.VU;
-+            picture->linesize[0] = surface->Data.Pitch;
-+            picture->linesize[1] = surface->Data.Pitch;
++            int i;
++            picture->width       = surface->Info.CropW;
++            picture->height      = surface->Info.CropH;
++            picture->linesize[0] = surface->Info.Width;
++            picture->linesize[1] = surface->Info.Width;
++            picture->data[0]     = av_malloc(picture->linesize[0] *
++                                             picture->height);
++            picture->data[1]     = av_malloc(picture->linesize[1] *
++                                             picture->height / 2);
++            for (i = 0; i < picture->height; i++) {
++                memcpy(picture->data[0] + i * picture->linesize[0],
++                       surface->Data.Y  + i * surface->Data.Pitch,
++                       picture->linesize[0]);
++            }
++            for (i = 0; i < picture->height / 2; i++) {
++                memcpy(picture->data[1] + i * picture->linesize[1],
++                       surface->Data.VU + i * surface->Data.Pitch,
++                       picture->linesize[1]);
++            }
 +        } else {
 +            picture->data[0]     = NULL;
 +            picture->data[1]     = NULL;
