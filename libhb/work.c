@@ -845,7 +845,8 @@ static void do_job(hb_job_t *job)
     }
 
 #ifdef USE_QSV
-    if (hb_qsv_decode_is_enabled(job))
+    if ((hb_qsv_decode_is_enabled(job)) &&
+        (job->vcodec & HB_VCODEC_QSV_MASK))
     {
         job->fifo_mpeg2  = hb_fifo_init( FIFO_MINI, FIFO_MINI_WAKE );
         job->fifo_raw    = hb_fifo_init( FIFO_MINI, FIFO_MINI_WAKE );

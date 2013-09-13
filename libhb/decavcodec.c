@@ -723,9 +723,7 @@ static hb_buffer_t *copy_frame( hb_work_private_t *pv, AVFrame *frame )
                 pv->sws_context = hb_sws_get_context(context->width,
                                                      context->height,
                                                      AV_PIX_FMT_NV12,
-                                                     context->width,
-                                                     context->height,
-                                                     AV_PIX_FMT_YUV420P,
+                                                     w, h, AV_PIX_FMT_YUV420P,
                                                      SWS_LANCZOS|SWS_ACCURATE_RND);
             }
             else
