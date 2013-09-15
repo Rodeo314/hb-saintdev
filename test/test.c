@@ -3095,7 +3095,7 @@ static void ShowHelp()
 if (hb_qsv_available())
 {
     fprintf(out,
-            "        --qsv-preset        When using qsv, selects the qsv preset:\n"
+            "        --qsv-preset        When using QSV, selects the QSV preset:\n"
             "          <string>          ");
     x264_opts = hb_qsv_presets();
     tmp[0]    = 0;

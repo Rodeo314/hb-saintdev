@@ -381,9 +381,10 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     pv->next_chapter.start = INT64_MIN;
 
     // default encoding parameters
-    if (hb_qsv_param_default(&pv->param, &pv->enc_space.m_mfxVideoParam))
+    if (hb_qsv_param_default_preset(&pv->param, &pv->enc_space.m_mfxVideoParam,
+                                    job->qsv.preset))
     {
-        hb_error("encqsvInit: hb_qsv_param_default failed");
+        hb_error("encqsvInit: hb_qsv_param_default_preset failed");
         return -1;
     }
 
