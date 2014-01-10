@@ -628,18 +628,18 @@ static int decavcodecaBSInfo( hb_work_object_t *w, const hb_buffer_t *buf,
                 avp.size = pbuffer_size;
 
                 len = avcodec_decode_audio4(context, frame, &got_frame, &avp);
-                if (len > 0 && context->sample_rate > 0)
+                if (len > 0 && got_frame)
                 {
                     info->rate_base          = 1;
-                    info->rate               = context->sample_rate;
                     info->samples_per_frame  = frame->nb_samples;
+                    info->rate               = (context->sample_rate > 0 ?
+                                                context->sample_rate     :
+                                                frame  ->sample_rate);
 
                     int bps = av_get_bits_per_sample(context->codec_id);
                     if (bps > 0 && context->channels > 0)
                     {
-                        info->bitrate = (bps *
-                                         context->channels *
-                                         context->sample_rate);
+                        info->bitrate = (bps * context->channels * info->rate);
                     }
                     else if (context->bit_rate > 0)
                     {
@@ -656,9 +656,26 @@ static int decavcodecaBSInfo( hb_work_object_t *w, const hb_buffer_t *buf,
                     }
                     else
                     {
-                        info->channel_layout =
-                            hb_ff_layout_xlat(context->channel_layout,
-                                              context->channels);
+                        // check for Dolby Surround
+                        AVFrameSideData *side_data;
+                        enum AVMatrixEncoding matrix_encoding = AV_MATRIX_ENCODING_NONE;
+                        side_data = av_frame_get_side_data(frame,
+                                                           AV_FRAME_DATA_MATRIXENCODING);
+                        if (side_data != NULL)
+                        {
+                            matrix_encoding = *side_data->data;
+                        }
+                        if (matrix_encoding == AV_MATRIX_ENCODING_DOLBY ||
+                            matrix_encoding == AV_MATRIX_ENCODING_DPLII)
+                        {
+                            info->channel_layout = AV_CH_LAYOUT_STEREO_DOWNMIX;
+                        }
+                        else
+                        {
+                            info->channel_layout =
+                                hb_ff_layout_xlat(context->channel_layout,
+                                                  context->channels);
+                        }
                     }
 
                     ret = 1;
