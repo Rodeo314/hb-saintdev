@@ -342,11 +342,52 @@ static int decavcodecaInit( hb_work_object_t * w, hb_job_t * job )
     AVDictionary * av_opts = NULL;
     av_dict_set( &av_opts, "refcounted_frames", "1", 0 );
 
+    // codec-specific options
+    switch (w->codec_param)
+    {
+        case AV_CODEC_ID_AC3:
+        case AV_CODEC_ID_EAC3:
+            if (w->audio->config.out.dynamic_range_compression >= 0.0f)
+            {
+                char drc_scale[5]; // "?.??\n"
+                // TODO: submit a patch to libav to fix this nonsense
+                if (w->audio->config.out.dynamic_range_compression > 1.0f)
+                {
+                    hb_log("decavcodecaInit: sanitizing out-of-range DRC %.2f to %.2f",
+                           w->audio->config.out.dynamic_range_compression, 1.0f);
+                    w->audio->config.out.dynamic_range_compression = 1.0f;
+                }
+                snprintf(drc_scale, sizeof(drc_scale), "%.2f",
+                         w->audio->config.out.dynamic_range_compression);
+                av_dict_set(&av_opts, "drc_scale", drc_scale, 0);
+            }
+            break;
+
+        case AV_CODEC_ID_DTS:
+            if (!(hb_ff_mixdown_xlat(w->audio->config.out.mixdown,
+                                     NULL) & AV_CH_BACK_CENTER))
+            {
+                // we have no Back Center channel in the output;
+                // disable XCh extension decoding in case there is one
+                av_dict_set(&av_opts, "disable_xch", "1", 0);
+            }
+            break;
+
+        default:
+            break;
+    }
+
     if (hb_avcodec_open(pv->context, codec, &av_opts, 0))
     {
         av_dict_free( &av_opts );
         hb_log("decavcodecaInit: avcodec_open failed");
         return 1;
+    }
+    // avcodec_open populates av_opts with the things it didn't recognize.
+    AVDictionaryEntry *t = NULL;
+    while ((t = av_dict_get(av_opts, "", t, AV_DICT_IGNORE_SUFFIX)) != NULL)
+    {
+        hb_log("decavcodecaInit: unknown option '%s'", t->key);
     }
     av_dict_free( &av_opts );
 

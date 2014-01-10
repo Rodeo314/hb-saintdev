@@ -3708,6 +3708,25 @@ int hb_subtitle_can_pass( int source, int mux )
     }
 }
 
+int hb_audio_drc_is_supported(uint32_t codec, uint32_t codec_param, int encoder)
+{
+    if (encoder == (codec & HB_ACODEC_PASS_FLAG))
+    {
+        // can't apply DRC to passthrough audio
+        return 0;
+    }
+    if (codec == HB_ACODEC_AC3)
+    {
+        return 1;
+    }
+    if (codec == HB_ACODEC_FFMPEG)
+    {
+        return (codec_param == AV_CODEC_ID_AC3 ||
+                codec_param == AV_CODEC_ID_EAC3);
+    }
+    return 0;
+}
+
 /**********************************************************************
  * hb_metadata_init
  **********************************************************************
