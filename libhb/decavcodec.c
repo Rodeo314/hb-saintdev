@@ -1602,10 +1602,6 @@ static int decavcodecvInit( hb_work_object_t * w, hb_job_t * job )
     else
     {
         pv->parser = av_parser_init( w->codec_param );
-        pv->context = avcodec_alloc_context3( codec );
-        pv->context->workaround_bugs = FF_BUG_AUTODETECT;
-        pv->context->err_recognition = AV_EF_CRCCHECK;
-        pv->context->error_concealment = FF_EC_GUESS_MVS|FF_EC_DEBLOCK;
     }
 
     pv->frame = av_frame_alloc();
@@ -1743,7 +1739,7 @@ static int decavcodecvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
     /* if we got an empty buffer signaling end-of-stream send it downstream */
     if ( in->size == 0 )
     {
-        if ( pv->context->codec != NULL )
+        if (pv->context != NULL && pv->context->codec != NULL)
         {
             decodeVideo( w, in->data, in->size, in->sequence, pts, dts, in->s.frametype );
         }
@@ -1775,6 +1771,12 @@ static int decavcodecvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
             *buf_out = hb_buffer_init( 0 );;
             return HB_WORK_DONE;
         }
+
+        pv->context = avcodec_alloc_context3( codec );
+        pv->context->workaround_bugs = FF_BUG_AUTODETECT;
+        pv->context->err_recognition = AV_EF_CRCCHECK;
+        pv->context->error_concealment = FF_EC_GUESS_MVS|FF_EC_DEBLOCK;
+
         if ( setup_extradata( w, in ) )
         {
             // we didn't find the headers needed to set up extradata.
@@ -2050,7 +2052,7 @@ static void decavcodecvFlush( hb_work_object_t *w )
 {
     hb_work_private_t *pv = w->private_data;
 
-    if ( pv->context->codec )
+    if (pv->context != NULL && pv->context->codec != NULL)
     {
         flushDelayQueue( pv );
         hb_buffer_t *buf = link_buf_list( pv );
@@ -2060,6 +2062,7 @@ static void decavcodecvFlush( hb_work_object_t *w )
             pv->video_codec_opened = 0;
             hb_avcodec_close( pv->context );
             av_freep( &pv->context->extradata );
+            av_free( pv->context );
             if ( pv->parser )
             {
                 av_parser_close(pv->parser);
