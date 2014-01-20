@@ -746,6 +746,7 @@ static int decavcodecaBSInfo( hb_work_object_t *w, const hb_buffer_t *buf,
                             info->channel_layout = frame->channel_layout;
                         }
                     }
+                    info->audio_service_type = hb_ff_service_type_xlat(context->audio_service_type);
 
                     ret = 1;
                     break;
@@ -1296,7 +1297,7 @@ static int decodeFrame( hb_work_object_t *w, uint8_t *data, int size, int sequen
                     subtitle->source = CC608SUB;
                     subtitle->config.dest = PASSTHRUSUB;
                     subtitle->codec = WORK_DECCC608;
-                    subtitle->type = 5;
+                    subtitle->type = HB_SERVICE_TYPE_CLOSED_CAPTION;
                     snprintf(subtitle->lang, sizeof( subtitle->lang ),
                              "Closed Captions");
                     /*

@@ -25,6 +25,7 @@ int  hb_avcodec_close(AVCodecContext *);
 
 uint64_t hb_ff_mixdown_xlat(int hb_mixdown, int *downmix_mode);
 void     hb_ff_set_sample_fmt(AVCodecContext *, AVCodec *, enum AVSampleFormat);
+enum hb_service_type hb_ff_service_type_xlat(enum AVAudioServiceType audio_service_type);
 
 struct SwsContext*
 hb_sws_get_context(int srcW, int srcH, enum AVPixelFormat srcFormat,

@@ -417,7 +417,21 @@ static hb_title_t * hb_dvdread_title_scan( hb_dvd_t * e, int t, uint64_t min_dur
 
         lang = lang_for_code( lang_code );
 
-        audio->config.lang.type = lang_extension;
+        switch (lang_extension)
+        {
+            case 2:
+                audio->config.lang.type = HB_SERVICE_TYPE_VISUALLY_IMPAIRED;
+                break;
+            case 3:
+                audio->config.lang.type = HB_SERVICE_TYPE_COMMENTARY_1;
+                break;
+            case 4:
+                audio->config.lang.type = HB_SERVICE_TYPE_COMMENTARY_2;
+                break;
+            default:
+                audio->config.lang.type = HB_SERVICE_TYPE_STANDARD;
+                break;
+        }
 
         snprintf( audio->config.lang.simple,
                   sizeof( audio->config.lang.simple ), "%s",
@@ -489,8 +503,6 @@ static hb_title_t * hb_dvdread_title_scan( hb_dvd_t * e, int t, uint64_t min_dur
         subtitle->stream_type = 0xbd;
         subtitle->substream_type = 0x20 + position;
         subtitle->codec = WORK_DECVOBSUB;
-
-        subtitle->type = lang_extension;
         
         memcpy( subtitle->palette,
             vts->vts_pgcit->pgci_srp[pgc_id-1].pgc->palette,
@@ -500,32 +512,42 @@ static hb_title_t * hb_dvdread_title_scan( hb_dvd_t * e, int t, uint64_t min_dur
         switch( lang_extension )
         {  
             case 2:
+                subtitle->type = HB_SERVICE_TYPE_CAPTION_BIGCHARS;
                 strcat( subtitle->lang, " (Caption with bigger size character)" );
                 break;
-            case 3: 
+            case 3:
+                subtitle->type = HB_SERVICE_TYPE_CAPTION_CHILDREN;
                 strcat( subtitle->lang, " (Caption for Children)" );
                 break;
             case 5:
+                subtitle->type = HB_SERVICE_TYPE_CLOSED_CAPTION;
                 strcat( subtitle->lang, " (Closed Caption)" );
                 break;
             case 6:
+                subtitle->type = HB_SERVICE_TYPE_CLOSED_CAPTION_BIGCHARS;
                 strcat( subtitle->lang, " (Closed Caption with bigger size character)" );
                 break;
             case 7:
+                subtitle->type = HB_SERVICE_TYPE_CLOSED_CAPTION_CHILDREN;
                 strcat( subtitle->lang, " (Closed Caption for Children)" );
                 break;
             case 9:
+                subtitle->type = HB_SERVICE_TYPE_FORCED_CAPTION;
                 strcat( subtitle->lang, " (Forced Caption)" );
                 break;
             case 13:
+                subtitle->type = HB_SERVICE_TYPE_COMMENTARY;
                 strcat( subtitle->lang, " (Director's Commentary)" );
                 break;
             case 14:
+                subtitle->type = HB_SERVICE_TYPE_COMMENTARY_BIGCHARS;
                 strcat( subtitle->lang, " (Director's Commentary with bigger size character)" );
                 break;
             case 15:
+                subtitle->type = HB_SERVICE_TYPE_COMMENTARY_CHILDREN;
                 strcat( subtitle->lang, " (Director's Commentary for Children)" );
             default:
+                subtitle->type = HB_SERVICE_TYPE_STANDARD;
                 break;
         }
 

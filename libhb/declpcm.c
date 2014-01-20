@@ -382,6 +382,7 @@ static int declpcmBSInfo( hb_work_object_t *w, const hb_buffer_t *b,
     info->channel_layout = hdr2layout[nchannels - 1];
     info->channel_map = &hb_libav_chan_map;
     info->samples_per_frame = ( duration * rate ) / 90000;
+    info->audio_service_type = HB_SERVICE_TYPE_STANDARD;
 
     return 1;
 }

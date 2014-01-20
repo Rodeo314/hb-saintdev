@@ -3437,6 +3437,7 @@ void hb_audio_config_init(hb_audio_config_t * audiocfg)
     audiocfg->lang.description[0] = 0;
     audiocfg->lang.simple[0] = 0;
     audiocfg->lang.iso639_2[0] = 0;
+    audiocfg->lang.type = HB_INVALID_SERVICE_TYPE;
 
     /* Initalize some sensible defaults */
     audiocfg->in.track = audiocfg->out.track = 0;

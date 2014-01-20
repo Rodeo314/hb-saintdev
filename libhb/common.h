@@ -625,6 +625,31 @@ struct hb_job_s
 /* define an invalid VBR quality compatible with all VBR-capable codecs */
 #define HB_INVALID_AUDIO_QUALITY (-3.)
 
+/* audio or subtitle service type */
+enum hb_service_type
+{
+    HB_INVALID_SERVICE_TYPE = -1,
+    HB_SERVICE_TYPE_STANDARD = 0,
+    HB_SERVICE_TYPE_EFFECTS,
+    HB_SERVICE_TYPE_VISUALLY_IMPAIRED,
+    HB_SERVICE_TYPE_HEARING_IMPAIRED,
+    HB_SERVICE_TYPE_DIALOGUE,
+    HB_SERVICE_TYPE_EMERGENCY,
+    HB_SERVICE_TYPE_VOICE_OVER,
+    HB_SERVICE_TYPE_KARAOKE,
+    HB_SERVICE_TYPE_CAPTION_BIGCHARS,
+    HB_SERVICE_TYPE_CAPTION_CHILDREN,
+    HB_SERVICE_TYPE_CLOSED_CAPTION,
+    HB_SERVICE_TYPE_CLOSED_CAPTION_BIGCHARS,
+    HB_SERVICE_TYPE_CLOSED_CAPTION_CHILDREN,
+    HB_SERVICE_TYPE_FORCED_CAPTION,
+    HB_SERVICE_TYPE_COMMENTARY,
+    HB_SERVICE_TYPE_COMMENTARY_1,
+    HB_SERVICE_TYPE_COMMENTARY_2,
+    HB_SERVICE_TYPE_COMMENTARY_BIGCHARS,
+    HB_SERVICE_TYPE_COMMENTARY_CHILDREN,	
+};
+
 // Update win/CS/HandBrake.Interop/HandBrakeInterop/HbLib/hb_audio_config_s.cs when changing this struct
 struct hb_audio_config_s
 {
@@ -687,7 +712,7 @@ struct hb_audio_config_s
         PRIVATE char description[1024];
         PRIVATE char simple[1024];
         PRIVATE char iso639_2[4];
-        PRIVATE uint8_t type; /* normal, visually impaired, director's commentary */
+        PRIVATE enum hb_service_type type;
     } lang;
 };
 
@@ -778,7 +803,7 @@ struct hb_subtitle_s
     enum subsource { VOBSUB, SRTSUB, CC608SUB, /*unused*/CC708SUB, UTF8SUB, TX3GSUB, SSASUB, PGSSUB } source;
     char lang[1024];
     char iso639_2[4];
-    uint8_t type; /* Closed Caption, Childrens, Directors etc */
+    enum hb_service_type type;
     
     // Color lookup table for VOB subtitle tracks. Each entry is in YCbCr format.
     // Must be filled out by the demuxer for VOB subtitle tracks.
@@ -1010,6 +1035,7 @@ typedef struct hb_work_info_s
         {    // info only valid for audio decoders
             uint64_t channel_layout;
             hb_chan_map_t * channel_map;
+            int audio_service_type;
             int samples_per_frame;
             int matrix_encoding;
         };

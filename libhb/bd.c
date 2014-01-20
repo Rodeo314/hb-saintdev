@@ -187,7 +187,7 @@ static void add_audio(int track, hb_list_t *list_audio, BLURAY_STREAM_INFO *bdau
 
     lang = lang_for_code2( (char*)bdaudio->lang );
 
-    audio->config.lang.type = 0;
+    audio->config.lang.type = HB_SERVICE_TYPE_STANDARD;
 
     snprintf( audio->config.lang.simple, 
               sizeof( audio->config.lang.simple ), "%s",

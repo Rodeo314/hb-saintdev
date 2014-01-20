@@ -332,6 +332,32 @@ void hb_ff_set_sample_fmt(AVCodecContext *context, AVCodec *codec,
     }
 }
 
+// convert libavcodec's AVAudioServiceType to HB's hb_service_type
+enum hb_service_type hb_ff_service_type_xlat(enum AVAudioServiceType audio_service_type)
+{
+    switch (audio_service_type)
+    {
+        case AV_AUDIO_SERVICE_TYPE_EFFECTS:
+            return HB_SERVICE_TYPE_EFFECTS;
+        case AV_AUDIO_SERVICE_TYPE_VISUALLY_IMPAIRED:
+            return HB_SERVICE_TYPE_VISUALLY_IMPAIRED;
+        case AV_AUDIO_SERVICE_TYPE_HEARING_IMPAIRED:
+            return HB_SERVICE_TYPE_HEARING_IMPAIRED;
+        case AV_AUDIO_SERVICE_TYPE_DIALOGUE:
+            return HB_SERVICE_TYPE_DIALOGUE;
+        case AV_AUDIO_SERVICE_TYPE_COMMENTARY:
+            return HB_SERVICE_TYPE_COMMENTARY;
+        case AV_AUDIO_SERVICE_TYPE_EMERGENCY:
+            return HB_SERVICE_TYPE_EMERGENCY;
+        case AV_AUDIO_SERVICE_TYPE_VOICE_OVER:
+            return HB_SERVICE_TYPE_VOICE_OVER;
+        case AV_AUDIO_SERVICE_TYPE_KARAOKE:
+            return HB_SERVICE_TYPE_KARAOKE;
+        default:
+            return HB_SERVICE_TYPE_STANDARD;
+    }
+}
+
 /**
  * Registers work objects, by adding the work object to a liked list.
  * @param w Handle to hb_work_object_t to register.

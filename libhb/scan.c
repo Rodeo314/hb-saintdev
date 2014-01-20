@@ -1036,6 +1036,14 @@ static void LookForAudio( hb_title_t * title, hb_buffer_t * b )
     audio->config.in.flags = info.flags;
     audio->config.in.mode = info.mode;
 
+    // use the decoder-provided audio_service_type,
+    // unless it's already set to a non-default value
+    if (audio->config.lang.type <= HB_SERVICE_TYPE_STANDARD &&
+        info.audio_service_type >  HB_SERVICE_TYPE_STANDARD)
+    {
+        audio->config.lang.type = info.audio_service_type;
+    }
+
     // now that we have all the info, set the audio description
     const char *codec_name = NULL;
     if (audio->config.in.codec & HB_ACODEC_FF_MASK)
@@ -1136,13 +1144,34 @@ static void LookForAudio( hb_title_t * title, hb_buffer_t * b )
 
     switch (audio->config.lang.type)
     {
-        case 2:
+        case HB_SERVICE_TYPE_EFFECTS:
+            strcat(audio->config.lang.description, " (Music & Effects)");
+            break;
+        case HB_SERVICE_TYPE_VISUALLY_IMPAIRED:
             strcat(audio->config.lang.description, " (Visually Impaired)");
             break;
-        case 3:
+        case HB_SERVICE_TYPE_HEARING_IMPAIRED:
+            strcat(audio->config.lang.description, " (Hearing Impaired)");
+            break;
+        case HB_SERVICE_TYPE_DIALOGUE:
+            strcat(audio->config.lang.description, " (Dialogue)");
+            break;
+        case HB_SERVICE_TYPE_EMERGENCY:
+            strcat(audio->config.lang.description, " (Emergency)");
+            break;
+        case HB_SERVICE_TYPE_VOICE_OVER:
+            strcat(audio->config.lang.description, " (Voice Over)");
+            break;
+        case HB_SERVICE_TYPE_KARAOKE:
+            strcat(audio->config.lang.description, " (Karaoke)");
+            break;
+        case HB_SERVICE_TYPE_COMMENTARY:
+            strcat(audio->config.lang.description, " (Director's Commentary)");
+            break;
+        case HB_SERVICE_TYPE_COMMENTARY_1:
             strcat(audio->config.lang.description, " (Director's Commentary 1)");
             break;
-        case 4:
+        case HB_SERVICE_TYPE_COMMENTARY_2:
             strcat(audio->config.lang.description, " (Director's Commentary 2)");
             break;
         default:

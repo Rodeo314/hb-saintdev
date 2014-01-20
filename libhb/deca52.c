@@ -551,5 +551,37 @@ static int deca52BSInfo( hb_work_object_t *w, const hb_buffer_t *b,
     // we remap to Libav order in Decode()
     info->channel_map = &hb_libav_chan_map;
 
+    // audio service type
+    switch (info->mode)
+    {
+        case 1:
+            info->audio_service_type = HB_SERVICE_TYPE_EFFECTS;
+            break;
+        case 2:
+            info->audio_service_type = HB_SERVICE_TYPE_VISUALLY_IMPAIRED;
+            break;
+        case 3:
+            info->audio_service_type = HB_SERVICE_TYPE_HEARING_IMPAIRED;
+            break;
+        case 4:
+            info->audio_service_type = HB_SERVICE_TYPE_DIALOGUE;
+            break;
+        case 5:
+            info->audio_service_type = HB_SERVICE_TYPE_COMMENTARY;
+            break;
+        case 6:
+            info->audio_service_type = HB_SERVICE_TYPE_EMERGENCY;
+            break;
+        case 7:
+            if ((flags & A52_CHANNEL_MASK) == 1)
+                info->audio_service_type = HB_SERVICE_TYPE_VOICE_OVER;
+            else
+                info->audio_service_type = HB_SERVICE_TYPE_KARAOKE;
+            break;
+        default:
+            info->audio_service_type = HB_SERVICE_TYPE_STANDARD;
+            break;
+    }
+
     return 1;
 }
