@@ -1070,6 +1070,9 @@ static void LookForAudio( hb_title_t * title, hb_buffer_t * b )
                     case AV_CODEC_ID_FLAC:
                         codec_name = "FLAC";
                         break;
+                    case AV_CODEC_ID_MLP:
+                        codec_name = "MLP";
+                        break;
                     case AV_CODEC_ID_MP2:
                         codec_name = "MPEG";
                         break;
