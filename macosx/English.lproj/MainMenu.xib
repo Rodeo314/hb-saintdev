@@ -43,7 +43,7 @@
                         <tabViewItems>
                             <tabViewItem label="Video" identifier="1" id="1477">
                                 <view key="view" id="1478">
-                                    <rect key="frame" x="10" y="25" width="920" height="305"/>
+                                    <rect key="frame" x="10" y="29" width="920" height="301"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <textField verticalHuggingPriority="750" id="1499">
@@ -192,7 +192,7 @@
                                             </textFieldCell>
                                         </textField>
                                         <matrix verticalHuggingPriority="750" allowsEmptySelection="NO" id="5808">
-                                            <rect key="frame" x="17" y="209" width="145" height="38"/>
+                                            <rect key="frame" x="17" y="205" width="145" height="38"/>
                                             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                             <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                             <size key="cellSize" width="145" height="18"/>
@@ -221,7 +221,7 @@
                                             </cells>
                                         </matrix>
                                         <matrix verticalHuggingPriority="750" allowsEmptySelection="NO" id="5820">
-                                            <rect key="frame" x="540" y="255" width="157" height="38"/>
+                                            <rect key="frame" x="540" y="251" width="157" height="38"/>
                                             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                             <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                             <size key="cellSize" width="157" height="18"/>
@@ -250,7 +250,7 @@
                                             </cells>
                                         </matrix>
                                         <box autoresizesSubviews="NO" title="x264 Presets" borderType="line" titlePosition="noTitle" id="5934">
-                                            <rect key="frame" x="14" y="46" width="892" height="157"/>
+                                            <rect key="frame" x="14" y="42" width="892" height="157"/>
                                             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                             <view key="contentView">
                                                 <rect key="frame" x="1" y="1" width="890" height="155"/>
@@ -489,14 +489,14 @@
                                                                         </popUpButtonCell>
                                                                         <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="YES"/>
                                                                         <connections>
-                                                                            <binding destination="5674" name="content" keyPath="arrangedObjects.codecs" id="5747"/>
-                                                                            <binding destination="5674" name="contentValues" keyPath="arrangedObjects.codecs.keyAudioCodecName" previousBinding="5747" id="5749"/>
-                                                                            <binding destination="5674" name="enabled" keyPath="arrangedObjects.enabled" id="5774"/>
                                                                             <binding destination="5674" name="selectedObject" keyPath="arrangedObjects.codec" previousBinding="5749" id="5786">
                                                                                 <dictionary key="options">
                                                                                     <bool key="NSCreatesSortDescriptor" value="NO"/>
                                                                                 </dictionary>
                                                                             </binding>
+                                                                            <binding destination="5674" name="content" keyPath="arrangedObjects.codecs" id="5747"/>
+                                                                            <binding destination="5674" name="contentValues" keyPath="arrangedObjects.codecs.keyAudioCodecName" previousBinding="5747" id="5749"/>
+                                                                            <binding destination="5674" name="enabled" keyPath="arrangedObjects.enabled" id="5774"/>
                                                                         </connections>
                                                                     </tableColumn>
                                                                     <tableColumn identifier="mixdown" width="129" minWidth="10" maxWidth="3.4028229999999999e+38" id="5691">
@@ -516,14 +516,14 @@
                                                                         </popUpButtonCell>
                                                                         <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="YES"/>
                                                                         <connections>
-                                                                            <binding destination="5674" name="content" keyPath="arrangedObjects.mixdowns" id="5754"/>
-                                                                            <binding destination="5674" name="contentValues" keyPath="arrangedObjects.mixdowns.keyAudioMixdownName" previousBinding="5754" id="5756"/>
-                                                                            <binding destination="5674" name="enabled" keyPath="arrangedObjects.mixdownEnabled" id="5901"/>
                                                                             <binding destination="5674" name="selectedObject" keyPath="arrangedObjects.mixdown" previousBinding="5756" id="5787">
                                                                                 <dictionary key="options">
                                                                                     <bool key="NSCreatesSortDescriptor" value="NO"/>
                                                                                 </dictionary>
                                                                             </binding>
+                                                                            <binding destination="5674" name="enabled" keyPath="arrangedObjects.mixdownEnabled" id="5901"/>
+                                                                            <binding destination="5674" name="content" keyPath="arrangedObjects.mixdowns" id="5754"/>
+                                                                            <binding destination="5674" name="contentValues" keyPath="arrangedObjects.mixdowns.keyAudioMixdownName" previousBinding="5754" id="5756"/>
                                                                         </connections>
                                                                     </tableColumn>
                                                                     <tableColumn identifier="samplerate" width="73" minWidth="10" maxWidth="3.4028229999999999e+38" id="5690">
@@ -543,14 +543,14 @@
                                                                         </popUpButtonCell>
                                                                         <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="YES"/>
                                                                         <connections>
-                                                                            <binding destination="5674" name="content" keyPath="arrangedObjects.sampleRates" id="5760"/>
-                                                                            <binding destination="5674" name="contentValues" keyPath="arrangedObjects.sampleRates.keyAudioSampleRateName" previousBinding="5760" id="5762"/>
                                                                             <binding destination="5674" name="enabled" keyPath="arrangedObjects.mixdownEnabled" id="5778"/>
                                                                             <binding destination="5674" name="selectedObject" keyPath="arrangedObjects.sampleRate" previousBinding="5762" id="5788">
                                                                                 <dictionary key="options">
                                                                                     <bool key="NSCreatesSortDescriptor" value="NO"/>
                                                                                 </dictionary>
                                                                             </binding>
+                                                                            <binding destination="5674" name="content" keyPath="arrangedObjects.sampleRates" id="5760"/>
+                                                                            <binding destination="5674" name="contentValues" keyPath="arrangedObjects.sampleRates.keyAudioSampleRateName" previousBinding="5760" id="5762"/>
                                                                         </connections>
                                                                     </tableColumn>
                                                                     <tableColumn identifier="bitrate" width="72" minWidth="10" maxWidth="3.4028229999999999e+38" id="5689">
@@ -570,14 +570,14 @@
                                                                         </popUpButtonCell>
                                                                         <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="YES"/>
                                                                         <connections>
-                                                                            <binding destination="5674" name="content" keyPath="arrangedObjects.bitRates" id="5766"/>
-                                                                            <binding destination="5674" name="contentValues" keyPath="arrangedObjects.bitRates.keyAudioBitrateName" previousBinding="5766" id="5768"/>
-                                                                            <binding destination="5674" name="enabled" keyPath="arrangedObjects.bitrateEnabled" id="5903"/>
                                                                             <binding destination="5674" name="selectedObject" keyPath="arrangedObjects.bitRate" previousBinding="5768" id="5789">
                                                                                 <dictionary key="options">
                                                                                     <bool key="NSCreatesSortDescriptor" value="NO"/>
                                                                                 </dictionary>
                                                                             </binding>
+                                                                            <binding destination="5674" name="content" keyPath="arrangedObjects.bitRates" id="5766"/>
+                                                                            <binding destination="5674" name="contentValues" keyPath="arrangedObjects.bitRates.keyAudioBitrateName" previousBinding="5766" id="5768"/>
+                                                                            <binding destination="5674" name="enabled" keyPath="arrangedObjects.bitrateEnabled" id="5903"/>
                                                                         </connections>
                                                                     </tableColumn>
                                                                     <tableColumn identifier="gain" width="32" minWidth="10" maxWidth="3.4028234663852886e+38" id="5871">
@@ -586,7 +586,7 @@
                                                                             <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
                                                                             <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
                                                                         </tableHeaderCell>
-                                                                        <sliderCell key="dataCell" controlSize="small" continuous="YES" state="on" alignment="left" minValue="-5" maxValue="16" tickMarkPosition="above" numberOfTickMarks="21" allowsTickMarkValuesOnly="YES" sliderType="circular" id="5874"/>
+                                                                        <sliderCell key="dataCell" controlSize="small" continuous="YES" state="on" alignment="left" minValue="-5" maxValue="16" doubleValue="0.25" tickMarkPosition="above" numberOfTickMarks="21" allowsTickMarkValuesOnly="YES" sliderType="circular" id="5874"/>
                                                                         <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="YES"/>
                                                                         <connections>
                                                                             <binding destination="5674" name="enabled" keyPath="arrangedObjects.PassThruDisabled" id="5878"/>
@@ -667,7 +667,7 @@
                                                         <rect key="frame" x="-100" y="-100" width="685" height="15"/>
                                                         <autoresizingMask key="autoresizingMask"/>
                                                     </scroller>
-                                                    <scroller key="verticalScroller" hidden="YES" verticalHuggingPriority="750" doubleValue="37" horizontal="NO" id="5686">
+                                                    <scroller key="verticalScroller" hidden="YES" verticalHuggingPriority="750" doubleValue="1" horizontal="NO" id="5686">
                                                         <rect key="frame" x="-100" y="-100" width="15" height="206"/>
                                                         <autoresizingMask key="autoresizingMask"/>
                                                     </scroller>
@@ -930,7 +930,7 @@
                                                 <rect key="frame" x="-100" y="-100" width="685" height="15"/>
                                                 <autoresizingMask key="autoresizingMask"/>
                                             </scroller>
-                                            <scroller key="verticalScroller" hidden="YES" verticalHuggingPriority="750" doubleValue="37" horizontal="NO" id="5197">
+                                            <scroller key="verticalScroller" hidden="YES" verticalHuggingPriority="750" doubleValue="1" horizontal="NO" id="5197">
                                                 <rect key="frame" x="-100" y="-100" width="15" height="206"/>
                                                 <autoresizingMask key="autoresizingMask"/>
                                             </scroller>
@@ -1806,7 +1806,7 @@ DQ
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                     <popUpButtonCell key="cell" type="smallSquare" bezelStyle="smallSquare" imagePosition="only" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" pullsDown="YES" selectedItem="5133" id="5131">
                         <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
-                        <font key="font" metaFont="system"/>
+                        <font key="font" metaFont="menu"/>
                         <menu key="menu" title="Presets Action Menu" id="5132">
                             <items>
                                 <menuItem state="on" image="NSActionTemplate" hidden="YES" id="5133"/>
@@ -2197,7 +2197,10 @@ DQ
                 <outlet property="fAudioAllowAC3PassCheck" destination="5908" id="5927"/>
                 <outlet property="fAudioAllowDTSHDPassCheck" destination="5912" id="5929"/>
                 <outlet property="fAudioAllowDTSPassCheck" destination="5910" id="5928"/>
+                <outlet property="fAudioAllowEAC3PassCheck" destination="WAz-1G-QmD" id="72Y-4d-5O8"/>
+                <outlet property="fAudioAllowFLACPassCheck" destination="IOr-W6-jfT" id="18B-SZ-WOD"/>
                 <outlet property="fAudioAllowMP3PassCheck" destination="5904" id="5925"/>
+                <outlet property="fAudioAllowTrueHDPassCheck" destination="FWb-yu-yFU" id="d4k-Eg-q1K"/>
                 <outlet property="fAudioAutoPassthruBox" destination="5920" id="5931"/>
                 <outlet property="fAudioDelegate" destination="5673" id="5675"/>
                 <outlet property="fAudioFallbackPopUp" destination="5914" id="5930"/>
