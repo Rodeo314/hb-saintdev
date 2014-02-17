@@ -4256,7 +4256,7 @@ bool one_burned = FALSE;
     {
         job->acodec_copy_mask |= HB_ACODEC_MP3;
     }
-    if( [[queueToApply objectForKey: @"AudioAllowETrueHDass"] intValue] == 1 )
+    if( [[queueToApply objectForKey: @"AudioAllowTrueHDPass"] intValue] == 1 )
     {
         job->acodec_copy_mask |= HB_ACODEC_FFTRUEHD;
     }
@@ -6730,7 +6730,9 @@ return YES;
         }
         else
         {
-            [fAudioAllowEAC3PassCheck setState:NSOnState];
+            // support for this codec was added after Auto Passthru, so default
+            // to off to maintain old users' custom presets' behavior unchanged
+            [fAudioAllowEAC3PassCheck setState:NSOffState];
         }
         if ((tempObject = [chosenPreset objectForKey:@"AudioAllowFLACPass"]) != nil)
         {
@@ -6738,7 +6740,9 @@ return YES;
         }
         else
         {
-            [fAudioAllowFLACPassCheck setState:NSOnState];
+            // support for this codec was added after Auto Passthru, so default
+            // to off to maintain old users' custom presets' behavior unchanged
+            [fAudioAllowFLACPassCheck setState:NSOffState];
         }
         if ((tempObject = [chosenPreset objectForKey:@"AudioAllowMP3Pass"]) != nil)
         {
@@ -6754,7 +6758,9 @@ return YES;
         }
         else
         {
-            [fAudioAllowTrueHDPassCheck setState:NSOnState];
+            // support for this codec was added after Auto Passthru, so default
+            // to off to maintain old users' custom presets' behavior unchanged
+            [fAudioAllowTrueHDPassCheck setState:NSOffState];
         }
         if ((tempObject = [chosenPreset objectForKey:@"AudioEncoderFallback"]) != nil)
         {
