@@ -196,7 +196,10 @@ BOOL                        fIsDragging;
     IBOutlet NSButton            * fAudioAllowAC3PassCheck;
     IBOutlet NSButton            * fAudioAllowDTSHDPassCheck;
     IBOutlet NSButton            * fAudioAllowDTSPassCheck;
+    IBOutlet NSButton            * fAudioAllowEAC3PassCheck;
+    IBOutlet NSButton            * fAudioAllowFLACPassCheck;
     IBOutlet NSButton            * fAudioAllowMP3PassCheck;
+    IBOutlet NSButton            * fAudioAllowTrueHDPassCheck;
     IBOutlet NSPopUpButton       * fAudioFallbackPopUp;
     
     	    

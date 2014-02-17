@@ -640,7 +640,7 @@ struct hb_job_s
 
 /* Audio starts here */
 /* Audio Codecs: Update win/CS/HandBrake.Interop/HandBrakeInterop/HbLib/NativeConstants.cs when changing these consts */
-#define HB_ACODEC_MASK      0x00FFFF00
+#define HB_ACODEC_MASK      0x03FFFF00
 #define HB_ACODEC_FAAC      0x00000100
 #define HB_ACODEC_LAME      0x00000200
 #define HB_ACODEC_VORBIS    0x00000400
@@ -657,15 +657,20 @@ struct hb_job_s
 #define HB_ACODEC_FFFLAC24  0x00200000
 #define HB_ACODEC_FDK_AAC   0x00400000
 #define HB_ACODEC_FDK_HAAC  0x00800000
-#define HB_ACODEC_FF_MASK   0x00FF2000
+#define HB_ACODEC_FFEAC3    0x01000000
+#define HB_ACODEC_FFTRUEHD  0x02000000
+#define HB_ACODEC_FF_MASK   0x03FF2000
 #define HB_ACODEC_PASS_FLAG 0x40000000
-#define HB_ACODEC_PASS_MASK (HB_ACODEC_MP3 | HB_ACODEC_FFAAC | HB_ACODEC_DCA_HD | HB_ACODEC_AC3 | HB_ACODEC_DCA)
+#define HB_ACODEC_PASS_MASK (HB_ACODEC_MP3 | HB_ACODEC_FFAAC | HB_ACODEC_DCA | HB_ACODEC_DCA_HD | HB_ACODEC_FFFLAC | HB_ACODEC_AC3 | HB_ACODEC_FFEAC3 | HB_ACODEC_FFTRUEHD)
 #define HB_ACODEC_AUTO_PASS (HB_ACODEC_PASS_MASK | HB_ACODEC_PASS_FLAG)
 #define HB_ACODEC_MP3_PASS  (HB_ACODEC_MP3 | HB_ACODEC_PASS_FLAG)
 #define HB_ACODEC_AAC_PASS  (HB_ACODEC_FFAAC | HB_ACODEC_PASS_FLAG)
 #define HB_ACODEC_AC3_PASS  (HB_ACODEC_AC3 | HB_ACODEC_PASS_FLAG)
+#define HB_ACODEC_EAC3_PASS (HB_ACODEC_FFEAC3 | HB_ACODEC_PASS_FLAG)
+#define HB_ACODEC_TRUEHD_PASS (HB_ACODEC_FFTRUEHD | HB_ACODEC_PASS_FLAG)
 #define HB_ACODEC_DCA_PASS  (HB_ACODEC_DCA | HB_ACODEC_PASS_FLAG)
 #define HB_ACODEC_DCA_HD_PASS  (HB_ACODEC_DCA_HD | HB_ACODEC_PASS_FLAG)
+#define HB_ACODEC_FLAC_PASS (HB_ACODEC_FFFLAC | HB_ACODEC_PASS_FLAG)
 #define HB_ACODEC_ANY       (HB_ACODEC_MASK | HB_ACODEC_PASS_FLAG)
 
 #define HB_SUBSTREAM_BD_TRUEHD  0x72
@@ -726,6 +731,7 @@ struct hb_audio_config_s
         PRIVATE uint32_t flags; /* Bitstream flags, codec-specific */
         PRIVATE uint32_t mode; /* Bitstream mode, codec-specific */
         PRIVATE int samplerate; /* Input sample rate (Hz) */
+        PRIVATE int sample_fmt; /* Input sample format (AVSampleFmt) */
         PRIVATE int samples_per_frame; /* Number of samples per frame */
         PRIVATE int bitrate; /* Input bitrate (bps) */
         PRIVATE int matrix_encoding; /* Source matrix encoding mode, set by the audio decoder */
@@ -1063,6 +1069,7 @@ typedef struct hb_work_info_s
             hb_chan_map_t * channel_map;
             int samples_per_frame;
             int matrix_encoding;
+            int sample_fmt;
         };
     };
 } hb_work_info_t;

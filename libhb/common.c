@@ -51,9 +51,13 @@ enum
     HB_GID_ACODEC_AUTO_PASS,
     HB_GID_ACODEC_DTS_PASS,
     HB_GID_ACODEC_DTSHD_PASS,
+    HB_GID_ACODEC_EAC3,
+    HB_GID_ACODEC_EAC3_PASS,
     HB_GID_ACODEC_FLAC,
+    HB_GID_ACODEC_FLAC_PASS,
     HB_GID_ACODEC_MP3,
     HB_GID_ACODEC_MP3_PASS,
+    HB_GID_ACODEC_TRUEHD_PASS,
     HB_GID_ACODEC_VORBIS,
     HB_GID_MUX_MKV,
     HB_GID_MUX_MP4,
@@ -136,6 +140,10 @@ hb_rate_internal_t hb_audio_bitrates[]  =
     { { "1152", 1152, }, NULL, 1, },
     { { "1344", 1344, }, NULL, 1, },
     { { "1536", 1536, }, NULL, 1, },
+    { { "2304", 2304, }, NULL, 1, },
+    { { "3072", 3072, }, NULL, 1, },
+    { { "4608", 4608, }, NULL, 1, },
+    { { "6144", 6144, }, NULL, 1, },
 };
 int hb_audio_bitrates_count = sizeof(hb_audio_bitrates) / sizeof(hb_audio_bitrates[0]);
 
@@ -259,6 +267,9 @@ hb_encoder_internal_t hb_audio_encoders[]  =
     { { "AAC Passthru",       "copy:aac",   "AAC Passthru",                HB_ACODEC_AAC_PASS,    HB_MUX_MASK_MP4|HB_MUX_MASK_MKV, }, NULL, 1, HB_GID_ACODEC_AAC_PASS,   },
     { { "AC3",                "ac3",        "AC3 (libavcodec)",            HB_ACODEC_AC3,         HB_MUX_MASK_MP4|HB_MUX_MASK_MKV, }, NULL, 1, HB_GID_ACODEC_AC3,        },
     { { "AC3 Passthru",       "copy:ac3",   "AC3 Passthru",                HB_ACODEC_AC3_PASS,    HB_MUX_MASK_MP4|HB_MUX_MASK_MKV, }, NULL, 1, HB_GID_ACODEC_AC3_PASS,   },
+    { { "E-AC3",              "eac3",       "E-AC3 (libavcodec)",          HB_ACODEC_FFEAC3,                      HB_MUX_AV_MKV,   }, NULL, 1, HB_GID_ACODEC_EAC3,       },
+    { { "E-AC3 Passthru",     "copy:eac3",  "E-AC3 Passthru",              HB_ACODEC_EAC3_PASS,                   HB_MUX_AV_MKV,   }, NULL, 1, HB_GID_ACODEC_EAC3_PASS,  },
+    { { "TrueHD Passthru",    "copy:truehd","TrueHD Passthru",             HB_ACODEC_TRUEHD_PASS,                 HB_MUX_AV_MKV,   }, NULL, 1, HB_GID_ACODEC_TRUEHD_PASS,},
     { { "DTS Passthru",       "copy:dts",   "DTS Passthru",                HB_ACODEC_DCA_PASS,    HB_MUX_MASK_MP4|HB_MUX_MASK_MKV, }, NULL, 1, HB_GID_ACODEC_DTS_PASS,   },
     { { "DTS-HD Passthru",    "copy:dtshd", "DTS-HD Passthru",             HB_ACODEC_DCA_HD_PASS, HB_MUX_MASK_MP4|HB_MUX_MASK_MKV, }, NULL, 1, HB_GID_ACODEC_DTSHD_PASS, },
     { { "MP3",                "mp3",        "MP3 (libmp3lame)",            HB_ACODEC_LAME,        HB_MUX_MASK_MP4|HB_MUX_MASK_MKV, }, NULL, 1, HB_GID_ACODEC_MP3,        },
@@ -266,6 +277,7 @@ hb_encoder_internal_t hb_audio_encoders[]  =
     { { "Vorbis",             "vorbis",     "Vorbis (libvorbis)",          HB_ACODEC_VORBIS,                      HB_MUX_MASK_MKV, }, NULL, 1, HB_GID_ACODEC_VORBIS,     },
     { { "FLAC 16-bit",        "flac16",     "FLAC 16-bit (libavcodec)",    HB_ACODEC_FFFLAC,                      HB_MUX_MASK_MKV, }, NULL, 1, HB_GID_ACODEC_FLAC,       },
     { { "FLAC 24-bit",        "flac24",     "FLAC 24-bit (libavcodec)",    HB_ACODEC_FFFLAC24,                    HB_MUX_MASK_MKV, }, NULL, 1, HB_GID_ACODEC_FLAC,       },
+    { { "FLAC Passthru",      "copy:flac",  "FLAC Passthru",               HB_ACODEC_FLAC_PASS,                   HB_MUX_MASK_MKV, }, NULL, 1, HB_GID_ACODEC_FLAC_PASS,  },
     { { "Auto Passthru",      "copy",       "Auto Passthru",               HB_ACODEC_AUTO_PASS,   HB_MUX_MASK_MP4|HB_MUX_MASK_MKV, }, NULL, 1, HB_GID_ACODEC_AUTO_PASS,  },
 };
 int hb_audio_encoders_count = sizeof(hb_audio_encoders) / sizeof(hb_audio_encoders[0]);
@@ -304,6 +316,7 @@ static int hb_audio_encoder_is_enabled(int encoder)
         case HB_ACODEC_LAME:
         case HB_ACODEC_VORBIS:
         case HB_ACODEC_AC3:
+        case HB_ACODEC_FFEAC3:
         case HB_ACODEC_FFFLAC:
         case HB_ACODEC_FFFLAC24:
             return 1;
@@ -673,7 +686,8 @@ const hb_rate_t* hb_video_framerate_get_next(const hb_rate_t *last)
 int hb_audio_samplerate_get_best(uint32_t codec, int samplerate, int *sr_shift)
 {
     int best_samplerate;
-    if (samplerate < 32000 && (codec == HB_ACODEC_AC3 ||
+    if (samplerate < 32000 && (codec == HB_ACODEC_AC3    ||
+                               codec == HB_ACODEC_FFEAC3 ||
                                codec == HB_ACODEC_CA_HAAC))
     {
         // ca_haac can't do samplerates < 32 kHz
@@ -837,6 +851,14 @@ int hb_audio_bitrate_get_default(uint32_t codec, int samplerate, int mixdown)
             bitrate = (nchannels * 128) - (32 * (nchannels < 5));
             break;
 
+        // Our E-AC-3 encoder is pretty similar to our AC-3 encoder but it does
+        // allow for higher bitrates, should some users want a bit more quality
+        // at the expense of compression efficiency - still, let's remain
+        // compatible with passthru over S/PDIF by default: 384, 768, 1536 Kbps
+        case HB_ACODEC_FFEAC3:
+            bitrate = (nchannels * 384) - (128 * (nchannels - 2) * (nchannels > 2));
+            break;
+
         case HB_ACODEC_CA_HAAC:
         case HB_ACODEC_FDK_HAAC:
             bitrate = nchannels * 32;
@@ -919,6 +941,14 @@ fail:
  * The maximum AC3 bitrate is 640 Kbps
  * Limits: minimum of 224/5 Kbps per full-bandwidth channel, maximum of 640 Kbps
  *
+ * ffeac3
+ * ------
+ * supported samplerates: 32 - 48 kHz (< 32 kHz disabled for compatibility reasons)
+ * Dolby's encoder has a min. of 224 Kbps for 5 full-bandwidth channels (5.0, 5.1)
+ * The maximum bitrate is 128 bits per sample per second
+ * Limits: minimum of 224/5 Kbps per full-bandwidth channel
+ *         maximum of 128/1000 * samplerate Kbps
+ *
  * ca_aac
  * ------
  * supported samplerates: 8 - 48 kHz
@@ -999,6 +1029,11 @@ void hb_audio_bitrate_get_limits(uint32_t codec, int samplerate, int mixdown,
         case HB_ACODEC_AC3:
             *low  = 224 * nchannels / 5;
             *high = 640;
+            break;
+
+        case HB_ACODEC_FFEAC3:
+            *low  = 224 * nchannels  /    5;
+            *high = 128 * samplerate / 1000;
             break;
 
         case HB_ACODEC_CA_AAC:
@@ -1611,8 +1646,9 @@ int hb_mixdown_get_default(uint32_t codec, uint64_t layout)
             mixdown = HB_AMIXDOWN_7POINT1;
             break;
 
-        // the AC3 encoder defaults to the best mixdown up to 5.1
+        // the (E-)AC-3 encoder defaults to the best mixdown up to 5.1
         case HB_ACODEC_AC3:
+        case HB_ACODEC_FFEAC3:
             mixdown = HB_AMIXDOWN_5POINT1;
             break;
 
@@ -1817,6 +1853,13 @@ int hb_audio_encoder_get_fallback_for_passthru(int passthru)
         case HB_ACODEC_AC3_PASS:
             gid = HB_GID_ACODEC_AC3;
             break;
+
+        case HB_ACODEC_EAC3_PASS:
+            gid = HB_GID_ACODEC_EAC3;
+            break;
+
+        case HB_ACODEC_FLAC_PASS:
+            gid = HB_GID_ACODEC_FLAC;
 
         case HB_ACODEC_MP3_PASS:
             gid = HB_GID_ACODEC_MP3;
@@ -3542,6 +3585,7 @@ void hb_audio_config_init(hb_audio_config_t * audiocfg)
     audiocfg->in.flags = 0;
     audiocfg->in.mode = 0;
     audiocfg->in.samplerate = -1;
+    audiocfg->in.sample_fmt = AV_SAMPLE_FMT_NONE;
     audiocfg->in.samples_per_frame = -1;
     audiocfg->in.bitrate = -1;
     audiocfg->in.matrix_encoding = AV_MATRIX_ENCODING_NONE;

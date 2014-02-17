@@ -2773,11 +2773,14 @@ fWorkingCount = 0;
     [queueFileJob setObject:[NSNumber numberWithInteger:[fPictureController grayscale]] forKey:@"VideoGrayScale"];
     
     /* Auto Passthru */
-    [queueFileJob setObject:[NSNumber numberWithInteger:[fAudioAllowAACPassCheck state]] forKey: @"AudioAllowAACPass"];
-    [queueFileJob setObject:[NSNumber numberWithInteger:[fAudioAllowAC3PassCheck state]] forKey: @"AudioAllowAC3Pass"];
-    [queueFileJob setObject:[NSNumber numberWithInteger:[fAudioAllowDTSHDPassCheck state]] forKey: @"AudioAllowDTSHDPass"];
-    [queueFileJob setObject:[NSNumber numberWithInteger:[fAudioAllowDTSPassCheck state]] forKey: @"AudioAllowDTSPass"];
-    [queueFileJob setObject:[NSNumber numberWithInteger:[fAudioAllowMP3PassCheck state]] forKey: @"AudioAllowMP3Pass"];
+    [queueFileJob setObject:[NSNumber numberWithInteger:[fAudioAllowAACPassCheck    state]] forKey: @"AudioAllowAACPass"];
+    [queueFileJob setObject:[NSNumber numberWithInteger:[fAudioAllowAC3PassCheck    state]] forKey: @"AudioAllowAC3Pass"];
+    [queueFileJob setObject:[NSNumber numberWithInteger:[fAudioAllowDTSHDPassCheck  state]] forKey: @"AudioAllowDTSHDPass"];
+    [queueFileJob setObject:[NSNumber numberWithInteger:[fAudioAllowDTSPassCheck    state]] forKey: @"AudioAllowDTSPass"];
+    [queueFileJob setObject:[NSNumber numberWithInteger:[fAudioAllowEAC3PassCheck   state]] forKey: @"AudioAllowEAC3Pass"];
+    [queueFileJob setObject:[NSNumber numberWithInteger:[fAudioAllowFLACPassCheck   state]] forKey: @"AudioAllowFLACPass"];
+    [queueFileJob setObject:[NSNumber numberWithInteger:[fAudioAllowMP3PassCheck    state]] forKey: @"AudioAllowMP3Pass"];
+    [queueFileJob setObject:[NSNumber numberWithInteger:[fAudioAllowTrueHDPassCheck state]] forKey: @"AudioAllowTrueHDPass"];
     // just in case we need it for display purposes
     [queueFileJob setObject:[fAudioFallbackPopUp titleOfSelectedItem] forKey: @"AudioEncoderFallback"];
     // actual fallback encoder
@@ -3186,11 +3189,14 @@ fWorkingCount = 0;
     [fVidTurboPassCheck setState:[[queueToApply objectForKey:@"VideoTurboTwoPass"] intValue]];
     
     /* Auto Passthru */
-    [fAudioAllowAACPassCheck setState:[[queueToApply objectForKey:@"AudioAllowAACPass"] intValue]];
-    [fAudioAllowAC3PassCheck setState:[[queueToApply objectForKey:@"AudioAllowAC3Pass"] intValue]];
-    [fAudioAllowDTSHDPassCheck setState:[[queueToApply objectForKey:@"AudioAllowDTSHDPass"] intValue]];
-    [fAudioAllowDTSPassCheck setState:[[queueToApply objectForKey:@"AudioAllowDTSPass"] intValue]];
-    [fAudioAllowMP3PassCheck setState:[[queueToApply objectForKey:@"AudioAllowMP3Pass"] intValue]];
+    [fAudioAllowAACPassCheck    setState:[[queueToApply    objectForKey:@"AudioAllowAACPass"]    intValue]];
+    [fAudioAllowAC3PassCheck    setState:[[queueToApply    objectForKey:@"AudioAllowAC3Pass"]    intValue]];
+    [fAudioAllowDTSHDPassCheck  setState:[[queueToApply    objectForKey:@"AudioAllowDTSHDPass"]  intValue]];
+    [fAudioAllowDTSPassCheck    setState:[[queueToApply    objectForKey:@"AudioAllowDTSPass"]    intValue]];
+    [fAudioAllowEAC3PassCheck   setState:[[queueToApply    objectForKey:@"AudioAllowEAC3Pass"]   intValue]];
+    [fAudioAllowFLACPassCheck   setState:[[queueToApply    objectForKey:@"AudioAllowFLACPass"]   intValue]];
+    [fAudioAllowMP3PassCheck    setState:[[queueToApply    objectForKey:@"AudioAllowMP3Pass"]    intValue]];
+    [fAudioAllowTrueHDPassCheck setState:[[queueToApply    objectForKey:@"AudioAllowTrueHDPass"] intValue]];
     [fAudioFallbackPopUp selectItemWithTitle:[queueToApply objectForKey:@"AudioEncoderFallback"]];
     
     /* Audio */
@@ -3669,9 +3675,21 @@ bool one_burned = FALSE;
     {
         job->acodec_copy_mask |= HB_ACODEC_DCA;
     }
+    if ([fAudioAllowEAC3PassCheck state] == NSOnState)
+    {
+        job->acodec_copy_mask |= HB_ACODEC_FFEAC3;
+    }
+    if ([fAudioAllowFLACPassCheck state] == NSOnState)
+    {
+        job->acodec_copy_mask |= HB_ACODEC_FFFLAC;
+    }
     if ([fAudioAllowMP3PassCheck state] == NSOnState)
     {
         job->acodec_copy_mask |= HB_ACODEC_MP3;
+    }
+    if ([fAudioAllowTrueHDPassCheck state] == NSOnState)
+    {
+        job->acodec_copy_mask |= HB_ACODEC_FFTRUEHD;
     }
     job->acodec_fallback = (int)[[fAudioFallbackPopUp selectedItem] tag];
     
@@ -4226,9 +4244,21 @@ bool one_burned = FALSE;
     {
         job->acodec_copy_mask |= HB_ACODEC_DCA;
     }
+    if( [[queueToApply objectForKey: @"AudioAllowEAC3Pass"] intValue] == 1 )
+    {
+        job->acodec_copy_mask |= HB_ACODEC_FFEAC3;
+    }
+    if( [[queueToApply objectForKey: @"AudioAllowFLACPass"] intValue] == 1 )
+    {
+        job->acodec_copy_mask |= HB_ACODEC_FFFLAC;
+    }
     if( [[queueToApply objectForKey: @"AudioAllowMP3Pass"] intValue] == 1 )
     {
         job->acodec_copy_mask |= HB_ACODEC_MP3;
+    }
+    if( [[queueToApply objectForKey: @"AudioAllowETrueHDass"] intValue] == 1 )
+    {
+        job->acodec_copy_mask |= HB_ACODEC_FFTRUEHD;
     }
     job->acodec_fallback = [[queueToApply objectForKey: @"JobAudioEncoderFallback"] intValue];
     
@@ -6694,6 +6724,22 @@ return YES;
         {
             [fAudioAllowDTSPassCheck setState:NSOnState];
         }
+        if ((tempObject = [chosenPreset objectForKey:@"AudioAllowEAC3Pass"]) != nil)
+        {
+            [fAudioAllowEAC3PassCheck setState:[tempObject intValue]];
+        }
+        else
+        {
+            [fAudioAllowEAC3PassCheck setState:NSOnState];
+        }
+        if ((tempObject = [chosenPreset objectForKey:@"AudioAllowFLACPass"]) != nil)
+        {
+            [fAudioAllowFLACPassCheck setState:[tempObject intValue]];
+        }
+        else
+        {
+            [fAudioAllowFLACPassCheck setState:NSOnState];
+        }
         if ((tempObject = [chosenPreset objectForKey:@"AudioAllowMP3Pass"]) != nil)
         {
             [fAudioAllowMP3PassCheck setState:[tempObject intValue]];
@@ -6701,6 +6747,14 @@ return YES;
         else
         {
             [fAudioAllowMP3PassCheck setState:NSOnState];
+        }
+        if ((tempObject = [chosenPreset objectForKey:@"AudioAllowTrueHDPass"]) != nil)
+        {
+            [fAudioAllowTrueHDPassCheck setState:[tempObject intValue]];
+        }
+        else
+        {
+            [fAudioAllowTrueHDPassCheck setState:NSOnState];
         }
         if ((tempObject = [chosenPreset objectForKey:@"AudioEncoderFallback"]) != nil)
         {
@@ -7295,12 +7349,15 @@ return YES;
         [preset setObject:[NSNumber numberWithInteger:[fPictureController grayscale]] forKey:@"VideoGrayScale"];
         
         /* Auto Pasthru */
-        [preset setObject:[NSNumber numberWithInteger:[fAudioAllowAACPassCheck state]] forKey: @"AudioAllowAACPass"];
-        [preset setObject:[NSNumber numberWithInteger:[fAudioAllowAC3PassCheck state]] forKey: @"AudioAllowAC3Pass"];
-        [preset setObject:[NSNumber numberWithInteger:[fAudioAllowDTSHDPassCheck state]] forKey: @"AudioAllowDTSHDPass"];
-        [preset setObject:[NSNumber numberWithInteger:[fAudioAllowDTSPassCheck state]] forKey: @"AudioAllowDTSPass"];
-        [preset setObject:[NSNumber numberWithInteger:[fAudioAllowMP3PassCheck state]] forKey: @"AudioAllowMP3Pass"];
-        [preset setObject:[fAudioFallbackPopUp titleOfSelectedItem] forKey: @"AudioEncoderFallback"];
+        [preset setObject:[NSNumber numberWithInteger:[fAudioAllowAACPassCheck    state]] forKey: @"AudioAllowAACPass"];
+        [preset setObject:[NSNumber numberWithInteger:[fAudioAllowAC3PassCheck    state]] forKey: @"AudioAllowAC3Pass"];
+        [preset setObject:[NSNumber numberWithInteger:[fAudioAllowDTSHDPassCheck  state]] forKey: @"AudioAllowDTSHDPass"];
+        [preset setObject:[NSNumber numberWithInteger:[fAudioAllowDTSPassCheck    state]] forKey: @"AudioAllowDTSPass"];
+        [preset setObject:[NSNumber numberWithInteger:[fAudioAllowEAC3PassCheck   state]] forKey: @"AudioAllowEAC3Pass"];
+        [preset setObject:[NSNumber numberWithInteger:[fAudioAllowFLACPassCheck   state]] forKey: @"AudioAllowFLACPass"];
+        [preset setObject:[NSNumber numberWithInteger:[fAudioAllowMP3PassCheck    state]] forKey: @"AudioAllowMP3Pass"];
+        [preset setObject:[NSNumber numberWithInteger:[fAudioAllowTrueHDPassCheck state]] forKey: @"AudioAllowTrueHDPass"];
+        [preset setObject:[fAudioFallbackPopUp titleOfSelectedItem]                       forKey: @"AudioEncoderFallback"];
         
         /* Audio */
         NSMutableArray *audioListArray = [[NSMutableArray alloc] init];
