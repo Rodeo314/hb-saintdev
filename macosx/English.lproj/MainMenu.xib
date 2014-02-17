@@ -2185,7 +2185,7 @@ AAMAAAABAAEAAAFTAAMAAAAEAAAFwgAAAAAACAAIAAgACAABAAEAAQABA</bytes>
 																	<object class="NSPopUpButton" id="586044455">
 																		<reference key="NSNextResponder" ref="754802956"/>
 																		<int key="NSvFlags">268</int>
-																		<string key="NSFrame">{{442, 8}, {100, 15}}</string>
+																		<string key="NSFrame">{{583, 8}, {100, 15}}</string>
 																		<reference key="NSSuperview" ref="754802956"/>
 																		<reference key="NSNextKeyView" ref="933946879"/>
 																		<string key="NSReuseIdentifierKey">_NS:868</string>
@@ -2273,7 +2273,7 @@ AAMAAAABAAEAAAFTAAMAAAAEAAAFwgAAAAAACAAIAAgACAABAAEAAQABA</bytes>
 																	<object class="NSTextField" id="431725280">
 																		<reference key="NSNextResponder" ref="754802956"/>
 																		<int key="NSvFlags">264</int>
-																		<string key="NSFrame">{{354, 7}, {86, 14}}</string>
+																		<string key="NSFrame">{{495, 7}, {86, 14}}</string>
 																		<reference key="NSSuperview" ref="754802956"/>
 																		<reference key="NSNextKeyView" ref="586044455"/>
 																		<bool key="NSEnabled">YES</bool>
@@ -2295,7 +2295,7 @@ AAMAAAABAAEAAAFTAAMAAAAEAAAFwgAAAAAACAAIAAgACAABAAEAAQABA</bytes>
 																<string key="NSReuseIdentifierKey">_NS:21</string>
 															</object>
 														</object>
-														<string key="NSFrame">{{349, 275}, {554, 31}}</string>
+														<string key="NSFrame">{{208, 275}, {695, 31}}</string>
 														<reference key="NSSuperview" ref="577274772"/>
 														<reference key="NSNextKeyView" ref="754802956"/>
 														<string key="NSReuseIdentifierKey">_NS:18</string>
