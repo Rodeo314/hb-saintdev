@@ -1268,6 +1268,7 @@ static void InitAudio( hb_job_t * job, hb_sync_common_t * common, int i )
                 case AV_MATRIX_ENCODING_DPLII:
                     av_dict_set(&av_opts, "dsur_mode",       "on", 0);
                     break;
+                case AV_MATRIX_ENCODING_DPLIIX:
                 case AV_MATRIX_ENCODING_DOLBYEX:
                     av_dict_set(&av_opts, "dsurex_mode",     "on", 0);
                     break;
