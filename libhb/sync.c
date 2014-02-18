@@ -1241,6 +1241,21 @@ static void InitAudio( hb_job_t * job, hb_sync_common_t * common, int i )
         }
 
         /*
+         * the default frame size selected by the encoder may not match
+         * that of the input stream, but the FLAC encoder will honor whatever
+         * frame size we set as long as it's a valid FLAC block size.
+         *
+         * for AC-3, the frame size is the same for all streams.
+         *
+         * for E-AC-3, using the same bitrate and sample rate as the input
+         * should result in the frame size being the same as the source's.
+         */
+        if (w->audio->config.out.codec == HB_ACODEC_FLAC_PASS)
+        {
+            c->frame_size = w->audio->config.in.samples_per_frame;
+        }
+
+        /*
          * we want the output to be as close as possible to what we're passing
          * through, and we do have access to the source's matrix encoding mode.
          */
