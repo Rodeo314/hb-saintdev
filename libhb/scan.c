@@ -1027,7 +1027,7 @@ static void LookForAudio( hb_title_t * title, hb_buffer_t * b )
     hb_fifo_close( &audio->priv.scan_cache );
 
     audio->config.in.samplerate = info.rate;
-    audio->config.in.sample_fmt = info.sample_fmt;
+    audio->config.in.sample_bit_depth = info.sample_bit_depth;
     audio->config.in.samples_per_frame = info.samples_per_frame;
     audio->config.in.bitrate = info.bitrate;
     audio->config.in.matrix_encoding = info.matrix_encoding;

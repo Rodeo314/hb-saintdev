@@ -1219,24 +1219,21 @@ static void InitAudio( hb_job_t * job, hb_sync_common_t * common, int i )
             av_get_channel_layout_nb_channels(w->audio->config.in.channel_layout);
 
         /*
-         * lossless codecs may encode differently depending on the sample format,
-         * so we need to set it correctly if we want the bitstream to be as close
+         * lossless codecs may encode differently depending on the bit depth, so
+         * we need to set it correctly if we want the bitstream to be as close
          * as possible to what we're passing through
          */
         if (w->audio->config.out.codec == HB_ACODEC_FLAC_PASS)
         {
-            switch (av_get_packed_sample_fmt(w->audio->config.in.sample_fmt))
+            if (w->audio->config.in.sample_bit_depth <= 16)
             {
-                case AV_SAMPLE_FMT_S16:
-                    hb_ff_set_sample_fmt(c, codec, AV_SAMPLE_FMT_S16);
-                    c->bits_per_raw_sample = 16;
-                    break;
-                case AV_SAMPLE_FMT_S32:
-                default:
-                    hb_ff_set_sample_fmt(c, codec, AV_SAMPLE_FMT_S32);
-                    c->bits_per_raw_sample = 24;//fixme: do we know it from the source (flacdec)?
-                    break;
+                hb_ff_set_sample_fmt(c, codec, AV_SAMPLE_FMT_S16);
             }
+            else
+            {
+                hb_ff_set_sample_fmt(c, codec, AV_SAMPLE_FMT_S32);
+            }
+            c->bits_per_raw_sample = w->audio->config.in.sample_bit_depth;
         }
         else
         {

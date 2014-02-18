@@ -706,8 +706,8 @@ static int decavcodecaBSInfo( hb_work_object_t *w, const hb_buffer_t *buf,
                         hb_log("decavcodecaBSInfo: warning: invalid frame sample_rate! Using context sample_rate.");
                     }
                     info->rate_base         = 1;
-                    info->sample_fmt        = frame->format;
                     info->samples_per_frame = frame->nb_samples;
+                    info->sample_bit_depth  = context->bits_per_raw_sample;
 
                     int bps = av_get_bits_per_sample(context->codec_id);
                     int channels = av_get_channel_layout_nb_channels(frame->channel_layout);

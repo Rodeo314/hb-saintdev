@@ -731,7 +731,7 @@ struct hb_audio_config_s
         PRIVATE uint32_t flags; /* Bitstream flags, codec-specific */
         PRIVATE uint32_t mode; /* Bitstream mode, codec-specific */
         PRIVATE int samplerate; /* Input sample rate (Hz) */
-        PRIVATE int sample_fmt; /* Input sample format (AVSampleFmt) */
+        PRIVATE int sample_bit_depth; /* Input samples' bit depth (0 if unknown) */
         PRIVATE int samples_per_frame; /* Number of samples per frame */
         PRIVATE int bitrate; /* Input bitrate (bps) */
         PRIVATE int matrix_encoding; /* Source matrix encoding mode, set by the audio decoder */
@@ -1068,8 +1068,8 @@ typedef struct hb_work_info_s
             uint64_t channel_layout;
             hb_chan_map_t * channel_map;
             int samples_per_frame;
+            int sample_bit_depth;
             int matrix_encoding;
-            int sample_fmt;
         };
     };
 } hb_work_info_t;

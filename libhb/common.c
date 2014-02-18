@@ -3585,7 +3585,7 @@ void hb_audio_config_init(hb_audio_config_t * audiocfg)
     audiocfg->in.flags = 0;
     audiocfg->in.mode = 0;
     audiocfg->in.samplerate = -1;
-    audiocfg->in.sample_fmt = AV_SAMPLE_FMT_NONE;
+    audiocfg->in.sample_bit_depth = 0;
     audiocfg->in.samples_per_frame = -1;
     audiocfg->in.bitrate = -1;
     audiocfg->in.matrix_encoding = AV_MATRIX_ENCODING_NONE;
