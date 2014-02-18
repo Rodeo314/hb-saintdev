@@ -691,6 +691,7 @@ int hb_audio_samplerate_get_best(uint32_t codec, int samplerate, int *sr_shift)
                                codec == HB_ACODEC_CA_HAAC))
     {
         // ca_haac can't do samplerates < 32 kHz
+        // libav's E-AC-3 encoder can't do samplerates < 32 kHz
         // AC-3 < 32 kHz suffers from poor hardware compatibility
         best_samplerate = 32000;
     }
@@ -943,7 +944,7 @@ fail:
  *
  * ffeac3
  * ------
- * supported samplerates: 32 - 48 kHz (< 32 kHz disabled for compatibility reasons)
+ * supported samplerates: 32 - 48 kHz (< 32 kHz not supported by libav encoder)
  * Dolby's encoder has a min. of 224 Kbps for 5 full-bandwidth channels (5.0, 5.1)
  * The maximum bitrate is 128 bits per sample per second
  * Limits: minimum of 224/5 Kbps per full-bandwidth channel
