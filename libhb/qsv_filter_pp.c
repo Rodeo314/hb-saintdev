@@ -43,7 +43,7 @@ static int hb_qsv_filter_pre_work( hb_filter_object_t * filter,
                                hb_buffer_t ** buf_out );
 static int hb_qsv_filter_pre_info( hb_filter_object_t * filter,
                                hb_filter_info_t * info );
-static void hb_qsv_filter_pre_close( hb_filter_object_t * filter );
+static int hb_qsv_filter_pre_close( hb_filter_object_t * filter );
 
 static int hb_qsv_filter_post_init( hb_filter_object_t * filter,
                                hb_filter_init_t * init );
@@ -477,15 +477,16 @@ static int hb_qsv_filter_pre_work( hb_filter_object_t * filter,
 
     return HB_FILTER_OK;
 }
-static void hb_qsv_filter_pre_close( hb_filter_object_t * filter ){
+static int hb_qsv_filter_pre_close(hb_filter_object_t *filter)
+{
     int i = 0;
     mfxStatus sts = MFX_ERR_NONE;
 
     hb_filter_private_t * pv = filter->private_data;
 
-    if ( !pv )
+    if (pv == NULL)
     {
-        return;
+        return MFX_ERR_NULL_PTR;
     }
 
     sws_freeContext(pv->sws_context_to_nv12);
@@ -528,6 +529,8 @@ static void hb_qsv_filter_pre_close( hb_filter_object_t * filter ){
 
     free( pv );
     filter->private_data = NULL;
+
+    return sts;
 }
 
 
