@@ -777,7 +777,7 @@ static void do_job(hb_job_t *job)
      * When QSV is used for decoding, not all CPU-based filters are supported,
      * so we need to do a little extra setup here.
      */
-    if (hb_qsv_decode_is_enabled(job))
+    if (hb_qsv_decode_is_enabled(job) == HB_DECODE_SUPPORT_QSV)
     {
         int vpp_settings[7];
         int num_cpu_filters = 0;
@@ -948,7 +948,7 @@ static void do_job(hb_job_t *job)
     }
 
 #ifdef USE_QSV
-    if (hb_qsv_decode_is_enabled(job))
+    if (hb_qsv_decode_is_enabled(job) == HB_DECODE_SUPPORT_QSV)
     {
         job->fifo_mpeg2  = hb_fifo_init( FIFO_MINI, FIFO_MINI_WAKE );
         job->fifo_raw    = hb_fifo_init( FIFO_MINI, FIFO_MINI_WAKE );
@@ -1193,7 +1193,16 @@ static void do_job(hb_job_t *job)
         hb_error("No video decoder set!");
         goto cleanup;
     }
-    hb_list_add(job->list_work, (w = hb_get_work(title->video_codec)));
+#ifdef USE_QSV
+    if (hb_qsv_decode_is_enabled(job) == HB_DECODE_SUPPORT_QSVDEC)
+    {
+        hb_list_add(job->list_work, (w = hb_get_work(WORK_DECQSV)));
+    }
+    else
+#endif
+    {
+        hb_list_add(job->list_work, (w = hb_get_work(title->video_codec)));
+    }
     w->codec_param = title->video_codec_param;
     w->fifo_in  = job->fifo_mpeg2;
     w->fifo_out = job->fifo_raw;

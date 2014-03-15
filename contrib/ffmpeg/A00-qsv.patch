@@ -1,5 +1,5 @@
 diff --git a/configure b/configure
-index c6789d5..d1a8661 100755
+index 292da47..e54c871 100755
 --- a/configure
 +++ b/configure
 @@ -132,6 +132,7 @@ Component options:
@@ -10,7 +10,7 @@ index c6789d5..d1a8661 100755
    --enable-vaapi           enable VAAPI code
    --enable-vda             enable VDA code
    --enable-vdpau           enable VDPAU code
-@@ -1139,6 +1140,7 @@ EXTERNAL_LIBRARY_LIST="
+@@ -1141,6 +1142,7 @@ EXTERNAL_LIBRARY_LIST="
  
  HWACCEL_LIST="
      dxva2
@@ -18,7 +18,7 @@ index c6789d5..d1a8661 100755
      vaapi
      vda
      vdpau
-@@ -1800,6 +1802,7 @@ zmbv_encoder_deps="zlib"
+@@ -1803,6 +1805,7 @@ zmbv_encoder_deps="zlib"
  
  # hardware accelerators
  dxva2_deps="dxva2api_h"
@@ -26,7 +26,7 @@ index c6789d5..d1a8661 100755
  vaapi_deps="va_va_h"
  vda_deps="VideoDecodeAcceleration_VDADecoder_h pthreads"
  vda_extralibs="-framework CoreFoundation -framework VideoDecodeAcceleration -framework QuartzCore"
-@@ -1811,6 +1814,8 @@ h263_vdpau_hwaccel_deps="vdpau"
+@@ -1814,6 +1817,8 @@ h263_vdpau_hwaccel_deps="vdpau"
  h263_vdpau_hwaccel_select="h263_decoder"
  h264_dxva2_hwaccel_deps="dxva2"
  h264_dxva2_hwaccel_select="h264_decoder"
@@ -35,7 +35,7 @@ index c6789d5..d1a8661 100755
  h264_vaapi_hwaccel_deps="vaapi"
  h264_vaapi_hwaccel_select="h264_decoder"
  h264_vda_hwaccel_deps="vda"
-@@ -3861,6 +3866,7 @@ check_header dxva.h
+@@ -3863,6 +3868,7 @@ check_header dxva.h
  check_header dxva2api.h
  check_header io.h
  check_header malloc.h
@@ -44,7 +44,7 @@ index c6789d5..d1a8661 100755
  check_header sys/mman.h
  check_header sys/param.h
 diff --git a/libavcodec/Makefile b/libavcodec/Makefile
-index 9e4dd25..1fbee4a 100644
+index 7b50c27..e28a591 100644
 --- a/libavcodec/Makefile
 +++ b/libavcodec/Makefile
 @@ -4,6 +4,7 @@ FFLIBS = avutil
@@ -71,7 +71,7 @@ index 9e4dd25..1fbee4a 100644
  OBJS-$(CONFIG_HEVC_DECODER)            += hevc.o hevc_mvs.o hevc_ps.o hevc_sei.o \
                                            hevc_cabac.o hevc_refs.o hevcpred.o    \
                                            hevcdsp.o hevc_filter.o cabac.o
-@@ -692,6 +695,7 @@ SKIPHEADERS                            += %_tablegen.h                  \
+@@ -693,6 +696,7 @@ SKIPHEADERS                            += %_tablegen.h                  \
  SKIPHEADERS-$(CONFIG_DXVA2)            += dxva2.h dxva2_internal.h
  SKIPHEADERS-$(CONFIG_LIBSCHROEDINGER)  += libschroedinger.h
  SKIPHEADERS-$(CONFIG_MPEG_XVMC_DECODER) += xvmc.h
@@ -80,7 +80,7 @@ index 9e4dd25..1fbee4a 100644
  SKIPHEADERS-$(CONFIG_VDA)              += vda.h
  SKIPHEADERS-$(CONFIG_VDPAU)            += vdpau.h vdpau_internal.h
 diff --git a/libavcodec/allcodecs.c b/libavcodec/allcodecs.c
-index b6c27c0..287b912 100644
+index ed6d7ff..6e2c8ff 100644
 --- a/libavcodec/allcodecs.c
 +++ b/libavcodec/allcodecs.c
 @@ -155,6 +155,7 @@ void avcodec_register_all(void)
@@ -1246,10 +1246,10 @@ index 0000000..52378cf
 +#endif                          //AVCODEC_QSV_H
 diff --git a/libavcodec/qsv_h264.c b/libavcodec/qsv_h264.c
 new file mode 100644
-index 0000000..53a9f16
+index 0000000..5422fc6
 --- /dev/null
 +++ b/libavcodec/qsv_h264.c
-@@ -0,0 +1,982 @@
+@@ -0,0 +1,991 @@
 +/* ********************************************************************* *\
 +
 +Copyright (C) 2013 Intel Corporation.  All rights reserved.
@@ -1738,6 +1738,8 @@ index 0000000..53a9f16
 +        }
 +        else
 +            while (current_offset <= current_size) {
++                uint8_t *tmp;
++                size_t   len;
 +                current_nal_size =
 +                    ((unsigned char) current_position[current_offset - 2] << 24 |
 +                     (unsigned char) current_position[current_offset -  1] << 16 |
@@ -1745,6 +1747,13 @@ index 0000000..53a9f16
 +                     (unsigned char) current_position[current_offset + 1]) - 1;
 +                nal_type =
 +                    (unsigned char) current_position[current_offset + 2] & 0x1F;
++                tmp = &current_position[current_offset + 2];
++                len =  current_nal_size + 1;
++                av_log(avctx, AV_LOG_FATAL,
++                       "decqsv, NAL unit: %"PRIu8" - %"PRIu8" - %02"PRIu8" (%8lu)\n",
++                       ((tmp[0] & 0x80) >> 7),
++                       ((tmp[0] & 0x60) >> 5),
++                       ((tmp[0] & 0x1f) >> 0), len);
 +                {
 +                    frame_length += current_nal_size;
 +                    memcpy(&qsv_decode->bs.Data[0] +

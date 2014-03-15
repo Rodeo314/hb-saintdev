@@ -909,8 +909,9 @@ struct hb_title_s
 
     // additional supported video decoders (e.g. HW-accelerated implementations)
     int video_decode_support;
-#define HB_DECODE_SUPPORT_SW  0x01 // software (libavcodec or mpeg2dec)
-#define HB_DECODE_SUPPORT_QSV 0x02 // Intel Quick Sync Video
+#define HB_DECODE_SUPPORT_SW     0x01 // software (libavcodec or mpeg2dec)
+#define HB_DECODE_SUPPORT_QSV    0x02 // Intel Quick Sync Video
+#define HB_DECODE_SUPPORT_QSVDEC 0x04 // Intel Quick Sync Video (synchronous w/system memory)
 
     hb_metadata_t *metadata;
 
@@ -1085,6 +1086,7 @@ extern hb_work_object_t hb_enctheora;
 extern hb_work_object_t hb_encx265;
 extern hb_work_object_t hb_decavcodeca;
 extern hb_work_object_t hb_decavcodecv;
+extern hb_work_object_t hb_decqsv;
 extern hb_work_object_t hb_declpcm;
 extern hb_work_object_t hb_enclame;
 extern hb_work_object_t hb_encvorbis;

@@ -124,7 +124,7 @@ struct hb_work_private_s
         int decode;
         av_qsv_config config;
         const char *codec_name;
-#define USE_QSV_PTS_WORKAROUND // work around out-of-order output timestamps
+//#define USE_QSV_PTS_WORKAROUND // work around out-of-order output timestamps
 #ifdef  USE_QSV_PTS_WORKAROUND
         hb_list_t *pts_list;
 #endif
@@ -2085,6 +2085,7 @@ static int decavcodecvInfo( hb_work_object_t *w, hb_work_info_t *info )
             {
 #ifdef USE_QSV
                 info->video_decode_support |= HB_DECODE_SUPPORT_QSV;
+                info->video_decode_support |= HB_DECODE_SUPPORT_QSVDEC;
 #endif
             }
             break;

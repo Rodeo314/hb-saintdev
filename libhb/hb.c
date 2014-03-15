@@ -1659,6 +1659,7 @@ int hb_global_init()
     hb_register(&hb_encx265);
 #endif
 #ifdef USE_QSV
+    hb_register(&hb_decqsv);
     hb_register(&hb_encqsv);
 #endif
     
