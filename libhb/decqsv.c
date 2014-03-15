@@ -819,6 +819,57 @@ static mfxFrameSurface1* get_unlocked_surface(mfxFrameSurface1 *surfaces,
     return NULL;
 }
 
+static int buffer_fill_from_surface(hb_work_private_t *pv,
+                                    mfxFrameSurface1 *surface, hb_buffer_t *buf)
+{
+    AVPicture pic_in, pic_cropped, pic_out;
+
+    /*
+     * Fill the output buffer and prepare input for color space conversion.
+     */
+    if (buf->size != hb_avpicture_fill(&pic_out, buf))
+    {
+        hb_log("decqsv: hb_avpicture_fill failed");
+        return -1;
+    }
+    if (av_image_fill_linesizes(pic_in.linesize, AV_PIX_FMT_NV12,
+                                surface->Info.Width) < 0)
+    {
+        hb_log("decqsv: av_image_fill_linesizes failed");
+        return -1;
+    }
+    if (av_image_fill_pointers(pic_in.data, AV_PIX_FMT_NV12,
+                               surface->Info.Height, surface->Data.Y,
+                               pic_in.linesize) != pv->surface_size)
+    {
+        hb_log("decqsv: av_image_fill_pointers failed");
+        return -1;
+    }
+
+    /*
+     * The actual image may not start at (0, 0) in the decoded output, but our
+     * buffers don't allow for "soft" cropping (unlike MFX surfaces), so we have
+     * to crop before colorspace conversion happens (our output buffer is too
+     * small to hold the uncropped source frame if the offset is non-zero).
+     *
+     * av_picture_crop just alters the data pointer,
+     * there is no need for an intermediate buffer.
+     */
+    if (av_picture_crop(&pic_cropped, &pic_in, AV_PIX_FMT_NV12,
+                        surface->Info.CropX, surface->Info.CropY) < 0)
+    {
+        hb_log("decqsv: av_picture_crop failed");
+        return -1;
+    }
+    if (sws_scale(pv->sws_context, (const uint8_t* const*)pic_cropped.data,
+                  pic_cropped.linesize, 0, pv->job->title->height, pic_out.data,
+                  pic_out.linesize) <= 0)
+    {
+        hb_log("decqsv: sws_scale failed");
+        return -1;
+    }
+}
+
 static void buffer_set_properties(hb_work_private_t *pv,
                                   mfxFrameSurface1 *surface, hb_buffer_t *buf)
 {
@@ -874,8 +925,6 @@ static int bitstream_decode(hb_work_private_t *pv, mfxBitstream *bitstream)
 {
     mfxStatus status;
     hb_buffer_t *out;
-    hb_title_t *title = pv->job->title;
-    AVPicture pic_in, pic_cropped, pic_out;
     mfxSyncPoint syncpoint = (mfxSyncPoint)0;
     mfxFrameSurface1 *surface_work, *surface_out = NULL;
 
@@ -954,60 +1003,20 @@ static int bitstream_decode(hb_work_private_t *pv, mfxBitstream *bitstream)
 
     /*
      * We quit the loop without returning, which means a frame is available.
-     *
-     * Prepare output buffer and setup color space conversion.
      */
-    out = hb_video_buffer_init(title->width, title->height);
+    out = hb_video_buffer_init(pv->job->title->width, pv->job->title->height);
     if (out == NULL)
     {
         hb_log("decqsv: failed to create output frame buffer");
         return -1;
     }
-    if (out->size != hb_avpicture_fill(&pic_out, out))
+    if (buffer_fill_from_surface(pv, surface_out, out) < 0)
     {
         hb_log("decqsv: failed to fill output frame buffer");
         return -1;
     }
-    if (av_image_fill_linesizes(pic_in.linesize, AV_PIX_FMT_NV12,
-                                surface_out->Info.Width) < 0)
-    {
-        hb_log("decqsv: failed to determine decoded frame strides");
-        return -1;
-    }
-    if (av_image_fill_pointers(pic_in.data, AV_PIX_FMT_NV12,
-                               surface_out->Info.Height,
-                               surface_out->Data.Y,
-                               pic_in.linesize) != pv->surface_size)
-    {
-        hb_log("decqsv: failed to fill decoded frame buffer");
-        return -1;
-    }
-
-    /*
-     * The actual image may not start at (0, 0) in the decoded output, but our
-     * buffers don't allow for "soft" cropping (unlike MFX surfaces), so we have
-     * to crop before colorspace conversion happens (our output buffer is too
-     * small to hold the uncropped source frame if the offset is non-zero).
-     *
-     * av_picture_crop just alters the data pointer,
-     * there is no need for an intermediate buffer.
-     */
-    if (av_picture_crop(&pic_cropped, &pic_in, AV_PIX_FMT_NV12,
-                        surface_out->Info.CropX,
-                        surface_out->Info.CropY) < 0)
-    {
-        hb_log("decqsv: av_picture_crop failed");
-        return -1;
-    }
-    if (sws_scale(pv->sws_context, (const uint8_t* const*)pic_cropped.data,
-                  pic_cropped.linesize, 0, title->height, pic_out.data,
-                  pic_out.linesize) <= 0)
-    {
-        hb_log("decqsv: sws_scale failed");
-        return -1;
-    }
-
     buffer_set_properties(pv, surface_out, out);
+
     hb_list_add(pv->decoded_frames, out);
     return 0;
 }
