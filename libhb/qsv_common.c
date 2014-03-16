@@ -572,7 +572,7 @@ void hb_qsv_info_print()
         }
         if (hb_qsv_info_hevc != NULL && hb_qsv_info_hevc->available)
         {
-            hb_log(" - H.265 encoder: yes (unsupported)");
+            hb_log(" - H.265 encoder: yes");
             hb_log("    - preferred implementation: %s",
                    hb_qsv_impl_get_name(hb_qsv_info_hevc->implementation));
             if (qsv_hardware_info_hevc.available)
