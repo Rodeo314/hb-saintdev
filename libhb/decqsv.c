@@ -913,7 +913,7 @@ static void buffer_set_properties(hb_work_private_t *pv,
          * If there was no  PTS for this frame, assume video is CFR
          * and use the next PTS guesstimate as the frame's start time.
          */
-        hb_deep_log(2, "decqsv: no input PTS");//debug
+        hb_log("decqsv: no input PTS");//debug
         buf->s.start = pv->next_pts;
     }
     else
