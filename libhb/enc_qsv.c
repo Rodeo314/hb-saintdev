@@ -507,7 +507,7 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     job->qsv.enc_info.is_init_done = 1;
 
     // set codec, profile/level and FrameInfo
-    pv->param.videoParam->mfx.CodecId                 = info->codec_id;
+    pv->param.videoParam->mfx.CodecId                 = pv->qsv_info->codec_id;
     pv->param.videoParam->mfx.CodecLevel              = MFX_LEVEL_UNKNOWN;
     pv->param.videoParam->mfx.CodecProfile            = MFX_PROFILE_UNKNOWN;
     pv->param.videoParam->mfx.FrameInfo.FourCC        = MFX_FOURCC_NV12;
