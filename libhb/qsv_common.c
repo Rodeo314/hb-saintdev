@@ -17,6 +17,7 @@
 #include "hb_dict.h"
 #include "qsv_common.h"
 #include "h264_common.h"
+#include "h265_common.h"
 
 // QSV info for each codec
 static hb_qsv_info_t *hb_qsv_info_avc       = NULL;
@@ -75,7 +76,8 @@ static int qsv_implementation_is_hardware(mfxIMPL implementation)
 
 int hb_qsv_available()
 {
-    return hb_qsv_video_encoder_is_enabled(HB_VCODEC_QSV_H264);
+    return (hb_qsv_video_encoder_is_enabled(HB_VCODEC_QSV_H264) ||
+            hb_qsv_video_encoder_is_enabled(HB_VCODEC_QSV_H265));
 }
 
 int hb_qsv_video_encoder_is_enabled(int encoder)
@@ -83,7 +85,9 @@ int hb_qsv_video_encoder_is_enabled(int encoder)
     switch (encoder)
     {
         case HB_VCODEC_QSV_H264:
-            return hb_qsv_info_avc != NULL && hb_qsv_info_avc->available;
+            return hb_qsv_info_avc  != NULL && hb_qsv_info_avc->available;
+        case HB_VCODEC_QSV_H265:
+            return hb_qsv_info_hevc != NULL && hb_qsv_info_hevc->available;
         default:
             return 0;
     }
@@ -927,6 +931,7 @@ int hb_qsv_param_parse(hb_qsv_param_t *param, hb_qsv_info_t *info,
         switch (info->codec_id)
         {
             case MFX_CODEC_AVC:
+            case MFX_CODEC_HEVC:
                 ivalue = hb_qsv_atobool(value, &error);
                 break;
             default:
@@ -948,6 +953,9 @@ int hb_qsv_param_parse(hb_qsv_param_t *param, hb_qsv_info_t *info,
             case MFX_CODEC_AVC:
                 ivalue = hb_qsv_atoindex(hb_h264_vidformat_names, value, &error);
                 break;
+            case MFX_CODEC_HEVC:
+                ivalue = hb_qsv_atoindex(hb_h265_vidformat_names, value, &error);
+                break;
             default:
                 return HB_QSV_PARAM_UNSUPPORTED;
         }
@@ -963,6 +971,9 @@ int hb_qsv_param_parse(hb_qsv_param_t *param, hb_qsv_info_t *info,
             case MFX_CODEC_AVC:
                 ivalue = hb_qsv_atoindex(hb_h264_fullrange_names, value, &error);
                 break;
+            case MFX_CODEC_HEVC:
+                ivalue = hb_qsv_atoindex(hb_h265_fullrange_names, value, &error);
+                break;
             default:
                 return HB_QSV_PARAM_UNSUPPORTED;
         }
@@ -977,6 +988,9 @@ int hb_qsv_param_parse(hb_qsv_param_t *param, hb_qsv_info_t *info,
         {
             case MFX_CODEC_AVC:
                 ivalue = hb_qsv_atoindex(hb_h264_colorprim_names, value, &error);
+                break;
+            case MFX_CODEC_HEVC:
+                ivalue = hb_qsv_atoindex(hb_h265_colorprim_names, value, &error);
                 break;
             default:
                 return HB_QSV_PARAM_UNSUPPORTED;
@@ -994,6 +1008,9 @@ int hb_qsv_param_parse(hb_qsv_param_t *param, hb_qsv_info_t *info,
             case MFX_CODEC_AVC:
                 ivalue = hb_qsv_atoindex(hb_h264_transfer_names, value, &error);
                 break;
+            case MFX_CODEC_HEVC:
+                ivalue = hb_qsv_atoindex(hb_h265_transfer_names, value, &error);
+                break;
             default:
                 return HB_QSV_PARAM_UNSUPPORTED;
         }
@@ -1010,6 +1027,9 @@ int hb_qsv_param_parse(hb_qsv_param_t *param, hb_qsv_info_t *info,
             case MFX_CODEC_AVC:
                 ivalue = hb_qsv_atoindex(hb_h264_colmatrix_names, value, &error);
                 break;
+            case MFX_CODEC_HEVC:
+                ivalue = hb_qsv_atoindex(hb_h265_colmatrix_names, value, &error);
+                break;
             default:
                 return HB_QSV_PARAM_UNSUPPORTED;
         }
@@ -1025,6 +1045,7 @@ int hb_qsv_param_parse(hb_qsv_param_t *param, hb_qsv_info_t *info,
         switch (info->codec_id)
         {
             case MFX_CODEC_AVC:
+//          case MFX_CODEC_HEVC:
                 ivalue = hb_qsv_atobool(value, &error);
                 break;
             default:
@@ -1042,6 +1063,7 @@ int hb_qsv_param_parse(hb_qsv_param_t *param, hb_qsv_info_t *info,
         switch (info->codec_id)
         {
             case MFX_CODEC_AVC:
+//          case MFX_CODEC_HEVC:
                 ivalue = hb_qsv_atobool(value, &error);
                 break;
             default:
@@ -1190,6 +1212,8 @@ const char* const* hb_qsv_profile_get_names(int encoder)
     {
         case HB_VCODEC_QSV_H264:
             return hb_h264_profile_names;
+        case HB_VCODEC_QSV_H265:
+            return hb_h265_profile_names;
         default:
             return NULL;
     }
@@ -1201,6 +1225,8 @@ const char* const* hb_qsv_level_get_names(int encoder)
     {
         case HB_VCODEC_QSV_H264:
             return hb_h264_level_names;
+        case HB_VCODEC_QSV_H265:
+            return hb_h265_level_names;
         default:
             return NULL;
     }
@@ -1208,29 +1234,35 @@ const char* const* hb_qsv_level_get_names(int encoder)
 
 const char* hb_qsv_video_quality_get_name(uint32_t codec)
 {
-    uint64_t caps;
-    switch (codec)
-    {
-        case HB_VCODEC_QSV_H264:
-            caps = hb_qsv_info_avc != NULL ? hb_qsv_info_avc->capabilities : 0;
-            return (caps & HB_QSV_CAP_RATECONTROL_ICQ) ? "ICQ" : "QP";
+    uint64_t codec_caps = 0;
+    hb_qsv_info_t *info = hb_qsv_info_get(codec);
 
-        default:
-            return "QP";
+    if (info != NULL)
+    {
+        codec_caps = info->capabilities;
     }
+
+    return (codec_caps & HB_QSV_CAP_RATECONTROL_ICQ) ? "ICQ" : "QP";
 }
 
 void hb_qsv_video_quality_get_limits(uint32_t codec, float *low, float *high,
                                      float *granularity, int *direction)
 {
-    uint64_t caps;
+    uint64_t codec_caps = 0;
+    hb_qsv_info_t *info = hb_qsv_info_get(codec);
+
+    if (info != NULL)
+    {
+        codec_caps = info->capabilities;
+    }
+
     switch (codec)
     {
         case HB_VCODEC_QSV_H264:
-            caps = hb_qsv_info_avc != NULL ? hb_qsv_info_avc->capabilities : 0;
+        case HB_VCODEC_QSV_H265://fixme
             *direction   = 1;
             *granularity = 1.;
-            *low         = (caps & HB_QSV_CAP_RATECONTROL_ICQ) ? 1. : 0.;
+            *low         = (codec_caps & HB_QSV_CAP_RATECONTROL_ICQ) ? 1. : 0.;
             *high        = 51.;
             break;
 

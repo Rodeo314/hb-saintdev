@@ -33,6 +33,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "qsv_common.h"
 #include "qsv_memory.h"
 #include "h264_common.h"
+#include "h265_common.h"
 
 int  encqsvInit( hb_work_object_t *, hb_job_t * );
 int  encqsvWork( hb_work_object_t *, hb_buffer_t **, hb_buffer_t ** );
