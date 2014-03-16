@@ -941,7 +941,7 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     memset(option2, 0, sizeof(mfxExtCodingOption2));
     option2->Header.BufferId = MFX_EXTBUFF_CODING_OPTION2;
     option2->Header.BufferSz = sizeof(mfxExtCodingOption2);
-    if (pv->qsv_info->capabilities & HB_QSV_CAP_MSDK_API_1_6)
+    if (pv->qsv_info->capabilities & HB_QSV_CAP_OPTION2)
     {
         // attach to get the final output mfxExtCodingOption2 settings
         videoParam.ExtParam[videoParam.NumExtParam++] = (mfxExtBuffer*)option2;

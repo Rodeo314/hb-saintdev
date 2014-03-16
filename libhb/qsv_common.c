@@ -253,7 +253,7 @@ static int query_capabilities(mfxSession session, mfxVersion version, hb_qsv_inf
         /* API-specific features that can't be queried */
         if (HB_CHECK_MFX_VERSION(version, 1, 6))
         {
-            // API >= 1.6 (mfxBitstream::DecodeTimeStamp, mfxExtCodingOption2)
+            // API >= 1.6 (mfxBitstream::DecodeTimeStamp, 4K, H.264 Level 5.2)
             info->capabilities |= HB_QSV_CAP_MSDK_API_1_6;
         }
 
@@ -346,6 +346,9 @@ static int query_capabilities(mfxSession session, mfxVersion version, hb_qsv_inf
                 fprintf(stderr, "LookAheadDS:   %4"PRIu16"\n", extCodingOption2.LookAheadDS);
                 fprintf(stderr, "-------------------\n");
 #endif
+
+                /* Encoder can be configured via mfxExtCodingOption2 */
+                info->capabilities |= HB_QSV_CAP_OPTION2;
 
                 /*
                  * Sanitize API 1.6 fields:
@@ -1472,7 +1475,7 @@ int hb_qsv_param_default(hb_qsv_param_t *param, mfxVideoParam *videoParam,
         param->videoParam->ExtParam                                   = param->ExtParamArray;
         param->videoParam->ExtParam[param->videoParam->NumExtParam++] = (mfxExtBuffer*)&param->codingOption;
         param->videoParam->ExtParam[param->videoParam->NumExtParam++] = (mfxExtBuffer*)&param->videoSignalInfo;
-        if (info->capabilities & HB_QSV_CAP_MSDK_API_1_6)
+        if (info->capabilities & HB_QSV_CAP_OPTION2)
         {
             param->videoParam->ExtParam[param->videoParam->NumExtParam++] = (mfxExtBuffer*)&param->codingOption2;
         }
