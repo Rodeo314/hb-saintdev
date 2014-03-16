@@ -868,6 +868,8 @@ static int buffer_fill_from_surface(hb_work_private_t *pv,
         hb_log("decqsv: sws_scale failed");
         return -1;
     }
+
+    return 0;
 }
 
 static void buffer_set_properties(hb_work_private_t *pv,
