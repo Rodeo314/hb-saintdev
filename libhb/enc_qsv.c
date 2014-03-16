@@ -123,6 +123,7 @@ static int64_t hb_qsv_pop_next_dts(hb_list_t *list)
     return next_dts;
 }
 
+// fixme: make codec-agnostic
 static const char* qsv_h264_profile_xlat(int profile)
 {
     switch (profile)
@@ -147,6 +148,7 @@ static const char* qsv_h264_profile_xlat(int profile)
     }
 }
 
+// fixme: make codec-agnostic
 static const char* qsv_h264_level_xlat(int level)
 {
     int i;
@@ -393,6 +395,7 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     // set AsyncDepth to match that of decode and VPP
     pv->param.videoParam->AsyncDepth = job->qsv.async_depth;
 
+    // fixme: use hb_qsv_param_parse()
     // enable and set colorimetry (video signal information)
     pv->param.videoSignalInfo.ColourDescriptionPresent = 1;
     switch (job->color_matrix_code)
@@ -503,8 +506,8 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     job->qsv.enc_info.pic_struct   = pv->param.videoParam->mfx.FrameInfo.PicStruct;
     job->qsv.enc_info.is_init_done = 1;
 
-    // encode to H.264 and set FrameInfo
-    pv->param.videoParam->mfx.CodecId                 = MFX_CODEC_AVC;
+    // set codec, profile/level and FrameInfo
+    pv->param.videoParam->mfx.CodecId                 = info->codec_id;
     pv->param.videoParam->mfx.CodecLevel              = MFX_LEVEL_UNKNOWN;
     pv->param.videoParam->mfx.CodecProfile            = MFX_PROFILE_UNKNOWN;
     pv->param.videoParam->mfx.FrameInfo.FourCC        = MFX_FOURCC_NV12;
@@ -521,6 +524,7 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     pv->param.videoParam->mfx.FrameInfo.Width         = job->qsv.enc_info.align_width;
     pv->param.videoParam->mfx.FrameInfo.Height        = job->qsv.enc_info.align_height;
 
+    // fixme: codec-specific
     // set H.264 profile and level
     if (job->encoder_profile != NULL && *job->encoder_profile &&
         strcasecmp(job->encoder_profile, "auto"))
@@ -569,6 +573,7 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
         }
     }
 
+    // fixme: codec-specific
     // interlaced encoding is not always possible
     if (pv->param.videoParam->mfx.FrameInfo.PicStruct != MFX_PICSTRUCT_PROGRESSIVE)
     {
@@ -922,6 +927,7 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     memset(&videoParam, 0, sizeof(mfxVideoParam));
     videoParam.ExtParam = ExtParamArray;
     videoParam.NumExtParam = 0;
+    // fixme: codec-specific
     // introduced in API 1.3
     memset(sps_pps, 0, sizeof(mfxExtCodingOptionSPSPPS));
     sps_pps->Header.BufferId = MFX_EXTBUFF_CODING_OPTION_SPSPPS;
@@ -951,6 +957,7 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     MFXVideoENCODE_Close(session);
     if (err == MFX_ERR_NONE)
     {
+        // fixme: codec-specific
         // remove 32-bit NAL prefix (0x00 0x00 0x00 0x01)
         w->config->h264.sps_length = sps_pps->SPSBufSize - 4;
         memmove(w->config->h264.sps, w->config->h264.sps + 4,
@@ -986,6 +993,7 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
         MFXClose(session);
     }
 
+    // fixme: codec-specific
     // check whether B-frames are used
     switch (videoParam.mfx.CodecProfile)
     {
@@ -1166,6 +1174,7 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
                 break;
         }
     }
+    // fixme: codec-specific
     hb_log("encqsvInit: H.264 profile %s @ level %s",
            qsv_h264_profile_xlat(videoParam.mfx.CodecProfile),
            qsv_h264_level_xlat  (videoParam.mfx.CodecLevel));
@@ -1712,6 +1721,12 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
     }
 }
 
+/*
+ * fixme: the HEVC muxers expects either of:
+ *
+ * - hvcC-formatted extradata + MP4 formatted samples
+ * - raw parameter sets and Annex B formatted samples
+ */
 int nal_find_start_code(uint8_t** pb, size_t* size){
     if ((int) *size < 4 )
         return 0;
