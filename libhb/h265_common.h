@@ -11,8 +11,8 @@
 #define HB_H265_COMMON_H
 
 static const char* const   hb_h265_profile_names[] = { "auto", "main", "mainstillpicture", NULL, };
-static const char* const     hb_h265_level_names[] = { "auto", NULL, };
-static const int   const    hb_h265_level_values[] = {     -1,    0, };
+static const char* const     hb_h265_level_names[] = { "auto", "1.0", "2.0", "2.1", "3.0", "3.1", "4.0", "4.1", "5.0", "5.1", "5.2", "6.0", "6.1", "6.2", NULL, };
+static const int   const    hb_h265_level_values[] = {     -1,    10,   20,    21,    30,    31,    40,    41,    50,    51,    52,    60,    61,    62,     0, };
 
 // stolen from libx265's x265.h
 static const char* const hb_h265_fullrange_names[] = { "off", "on", NULL, };
