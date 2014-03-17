@@ -1594,6 +1594,90 @@ int hb_qsv_param_default(hb_qsv_param_t *param, mfxVideoParam *videoParam,
     return 0;
 }
 
+const char* hb_qsv_codec_name(uint32_t qsv_codec)
+{
+    switch (qsv_codec)
+    {
+        case MFX_CODEC_AVC:
+            return "H.264";
+        case MFX_CODEC_HEVC:
+            return "H.265";
+        default:
+            return NULL;
+    }
+}
+
+const char* hb_qsv_profile_name(uint32_t qsv_codec, uint16_t qsv_profile)
+{
+    if (qsv_codec == MFX_CODEC_AVC)
+    {
+        switch (qsv_profile)
+        {
+            case MFX_PROFILE_AVC_CONSTRAINED_BASELINE:
+                return "Constrained Baseline";
+            case MFX_PROFILE_AVC_BASELINE:
+                return "Baseline";
+            case MFX_PROFILE_AVC_EXTENDED:
+                return "Extended";
+            case MFX_PROFILE_AVC_MAIN:
+                return "Main";
+            case MFX_PROFILE_AVC_CONSTRAINED_HIGH:
+                return "Constrained High";
+            case MFX_PROFILE_AVC_PROGRESSIVE_HIGH:
+                return "Progressive High";
+            case MFX_PROFILE_AVC_HIGH:
+                return "High";
+            case MFX_PROFILE_UNKNOWN:
+            default:
+                return NULL;
+        }
+    }
+    if (qsv_codec == MFX_CODEC_HEVC)
+    {
+        switch (qsv_profile)
+        {
+            case MFX_PROFILE_HEVC_MAIN:
+                return "Main";
+            case MFX_PROFILE_HEVC_MAIN10:
+                return "Main 10";
+            case MFX_PROFILE_HEVC_MAINSP:
+                return "Main Still Picture";
+            case MFX_PROFILE_UNKNOWN:
+            default:
+                return NULL;
+        }
+    }
+    return NULL;
+}
+
+static const char* level2name(const char* const *names, const int const *values,
+                              int level)
+{
+    int i;
+    for (i = 0; names[i] != NULL && i < (sizeof(values) / sizeof(values[0]));
+         i++)
+    {
+        if (values[i] == level)
+        {
+            return names[i];
+        }
+    }
+    return NULL;
+}
+
+const char* hb_qsv_level_name(uint32_t qsv_codec, uint16_t qsv_level)
+{
+    switch (qsv_codec)
+    {
+        case MFX_CODEC_AVC:
+            return level2name(hb_h264_level_names, hb_h264_level_values, qsv_level);
+        case MFX_CODEC_HEVC:
+            return level2name(hb_h265_level_names, hb_h265_level_values, qsv_level);
+        default:
+            return NULL;
+    }
+}
+
 const char* hb_qsv_frametype_name(uint16_t qsv_frametype)
 {
     if      (qsv_frametype & MFX_FRAMETYPE_IDR)

@@ -123,45 +123,6 @@ static int64_t hb_qsv_pop_next_dts(hb_list_t *list)
     return next_dts;
 }
 
-// fixme: make codec-agnostic
-static const char* qsv_h264_profile_xlat(int profile)
-{
-    switch (profile)
-    {
-        case MFX_PROFILE_AVC_CONSTRAINED_BASELINE:
-            return "Constrained Baseline";
-        case MFX_PROFILE_AVC_BASELINE:
-            return "Baseline";
-        case MFX_PROFILE_AVC_EXTENDED:
-            return "Extended";
-        case MFX_PROFILE_AVC_MAIN:
-            return "Main";
-        case MFX_PROFILE_AVC_CONSTRAINED_HIGH:
-            return "Constrained High";
-        case MFX_PROFILE_AVC_PROGRESSIVE_HIGH:
-            return "Progressive High";
-        case MFX_PROFILE_AVC_HIGH:
-            return "High";
-        case MFX_PROFILE_UNKNOWN:
-        default:
-            return NULL;
-    }
-}
-
-// fixme: make codec-agnostic
-static const char* qsv_h264_level_xlat(int level)
-{
-    int i;
-    for (i = 0; hb_h264_level_names[i] != NULL; i++)
-    {
-        if (hb_h264_level_values[i] == level)
-        {
-            return hb_h264_level_names[i];
-        }
-    }
-    return NULL;
-}
-
 int qsv_enc_init(av_qsv_context *qsv, hb_work_private_t *pv)
 {
     int i = 0;
@@ -544,7 +505,8 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
             pv->param.videoParam->mfx.CodecProfile == MFX_PROFILE_AVC_PROGRESSIVE_HIGH)
         {
             hb_error("encqsvInit: profile %s doesn't support interlaced encoding",
-                     qsv_h264_profile_xlat(pv->param.videoParam->mfx.CodecProfile));
+                     hb_qsv_profile_name(MFX_CODEC_AVC,
+                                         pv->param.videoParam->mfx.CodecProfile));
             return -1;
         }
         if ((pv->param.videoParam->mfx.CodecLevel >= MFX_LEVEL_AVC_1b &&
@@ -552,7 +514,8 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
             (pv->param.videoParam->mfx.CodecLevel >= MFX_LEVEL_AVC_42))
         {
             hb_error("encqsvInit: level %s doesn't support interlaced encoding",
-                     qsv_h264_level_xlat(pv->param.videoParam->mfx.CodecLevel));
+                     hb_qsv_level_name(MFX_CODEC_AVC,
+                                       pv->param.videoParam->mfx.CodecLevel));
             return -1;
         }
     }
@@ -849,7 +812,7 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
      * init a dummy encode-only session to get the SPS/PPS
      * and the final output settings sanitized by Media SDK
      * this is fine since the actual encode will use the same
-     * values for all parameters relevant to the H.264 bitstream
+     * values for all parameters relevant to the bitstream
      */
     mfxStatus err;
     mfxVersion version;
@@ -1154,10 +1117,10 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
                 break;
         }
     }
-    // fixme: codec-specific
-    hb_log("encqsvInit: H.264 profile %s @ level %s",
-           qsv_h264_profile_xlat(videoParam.mfx.CodecProfile),
-           qsv_h264_level_xlat  (videoParam.mfx.CodecLevel));
+    hb_log("encqsvInit: %s profile %s @ level %s",
+           hb_qsv_codec_name  (videoParam.mfx.CodecId),
+           hb_qsv_profile_name(videoParam.mfx.CodecId, videoParam.mfx.CodecProfile),
+           hb_qsv_level_name  (videoParam.mfx.CodecId, videoParam.mfx.CodecLevel));
 
     // AsyncDepth has now been set and/or modified by Media SDK
     pv->max_async_depth = videoParam.AsyncDepth;

@@ -161,6 +161,9 @@ int hb_qsv_param_parse         (hb_qsv_param_t *param,                          
 int hb_qsv_profile_parse       (hb_qsv_param_t *param,                            hb_qsv_info_t *info, const char *profile);
 int hb_qsv_level_parse         (hb_qsv_param_t *param,                            hb_qsv_info_t *info, const char *level);
 
+const char* hb_qsv_codec_name    (uint32_t qsv_codec);
+const char* hb_qsv_profile_name  (uint32_t qsv_codec, uint16_t qsv_profile);
+const char* hb_qsv_level_name    (uint32_t qsv_codec, uint16_t qsv_level);
 const char* hb_qsv_frametype_name(uint16_t qsv_frametype);
 uint8_t     hb_qsv_frametype_xlat(uint16_t qsv_frametype, uint16_t *out_flags);
 
