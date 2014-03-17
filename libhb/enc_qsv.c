@@ -127,17 +127,18 @@ static int64_t hb_qsv_pop_next_dts(hb_list_t *list)
 
 static int qsv_h265_make_header(hb_work_object_t *w, mfxSession session)
 {
-    mfxStatus ret;
+    int ret = 0;
     hb_buffer_t *buf;
+    mfxStatus status;
     mfxU16 Width, Height;
     mfxBitstream bitstream;
     mfxSyncPoint syncPoint;
     mfxFrameSurface1 frameSurface1;
     hb_work_private_t *pv = w->private_data;
 
-    memset(&bitstream,         0, sizeof(mfxBitstream));
-    memset(&syncPoint,         0, sizeof(mfxSyncPoint));
-    memset(&frameSurface1,     0, sizeof(mfxFrameSurface1));
+    memset(&bitstream,     0, sizeof(mfxBitstream));
+    memset(&syncPoint,     0, sizeof(mfxSyncPoint));
+    memset(&frameSurface1, 0, sizeof(mfxFrameSurface1));
 
     Width  = pv->param.videoParam->mfx.FrameInfo.Width;
     Height = pv->param.videoParam->mfx.FrameInfo.Height;
@@ -146,7 +147,8 @@ static int qsv_h265_make_header(hb_work_object_t *w, mfxSession session)
     if (buf == NULL)
     {
         hb_log("qsv_h265_make_header: hb_buffer_init failed");
-        return -1;
+        ret = -1;
+        goto end;
     }
 
     bitstream.Data           = buf->data;
@@ -158,22 +160,23 @@ static int qsv_h265_make_header(hb_work_object_t *w, mfxSession session)
 
     do
     {
-        ret = MFXVideoENCODE_EncodeFrameAsync(session, NULL, &frameSurface1,
-                                              &bitstream, &syncPoint);
+        status = MFXVideoENCODE_EncodeFrameAsync(session, NULL, &frameSurface1,
+                                                 &bitstream, &syncPoint);
 
-        if (ret == MFX_WRN_DEVICE_BUSY)
+        if (status == MFX_WRN_DEVICE_BUSY)
         {
             av_usleep(1000);
         }
     }
-    while (ret == MFX_WRN_DEVICE_BUSY);
+    while (status == MFX_WRN_DEVICE_BUSY);
 
-    hb_log("DEBUG: ret is %d, syncPoint is %#p", ret, syncPoint);//debug
+    hb_log("DEBUG: status is %d, syncPoint is %#p", status, syncPoint);//debug
 
-    if (ret < MFX_ERR_NONE && ret != MFX_ERR_MORE_DATA)
+    if (status < MFX_ERR_NONE && status != MFX_ERR_MORE_DATA)
     {
-        hb_log("qsv_h265_make_header: MFXVideoENCODE_EncodeFrameAsync failed (%d)", ret);
-        return -1;
+        hb_log("qsv_h265_make_header: MFXVideoENCODE_EncodeFrameAsync failed (%d)", status);
+        ret = -1;
+        goto end;
     }
 
     /* We may already have some output */
@@ -181,14 +184,15 @@ static int qsv_h265_make_header(hb_work_object_t *w, mfxSession session)
     {
         do
         {
-            ret = MFXVideoCORE_SyncOperation(session, syncPoint, 100);
+            status = MFXVideoCORE_SyncOperation(session, syncPoint, 100);
         }
-        while (ret == MFX_WRN_IN_EXECUTION);
+        while (status == MFX_WRN_IN_EXECUTION);
 
-        if (ret != MFX_ERR_NONE)
+        if (status != MFX_ERR_NONE)
         {
-            hb_log("qsv_h265_make_header: MFXVideoCORE_SyncOperation failed (%d)", ret);
-            return -1;
+            hb_log("qsv_h265_make_header: MFXVideoCORE_SyncOperation failed (%d)", status);
+            ret = -1;
+            goto end;
         }
     }
 
@@ -198,46 +202,56 @@ static int qsv_h265_make_header(hb_work_object_t *w, mfxSession session)
      */
     do
     {
-        ret = MFXVideoENCODE_EncodeFrameAsync(session, NULL, NULL,
-                                              &bitstream, &syncPoint);
+        status = MFXVideoENCODE_EncodeFrameAsync(session, NULL, NULL,
+                                                 &bitstream, &syncPoint);
 
-        if (ret == MFX_WRN_DEVICE_BUSY)
+        if (status == MFX_WRN_DEVICE_BUSY)
         {
             av_usleep(1000);
         }
-
-        if (ret >= MFX_ERR_NONE && syncPoint)
-        {
-            do
-            {
-                ret = MFXVideoCORE_SyncOperation(session, syncPoint, 100);
-            }
-            while (ret == MFX_WRN_IN_EXECUTION);
-
-            if (ret != MFX_ERR_NONE)
-            {
-                hb_log("qsv_h265_make_header: MFXVideoCORE_SyncOperation failed (%d)", ret);
-                return -1;
-            }
-        }
     }
-    while (ret >= MFX_ERR_NONE);
+    while (status >= MFX_ERR_NONE);
 
-    hb_log("DEBUG: ret is %d, syncPoint is %#p", ret, syncPoint);//debug
+    hb_log("DEBUG: status is %d, syncPoint is %#p", status, syncPoint);//debug
 
-    if (ret != MFX_ERR_MORE_DATA)
+    if (status != MFX_ERR_MORE_DATA)
     {
-        hb_log("qsv_h265_make_header: MFXVideoENCODE_EncodeFrameAsync failed (%d)", ret);
-        return -1;
+        hb_log("qsv_h265_make_header: MFXVideoENCODE_EncodeFrameAsync failed (%d)", status);
+        ret = -1;
+        goto end;
+    }
+
+    /* If we didn't have any output before, now we should */
+    if (syncPoint)
+    {
+        do
+        {
+            status = MFXVideoCORE_SyncOperation(session, syncPoint, 100);
+        }
+        while (status == MFX_WRN_IN_EXECUTION);
+
+        if (status != MFX_ERR_NONE)
+        {
+            hb_log("qsv_h265_make_header: MFXVideoCORE_SyncOperation failed (%d)", status);
+            ret = -1;
+            goto end;
+        }
     }
 
     hb_log("DEBUG: bitstream.DataLength %"PRIu32"", bitstream.DataLength);//debug
 
-    //fixme
+    if (bitstream.DataLength <= 0)
+    {
+        hb_log("qsv_h265_make_header: no output data found");
+        ret = -1;
+        goto end;
+    }
+
+end:
     av_free(frameSurface1.Data.VU);
     av_free(frameSurface1.Data.Y);
     hb_buffer_close(&buf);
-    return 0;
+    return ret;//fixme
 }
 
 int qsv_enc_init(av_qsv_context *qsv, hb_work_private_t *pv)
