@@ -125,7 +125,25 @@ static int64_t hb_qsv_pop_next_dts(hb_list_t *list)
 
 static int qsv_h265_make_header(hb_work_object_t *w)
 {
+    mfxStatus ret;
+    mfxBitstream bitstream;
+    mfxSyncPoint syncPoint;
+    mfxFrameAllocRequest frameAllocRequest;
+    mfxFrameSurface1 surfaces[AV_QSV_SURFACE_NUM];
     hb_work_private_t *pv = w->private_data;
+
+    memset(&bitstream,         0, sizeof(mfxBitstream));
+    memset(&syncPoint,         0, sizeof(mfxSyncPoint));
+    memset(&frameAllocRequest, 0, sizeof(mfxFrameAllocRequest));
+
+    ret = MFXVideoENCODE_QueryIOSurf(pv->mfx_session, pv->param.videoParam,
+                                     &frameAllocRequest);
+    if (ret < MFX_ERR_NONE)
+    {
+        hb_log("qsv_h265_make_header: MFXVideoENCODE_QueryIOSurf failed (%d)", ret);
+        return -1;
+    }
+
     return 0;
 }
 
