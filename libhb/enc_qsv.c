@@ -127,27 +127,17 @@ static int64_t hb_qsv_pop_next_dts(hb_list_t *list)
 
 static int qsv_h265_make_header(hb_work_object_t *w, mfxSession session)
 {
-    int i;
     mfxStatus ret;
     hb_buffer_t *buf;
     mfxU16 Width, Height;
     mfxBitstream bitstream;
     mfxSyncPoint syncPoint;
-    mfxFrameAllocRequest frameAllocRequest;
-    mfxFrameSurface1 *surface, surfaces[AV_QSV_SURFACE_NUM];
+    mfxFrameSurface1 frameSurface1;
     hb_work_private_t *pv = w->private_data;
 
     memset(&bitstream,         0, sizeof(mfxBitstream));
     memset(&syncPoint,         0, sizeof(mfxSyncPoint));
-    memset(&frameAllocRequest, 0, sizeof(mfxFrameAllocRequest));
-
-//    ret = MFXVideoENCODE_QueryIOSurf(session, pv->param.videoParam,
-//                                     &frameAllocRequest);
-//    if (ret < MFX_ERR_NONE)
-//    {
-//        hb_log("qsv_h265_make_header: MFXVideoENCODE_QueryIOSurf failed (%d)", ret);
-//        return -1;
-//    }
+    memset(&frameSurface1,     0, sizeof(mfxFrameSurface1));
 
     Width  = pv->param.videoParam->mfx.FrameInfo.Width;
     Height = pv->param.videoParam->mfx.FrameInfo.Height;
@@ -163,45 +153,23 @@ static int qsv_h265_make_header(hb_work_object_t *w, mfxSession session)
     bitstream.DataLength = buf->size;
     bitstream.MaxLength  = buf->alloc;
 
-    for (i = 0; i < sizeof(surfaces) / sizeof(surfaces[0]); i++)
-    {
-        surface = &surfaces[i];
-
-        memset(surface, 0, sizeof(mfxFrameSurface1));
-
-        surface->Info       = pv->param.videoParam->mfx.FrameInfo;
-        surface->Data.VU    = av_mallocz(Width * Height / 2);
-        surface->Data.Y     = av_mallocz(Width * Height);
-        surface->Data.Pitch = Width;
-    }
-
-    surface = NULL;
-
-    for (i = 0; i < sizeof(surfaces) / sizeof(surfaces[0]); i++)
-    {
-        if (!surfaces[i].Data.Locked)
-        {
-            surface = &surfaces[i];
-            break;
-        }
-    }
+    frameSurface1.Info       = pv->param.videoParam->mfx.FrameInfo;
+    frameSurface1.Data.VU    = av_mallocz(Width * Height / 2);
+    frameSurface1.Data.Y     = av_mallocz(Width * Height);
+    frameSurface1.Data.Pitch = Width;
 
     do
     {
-        ret = MFXVideoENCODE_EncodeFrameAsync(session, NULL, surface,
+        ret = MFXVideoENCODE_EncodeFrameAsync(session, NULL, &frameSurface1,
                                               &bitstream, &syncPoint);
-        av_usleep(1000);
-    } while (ret == MFX_WRN_DEVICE_BUSY);
+    }
+    while (ret == MFX_WRN_DEVICE_BUSY && av_usleep(1000) >= 0);
 
     hb_log("DEBUG: ret is %d, syncPoint is %#p", ret, syncPoint);//debug
 
-    for (i = 0; i < sizeof(surfaces) / sizeof(surfaces[0]); i++)
-    {
-        av_free(surfaces[i].Data.VU);
-        av_free(surfaces[i].Data.Y);
-    }
-
     //fixme
+    av_free(frameSurface1.Data.VU);
+    av_free(frameSurface1.Data.Y);
     hb_buffer_close(&buf);
     return 0;
 }
