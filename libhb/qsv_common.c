@@ -132,6 +132,24 @@ static void init_video_param(mfxVideoParam *videoParam)
     videoParam->IOPattern                   = MFX_IOPATTERN_IN_SYSTEM_MEMORY;
 }
 
+static void init_ext_video_signal_info(mfxExtVideoSignalInfo *extVideoSignalInfo)
+{
+    if (extVideoSignalInfo == NULL)
+    {
+        return;
+    }
+
+    memset(extVideoSignalInfo, 0, sizeof(mfxExtVideoSignalInfo));
+    extVideoSignalInfo->Header.BufferId          = MFX_EXTBUFF_VIDEO_SIGNAL_INFO;
+    extVideoSignalInfo->Header.BufferSz          = sizeof(mfxExtVideoSignalInfo);
+    extVideoSignalInfo->VideoFormat              = 5; // undefined
+    extVideoSignalInfo->VideoFullRange           = 0; // TV range
+    extVideoSignalInfo->ColourDescriptionPresent = 0; // don't write to bitstream
+    extVideoSignalInfo->ColourPrimaries          = 2; // undefined
+    extVideoSignalInfo->TransferCharacteristics  = 2; // undefined
+    extVideoSignalInfo->MatrixCoefficients       = 2; // undefined
+}
+
 static void init_ext_coding_option(mfxExtCodingOption *extCodingOption)
 {
     if (extCodingOption == NULL)
@@ -319,6 +337,37 @@ static int query_capabilities(mfxSession session, mfxVersion version, hb_qsv_inf
                 videoParam.mfx.RateControlMethod == MFX_RATECONTROL_ICQ)
             {
                 info->capabilities |= HB_QSV_CAP_RATECONTROL_ICQ;
+            }
+        }
+
+        /*
+         * Determine whether mfxExtVideoSignalInfo is supported.
+         */
+        if (HB_CHECK_MFX_VERSION(version, 1, 3))
+        {
+            init_video_param(&videoParam);
+            videoParam.mfx.CodecId = info->codec_id;
+
+            init_ext_video_signal_info(&extVideoSignalInfo);
+            videoParam.ExtParam    = videoExtParam;
+            videoParam.ExtParam[0] = (mfxExtBuffer*)&extVideoSignalInfo;
+            videoParam.NumExtParam = 1;
+
+            status = MFXVideoENCODE_Query(session, NULL, &videoParam);
+            if (status >= MFX_ERR_NONE)
+            {
+                /* Encoder can be configured via mfxExtVideoSignalInfo */
+                info->capabilities |= HB_QSV_CAP_VSINFO;
+            }
+            else if (info->codec_id == MFX_CODEC_AVC)
+            {
+                /*
+                 * This should not fail for AVC encoders, so we want to know
+                 * about it - however, it may fail for other encoders (ignore)
+                 */
+                fprintf(stderr,
+                        "hb_qsv_info_init: mfxExtVideoSignalInfo check failed (0x%"PRIX32", 0x%"PRIX32", %d)\n",
+                        info->codec_id, info->implementation, status);
             }
         }
 
