@@ -955,18 +955,36 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
         MFXClose(session);
     }
 
-    // fixme: codec-specific
     // check whether B-frames are used
-    switch (videoParam.mfx.CodecProfile)
+    if (videoParam.mfx.CodecId == MFX_CODEC_AVC)
     {
-        case MFX_PROFILE_AVC_BASELINE:
-        case MFX_PROFILE_AVC_CONSTRAINED_HIGH:
-        case MFX_PROFILE_AVC_CONSTRAINED_BASELINE:
-            pv->bfrm_delay = 0;
-            break;
-        default:
-            pv->bfrm_delay = 1;
-            break;
+        switch (videoParam.mfx.CodecProfile)
+        {
+            case MFX_PROFILE_AVC_BASELINE:
+            case MFX_PROFILE_AVC_CONSTRAINED_HIGH:
+            case MFX_PROFILE_AVC_CONSTRAINED_BASELINE:
+                pv->bfrm_delay = 0;
+                break;
+            default:
+                pv->bfrm_delay = 1;
+                break;
+        }
+    }
+    else if (videoParam.mfx.CodecId == MFX_CODEC_HEVC)
+    {
+        switch (videoParam.mfx.CodecProfile)
+        {
+            case MFX_PROFILE_HEVC_MAINSP:
+                pv->bfrm_delay = 0;
+                break;
+            default:
+                pv->bfrm_delay = 1;
+                break;
+        }
+    }
+    else
+    {
+        pv->bfrm_delay = 1; // assume B-frames are enabled by default
     }
     // sanitize
     pv->bfrm_delay = FFMIN(pv->bfrm_delay, videoParam.mfx.GopRefDist - 1);
