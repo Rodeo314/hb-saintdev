@@ -1337,7 +1337,7 @@ static int name2val(const char* const *names, const int const *values,
 {
     int err;
     int idx = hb_qsv_atoindex(names, name, &err);
-    if (err || idx >= (sizeof(values) / sizeof(values[0])) || value == NULL)
+    if (err || value == NULL)
     {
         return -1;
     }
