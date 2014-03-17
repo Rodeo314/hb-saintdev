@@ -395,9 +395,7 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     // set AsyncDepth to match that of decode and VPP
     pv->param.videoParam->AsyncDepth = job->qsv.async_depth;
 
-    // fixme: use hb_qsv_param_parse()
     // enable and set colorimetry (video signal information)
-    pv->param.videoSignalInfo.ColourDescriptionPresent = 1;
     switch (job->color_matrix_code)
     {
         case 4:
@@ -431,6 +429,7 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
             pv->param.videoSignalInfo.MatrixCoefficients      = job->title->color_matrix;
             break;
     }
+    pv->param.videoSignalInfo.ColourDescriptionPresent = 1;
 
     // parse user-specified encoder options, if present
     if (job->encoder_options != NULL && *job->encoder_options)
@@ -524,53 +523,16 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     pv->param.videoParam->mfx.FrameInfo.Width         = job->qsv.enc_info.align_width;
     pv->param.videoParam->mfx.FrameInfo.Height        = job->qsv.enc_info.align_height;
 
-    // fixme: codec-specific
-    // set H.264 profile and level
-    if (job->encoder_profile != NULL && *job->encoder_profile &&
-        strcasecmp(job->encoder_profile, "auto"))
+    // set encoder profile and level
+    if (hb_qsv_profile_parse(&pv->param, pv->qsv_info, job->encoder_profile) < 0)
     {
-        if (!strcasecmp(job->encoder_profile, "baseline"))
-        {
-            pv->param.videoParam->mfx.CodecProfile = MFX_PROFILE_AVC_BASELINE;
-        }
-        else if (!strcasecmp(job->encoder_profile, "main"))
-        {
-            pv->param.videoParam->mfx.CodecProfile = MFX_PROFILE_AVC_MAIN;
-        }
-        else if (!strcasecmp(job->encoder_profile, "high"))
-        {
-            pv->param.videoParam->mfx.CodecProfile = MFX_PROFILE_AVC_HIGH;
-        }
-        else
-        {
-            hb_error("encqsvInit: bad profile %s", job->encoder_profile);
-            return -1;
-        }
+        hb_error("encqsvInit: bad profile %s", job->encoder_profile);
+        return -1;
     }
-    if (job->encoder_level != NULL && *job->encoder_level &&
-        strcasecmp(job->encoder_level, "auto"))
+    if (hb_qsv_level_parse(&pv->param, pv->qsv_info, job->encoder_level) < 0)
     {
-        int err;
-        int i = hb_qsv_atoindex(hb_h264_level_names, job->encoder_level, &err);
-        if (err || i >= (sizeof(hb_h264_level_values) /
-                         sizeof(hb_h264_level_values[0])))
-        {
-            hb_error("encqsvInit: bad level %s", job->encoder_level);
-            return -1;
-        }
-        else if (pv->qsv_info->capabilities & HB_QSV_CAP_MSDK_API_1_6)
-        {
-            pv->param.videoParam->mfx.CodecLevel = HB_QSV_CLIP3(MFX_LEVEL_AVC_1,
-                                                                MFX_LEVEL_AVC_52,
-                                                                hb_h264_level_values[i]);
-        }
-        else
-        {
-            // Media SDK API < 1.6, MFX_LEVEL_AVC_52 unsupported
-            pv->param.videoParam->mfx.CodecLevel = HB_QSV_CLIP3(MFX_LEVEL_AVC_1,
-                                                                MFX_LEVEL_AVC_51,
-                                                                hb_h264_level_values[i]);
-        }
+        hb_error("encqsvInit: bad level %s", job->encoder_level);
+        return -1;
     }
 
     // fixme: codec-specific

@@ -1187,6 +1187,80 @@ int hb_qsv_param_parse(hb_qsv_param_t *param, hb_qsv_info_t *info,
     return error ? HB_QSV_PARAM_BAD_VALUE : HB_QSV_PARAM_OK;
 }
 
+static const char* const h264_profile_names [] = { "baseline",              "main",                "high",            NULL, };
+static const int   const h264_profile_values[] = { MFX_PROFILE_AVC_BASELINE, MFX_PROFILE_AVC_MAIN, MFX_PROFILE_AVC_HIGH, 0, };
+
+static const char* const h265_profile_names [] = { "main",                "mainstillpicture",   NULL, };
+static const int   const h265_profile_values[] = { MFX_PROFILE_HEVC_MAIN, MFX_PROFILE_HEVC_MAINSP, 0, };
+
+static int name2val(const char* const *names, const int const *values,
+                    const char        *name,  int             *value)
+{
+    int err;
+    int idx = hb_qsv_atoindex(names, name, &err);
+    if (err || idx >= (sizeof(values) / sizeof(values[0])) || value == NULL)
+    {
+        return -1;
+    }
+    *value = values[idx];
+    return 0;
+}
+
+int hb_qsv_profile_parse(hb_qsv_param_t *param, hb_qsv_info_t *info, const char *profile)
+{
+    if (profile != NULL && *profile && strcasecmp(profile, "auto"))
+    {
+        int ret, val = MFX_PROFILE_UNKNOWN;
+
+        switch (info->codec_id)
+        {
+            case MFX_CODEC_AVC:
+                ret = name2val(h264_profile_names, h264_profile_values, profile, &val);
+                break;
+            case MFX_CODEC_HEVC:
+                ret = name2val(h265_profile_names, h265_profile_values, profile, &val);
+                break;
+            default:
+                return -1;
+        }
+
+        param->videoParam->mfx.CodecProfile = val;
+        return ret;
+    }
+    return 0;
+}
+
+int hb_qsv_level_parse(hb_qsv_param_t *param, hb_qsv_info_t *info, const char *level)
+{
+    if (level != NULL && *level && strcasecmp(level, "auto"))
+    {
+        int ret, val = MFX_LEVEL_UNKNOWN;
+
+        switch (info->codec_id)
+        {
+            case MFX_CODEC_AVC:
+                ret = name2val(hb_h264_level_names, hb_h264_level_values, level, &val);
+                break;
+            case MFX_CODEC_HEVC:
+                ret = name2val(hb_h265_level_names, hb_h265_level_values, level, &val);
+                break;
+            default:
+                return -1;
+        }
+
+        /* 4K encoding and H.264 level 5.2 require Media SDK with API >= 1.6 */
+        if (info->codec_id == MFX_CODEC_AVC && !(info->capabilities &
+                                                 HB_QSV_CAP_MSDK_API_1_6))
+        {
+            val = HB_QSV_CLIP3(MFX_LEVEL_UNKNOWN, MFX_LEVEL_AVC_51, val);
+        }
+
+        param->videoParam->mfx.CodecLevel = val;
+        return ret;
+    }
+    return 0;
+}
+
 #ifdef HB_API_OLD_PRESET_GETTERS
 const char* const* hb_qsv_presets()
 {
