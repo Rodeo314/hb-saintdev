@@ -176,6 +176,22 @@ static int qsv_h265_make_header(hb_work_object_t *w, mfxSession session)
         return -1;
     }
 
+    /* We may already have some output */
+    if (syncPoint)
+    {
+        do
+        {
+            ret = MFXVideoCORE_SyncOperation(session, syncPoint, 100);
+        }
+        while (ret == MFX_WRN_IN_EXECUTION);
+
+        if (ret != MFX_ERR_NONE)
+        {
+            hb_log("qsv_h265_make_header: MFXVideoCORE_SyncOperation failed (%d)", ret);
+            return -1;
+        }
+    }
+
     /*
      * If there is an encoding delay (because of e.g. lookahead),
      * we may need to flush the encoder to get the output frame.
@@ -188,6 +204,21 @@ static int qsv_h265_make_header(hb_work_object_t *w, mfxSession session)
         if (ret == MFX_WRN_DEVICE_BUSY)
         {
             av_usleep(1000);
+        }
+
+        if (ret >= MFX_ERR_NONE && syncPoint)
+        {
+            do
+            {
+                ret = MFXVideoCORE_SyncOperation(session, syncPoint, 100);
+            }
+            while (ret == MFX_WRN_IN_EXECUTION);
+
+            if (ret != MFX_ERR_NONE)
+            {
+                hb_log("qsv_h265_make_header: MFXVideoCORE_SyncOperation failed (%d)", ret);
+                return -1;
+            }
         }
     }
     while (ret >= MFX_ERR_NONE);
