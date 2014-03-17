@@ -125,6 +125,7 @@ static int64_t hb_qsv_pop_next_dts(hb_list_t *list)
 
 static int qsv_h265_make_header(hb_work_object_t *w)
 {
+    int i;
     mfxStatus ret;
     mfxBitstream bitstream;
     mfxSyncPoint syncPoint;
@@ -136,13 +137,13 @@ static int qsv_h265_make_header(hb_work_object_t *w)
     memset(&syncPoint,         0, sizeof(mfxSyncPoint));
     memset(&frameAllocRequest, 0, sizeof(mfxFrameAllocRequest));
 
-    ret = MFXVideoENCODE_QueryIOSurf(pv->mfx_session, pv->param.videoParam,
-                                     &frameAllocRequest);
-    if (ret < MFX_ERR_NONE)
-    {
-        hb_log("qsv_h265_make_header: MFXVideoENCODE_QueryIOSurf failed (%d)", ret);
-        return -1;
-    }
+//    ret = MFXVideoENCODE_QueryIOSurf(pv->mfx_session, pv->param.videoParam,
+//                                     &frameAllocRequest);
+//    if (ret < MFX_ERR_NONE)
+//    {
+//        hb_log("qsv_h265_make_header: MFXVideoENCODE_QueryIOSurf failed (%d)", ret);
+//        return -1;
+//    }
 
     return 0;
 }
@@ -969,7 +970,7 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     else if (pv->qsv_info->codec_id == MFX_CODEC_HEVC &&
              qsv_h265_make_header(w) < 0)
     {
-        hb_error("encqsvInit: qsv_h265_make_header failed (%d)", err);
+        hb_error("encqsvInit: qsv_h265_make_header failed");
         hb_qsv_plugin_unload(session, version, pv->qsv_info->codec_id);
         MFXVideoENCODE_Close(session);
         MFXClose(session);
