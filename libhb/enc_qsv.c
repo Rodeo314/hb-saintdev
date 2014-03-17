@@ -153,7 +153,7 @@ static int qsv_h265_make_header(hb_work_object_t *w, mfxSession session)
     Height = pv->param.videoParam->mfx.FrameInfo.Height;
     buf    = hb_video_buffer_init(Width, Height);
 
-    if (buf == NULL || buf->data == NULL)
+    if (buf == NULL)
     {
         hb_log("qsv_h265_make_header: hb_buffer_init failed");
         return -1;
@@ -193,7 +193,7 @@ static int qsv_h265_make_header(hb_work_object_t *w, mfxSession session)
         av_usleep(1000);
     } while (ret == MFX_WRN_DEVICE_BUSY);
 
-    hb_log("DEBUG: ret is %d", ret);//debug
+    hb_log("DEBUG: ret is %d, syncPoint is %#p", ret, syncPoint);//debug
 
     for (i = 0; i < sizeof(surfaces) / sizeof(surfaces[0]); i++)
     {
