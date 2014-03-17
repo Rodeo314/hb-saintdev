@@ -645,12 +645,12 @@ void hb_qsv_info_print()
                    hb_qsv_impl_get_name(hb_qsv_info_avc->implementation));
             if (qsv_hardware_info_avc.available)
             {
-                log_capabilities(2, qsv_hardware_info_avc.capabilities,
+                log_capabilities(1, qsv_hardware_info_avc.capabilities,
                                  "    - capabilities (hardware): ");
             }
             if (qsv_software_info_avc.available)
             {
-                log_capabilities(2, qsv_software_info_avc.capabilities,
+                log_capabilities(1, qsv_software_info_avc.capabilities,
                                  "    - capabilities (software): ");
             }
         }
