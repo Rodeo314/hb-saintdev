@@ -1689,15 +1689,13 @@ static const char* level2name(const char* const *names, const int const *values,
                               int level)
 {
     int i;
-    for (i = 0; names[i] != NULL && i < (sizeof(values) / sizeof(values[0]));
-         i++)
+    for (i = 0; names[i] != NULL; i++)
     {
         if (values[i] == level)
         {
             return names[i];
         }
     }
-    hb_log("DEBUG: level %d (%d), i %d (%lu)", level, MFX_LEVEL_UNKNOWN, i, (sizeof(values) / sizeof(values[0])));//fixme
     return NULL;
 }
 
