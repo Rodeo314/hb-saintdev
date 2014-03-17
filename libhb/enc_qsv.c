@@ -146,6 +146,32 @@ int qsv_enc_init(av_qsv_context *qsv, hb_work_private_t *pv)
         job->qsv.ctx = qsv = av_mallocz(sizeof(av_qsv_context));
     }
 
+    /* We need the actual API version for hb_qsv_plugin_load */
+    if ((MFXQueryIMPL   (qsv->mfx_session, &impl)    == MFX_ERR_NONE) &&
+        (MFXQueryVersion(qsv->mfx_session, &version) == MFX_ERR_NONE))
+    {
+        /* log actual implementation details now that we know them */
+        hb_log("qsv_enc_init: using '%s' implementation, API: %"PRIu16".%"PRIu16"",
+               hb_qsv_impl_get_name(impl), version.Major, version.Minor);
+    }
+    else
+    {
+        hb_error("qsv_enc_init: MFXQueryIMPL/MFXQueryVersion failure");
+        *job->done_error = HB_ERROR_INIT;
+        *job->die = 1;
+        return -1;
+    }
+
+    /* Load optional codec plug-ins */
+    sts = hb_qsv_plugin_load(qsv->mfx_session, version, pv->qsv_info->codec_id);
+    if (sts < MFX_ERR_NONE)
+    {
+        hb_error("qsv_enc_init: hb_qsv_plugin_load failed (%d)", sts);
+        *job->done_error = HB_ERROR_INIT;
+        *job->die = 1;
+        return -1;
+    }
+
     av_qsv_space *qsv_encode = qsv->enc_space;
     if (qsv_encode == NULL)
     {
@@ -285,32 +311,6 @@ int qsv_enc_init(av_qsv_context *qsv, hb_work_private_t *pv)
         AV_QSV_CHECK_POINTER(qsv_encode->p_syncp[i], MFX_ERR_MEMORY_ALLOC);
         qsv_encode->p_syncp[i]->p_sync = av_mallocz(sizeof(mfxSyncPoint));
         AV_QSV_CHECK_POINTER(qsv_encode->p_syncp[i]->p_sync, MFX_ERR_MEMORY_ALLOC);
-    }
-
-    /* We need the actual API version for hb_qsv_plugin_load */
-    if ((MFXQueryIMPL   (qsv->mfx_session, &impl)    == MFX_ERR_NONE) &&
-        (MFXQueryVersion(qsv->mfx_session, &version) == MFX_ERR_NONE))
-    {
-        /* log actual implementation details now that we know them */
-        hb_log("qsv_enc_init: using '%s' implementation, API: %"PRIu16".%"PRIu16"",
-               hb_qsv_impl_get_name(impl), version.Major, version.Minor);
-    }
-    else
-    {
-        hb_error("qsv_enc_init: MFXQueryIMPL/MFXQueryVersion failure");
-        *job->done_error = HB_ERROR_INIT;
-        *job->die = 1;
-        return -1;
-    }
-
-    /* Load optional codec plug-ins */
-    sts = hb_qsv_plugin_load(qsv->mfx_session, version, pv->qsv_info->codec_id);
-    if (sts < MFX_ERR_NONE)
-    {
-        hb_error("qsv_enc_init: hb_qsv_plugin_load failed (%d)", sts);
-        *job->done_error = HB_ERROR_INIT;
-        *job->die = 1;
-        return -1;
     }
 
     // initialize the encoder
