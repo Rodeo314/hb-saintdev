@@ -132,6 +132,21 @@ static void init_video_param(mfxVideoParam *videoParam)
     videoParam->IOPattern                   = MFX_IOPATTERN_IN_SYSTEM_MEMORY;
 }
 
+static void init_ext_coding_option(mfxExtCodingOption *extCodingOption)
+{
+    if (extCodingOption == NULL)
+    {
+        return;
+    }
+
+    memset(extCodingOption, 0, sizeof(mfxExtCodingOption));
+    extCodingOption->Header.BufferId = MFX_EXTBUFF_CODING_OPTION;
+    extCodingOption->Header.BufferSz = sizeof(mfxExtCodingOption);
+    extCodingOption->AUDelimiter     = MFX_CODINGOPTION_OFF;
+    extCodingOption->PicTimingSEI    = MFX_CODINGOPTION_OFF;
+    extCodingOption->CAVLC           = MFX_CODINGOPTION_OFF;
+}
+
 static void init_ext_coding_option2(mfxExtCodingOption2 *extCodingOption2)
 {
     if (extCodingOption2 == NULL)
@@ -174,6 +189,7 @@ static int query_capabilities(mfxSession session, mfxVersion version, hb_qsv_inf
     mfxExtBuffer *videoExtParam[1];
     mfxVideoParam videoParam, inputParam;
     mfxExtCodingOption2 extCodingOption2;
+    mfxExtCodingOption extCodingOption;
 
     /* Reset capabilities before querying */
     info->capabilities = 0;
@@ -302,6 +318,41 @@ static int query_capabilities(mfxSession session, mfxVersion version, hb_qsv_inf
                 videoParam.mfx.RateControlMethod == MFX_RATECONTROL_ICQ)
             {
                 info->capabilities |= HB_QSV_CAP_RATECONTROL_ICQ;
+            }
+        }
+
+        /*
+         * Determine whether mfxExtCodingOption and its fields are supported.
+         *
+//         * Mode 2 suffers from false negatives with some drivers, whereas mode 1
+//         * suffers from false positives instead. The latter is probably easier
+//         * and/or safer to sanitize for us, so use mode 1.
+         */
+        if (HB_CHECK_MFX_VERSION(version, 1, 0))
+        {
+            init_video_param(&videoParam);
+            videoParam.mfx.CodecId = info->codec_id;
+
+            init_ext_coding_option(&extCodingOption);
+            videoParam.ExtParam    = videoExtParam;
+            videoParam.ExtParam[0] = (mfxExtBuffer*)&extCodingOption;
+            videoParam.NumExtParam = 1;
+
+            status = MFXVideoENCODE_Query(session, NULL, &videoParam);
+            if (status >= MFX_ERR_NONE)
+            {
+                /* Encoder can be configured via mfxExtCodingOption */
+                info->capabilities |= HB_QSV_CAP_OPTION1;
+            }
+            else if (info->codec_id == MFX_CODEC_AVC)
+            {
+                /*
+                 * This should not fail for AVC encoders, so we want to know
+                 * about it - however, it may fail for other encoders (ignore)
+                 */
+                fprintf(stderr,
+                        "hb_qsv_info_init: mfxExtCodingOption check failed (0x%"PRIX32", 0x%"PRIX32", %d)\n",
+                        info->codec_id, info->implementation, status);
             }
         }
 
@@ -502,7 +553,7 @@ static void log_capabilities(int log_level, uint64_t caps, const char *prefix)
     }
     else
     {
-        hb_deep_log(log_level, "%s%s%s%s%s%s%s%s%s%s%s%s%s", prefix,
+        hb_deep_log(log_level, "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s", prefix,
                     !(caps & HB_QSV_CAP_MSDK_API_1_6)     ? "" : " api1.6",
                     !(caps & HB_QSV_CAP_B_REF_PYRAMID)    ? "" : " bpyramid",
                     !(caps & HB_QSV_CAP_OPTION2_BREFTYPE) ? "" : " breftype",
@@ -510,6 +561,8 @@ static void log_capabilities(int log_level, uint64_t caps, const char *prefix)
                     !(caps & HB_QSV_CAP_RATECONTROL_LAi)  ? "" : " lookaheadi",
                     !(caps & HB_QSV_CAP_OPTION2_LA_DOWNS) ? "" : " lookaheadds",
                     !(caps & HB_QSV_CAP_RATECONTROL_ICQ)  ? "" : " icq",
+                    !(caps & HB_QSV_CAP_VSINFO)           ? "" : " videosignalinfo",
+                    !(caps & HB_QSV_CAP_OPTION1)          ? "" : " extcodingoption",
                     !(caps & HB_QSV_CAP_OPTION2_MBBRC)    ? "" : " mbbrc",
                     !(caps & HB_QSV_CAP_OPTION2_EXTBRC)   ? "" : " extbrc",
                     !(caps & HB_QSV_CAP_OPTION2_TRELLIS)  ? "" : " trellis",
@@ -961,14 +1014,21 @@ int hb_qsv_param_parse(hb_qsv_param_t *param, hb_qsv_info_t *info,
     }
     else if (!strcasecmp(key, "cavlc") || !strcasecmp(key, "cabac"))
     {
-        switch (info->codec_id)
+        if (info->capabilities & HB_QSV_CAP_OPTION1)
         {
-            case MFX_CODEC_AVC:
-            case MFX_CODEC_HEVC:
-                ivalue = hb_qsv_atobool(value, &error);
-                break;
-            default:
-                return HB_QSV_PARAM_UNSUPPORTED;
+            switch (info->codec_id)
+            {
+                case MFX_CODEC_AVC:
+//              case MFX_CODEC_HEVC:
+                    ivalue = hb_qsv_atobool(value, &error);
+                    break;
+                default:
+                    return HB_QSV_PARAM_UNSUPPORTED;
+            }
+        }
+        else
+        {
+            return HB_QSV_PARAM_UNSUPPORTED;
         }
         if (!error)
         {
