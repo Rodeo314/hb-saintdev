@@ -127,6 +127,8 @@ static int qsv_h265_make_header(hb_work_object_t *w)
 {
     int i;
 //    mfxStatus ret;
+    hb_buffer_t *buf;
+    mfxU16 Width, Height;
     mfxBitstream bitstream;
     mfxSyncPoint syncPoint;
     mfxFrameAllocRequest frameAllocRequest;
@@ -145,29 +147,46 @@ static int qsv_h265_make_header(hb_work_object_t *w)
 //        return -1;
 //    }
 
+    Width  = pv->param.videoParam->mfx.FrameInfo.Width;
+    Height = pv->param.videoParam->mfx.FrameInfo.Height;
+    buf    = hb_video_buffer_init(Width, Height);
+
+    if (buf == NULL || buf->data == NULL)
+    {
+        hb_log("qsv_h265_make_header: hb_buffer_init failed");
+        return -1;
+    }
+
+    bitstream.Data       = buf->data;
+    bitstream.DataLength = buf->size;
+    bitstream.MaxLength  = buf->alloc;
+
     for (i = 0; i < sizeof(surfaces) / sizeof(surfaces[0]); i++)
     {
-        mfxU16 Width, Height;
-
         surface = &surfaces[i];
 
         memset(surface, 0, sizeof(mfxFrameSurface1));
 
-        Height              = pv->param.videoParam->mfx.FrameInfo.Height;
-        Width               = pv->param.videoParam->mfx.FrameInfo.Width;
         surface->Info       = pv->param.videoParam->mfx.FrameInfo;
         surface->Data.VU    = av_mallocz(Width * Height / 2);
         surface->Data.Y     = av_mallocz(Width * Height);
         surface->Data.Pitch = Width;
     }
 
+//    do
+//    {
+//        ret = MFXVideoENCODE_EncodeFrameAsync(pv->mfx_session, NULL, surface,
+//                                              &bitstream, &syncPoint);
+//    } while (1);
+
     for (i = 0; i < sizeof(surfaces) / sizeof(surfaces[0]); i++)
     {
-        av_freep(&surfaces[i].Data.VU);
-        av_freep(&surfaces[i].Data.Y);
+        av_free(surfaces[i].Data.VU);
+        av_free(surfaces[i].Data.Y);
     }
 
     //fixme
+    hb_buffer_close(&buf);
     return 0;
 }
 
