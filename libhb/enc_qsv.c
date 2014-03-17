@@ -123,6 +123,12 @@ static int64_t hb_qsv_pop_next_dts(hb_list_t *list)
     return next_dts;
 }
 
+static int qsv_h265_make_header(hb_work_object_t *w)
+{
+    hb_work_private_t *pv = w->private_data;
+    return 0;
+}
+
 int qsv_enc_init(av_qsv_context *qsv, hb_work_private_t *pv)
 {
     int i = 0;
@@ -922,17 +928,19 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
         videoParam.ExtParam[videoParam.NumExtParam++] = (mfxExtBuffer*)option2;
     }
     err = MFXVideoENCODE_GetVideoParam(session, &videoParam);
-    MFXVideoENCODE_Close(session);
     if (err != MFX_ERR_NONE)
     {
         hb_error("encqsvInit: MFXVideoENCODE_GetVideoParam failed (%d)", err);
         hb_qsv_plugin_unload(session, version, pv->qsv_info->codec_id);
+        MFXVideoENCODE_Close(session);
         MFXClose(session);
         return -1;
     }
+
+    /* We have the final encoding parameters, now get the headers for muxing */
     if (pv->qsv_info->codec_id == MFX_CODEC_AVC)
     {
-        // remove 32-bit NAL prefix (0x00 0x00 0x00 0x01)
+        /* remove 4-byte NAL start code (0x00 0x00 0x00 0x01) */
         w->config->h264.sps_length = sps_pps->SPSBufSize - 4;
         memmove(w->config->h264.sps, w->config->h264.sps + 4,
                 w->config->h264.sps_length);
@@ -940,10 +948,18 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
         memmove(w->config->h264.pps, w->config->h264.pps + 4,
                 w->config->h264.pps_length);
     }
-    else if (pv->qsv_info->codec_id == MFX_CODEC_HEVC)
+    else if (pv->qsv_info->codec_id == MFX_CODEC_HEVC &&
+             qsv_h265_make_header(w) < 0)
     {
-        hb_log("encqsvInit: H.265 header size: %"PRIu16"", sps_pps->SPSBufSize + sps_pps->PPSBufSize);
+        hb_error("encqsvInit: qsv_h265_make_header failed (%d)", err);
+        hb_qsv_plugin_unload(session, version, pv->qsv_info->codec_id);
+        MFXVideoENCODE_Close(session);
+        MFXClose(session);
+        return -1;
     }
+
+    /* We don't need this encode session once we have the header */
+    MFXVideoENCODE_Close(session);
 
 #ifdef HB_DRIVER_FIX_33
     if (la_workaround)
