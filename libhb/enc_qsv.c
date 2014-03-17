@@ -884,7 +884,6 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     memset(&videoParam, 0, sizeof(mfxVideoParam));
     videoParam.ExtParam = ExtParamArray;
     videoParam.NumExtParam = 0;
-    // fixme: codec-specific
     // introduced in API 1.3
     memset(sps_pps, 0, sizeof(mfxExtCodingOptionSPSPPS));
     sps_pps->Header.BufferId = MFX_EXTBUFF_CODING_OPTION_SPSPPS;
@@ -914,9 +913,15 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     }
     err = MFXVideoENCODE_GetVideoParam(session, &videoParam);
     MFXVideoENCODE_Close(session);
-    if (err == MFX_ERR_NONE)
+    if (err != MFX_ERR_NONE)
     {
-        // fixme: codec-specific
+        hb_error("encqsvInit: MFXVideoENCODE_GetVideoParam failed (%d)", err);
+        hb_qsv_plugin_unload(session, version, pv->qsv_info->codec_id);
+        MFXClose(session);
+        return -1;
+    }
+    if (pv->qsv_info->codec_id == MFX_CODEC_AVC)
+    {
         // remove 32-bit NAL prefix (0x00 0x00 0x00 0x01)
         w->config->h264.sps_length = sps_pps->SPSBufSize - 4;
         memmove(w->config->h264.sps, w->config->h264.sps + 4,
@@ -925,12 +930,9 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
         memmove(w->config->h264.pps, w->config->h264.pps + 4,
                 w->config->h264.pps_length);
     }
-    else
+    else if (pv->qsv_info->codec_id == MFX_CODEC_HEVC)
     {
-        hb_error("encqsvInit: MFXVideoENCODE_GetVideoParam failed (%d)", err);
-        hb_qsv_plugin_unload(session, version, pv->qsv_info->codec_id);
-        MFXClose(session);
-        return -1;
+        //fixme
     }
 
 #ifdef HB_DRIVER_FIX_33
