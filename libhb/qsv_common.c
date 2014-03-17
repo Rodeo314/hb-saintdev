@@ -1697,6 +1697,7 @@ static const char* level2name(const char* const *names, const int const *values,
             return names[i];
         }
     }
+    hb_log("DEBUG: level %d (%d)", level, MFX_LEVEL_UNKNOWN);//fixme
     return NULL;
 }
 
