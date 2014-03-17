@@ -158,14 +158,50 @@ static int qsv_h265_make_header(hb_work_object_t *w, mfxSession session)
     frameSurface1.Data.Y     = av_mallocz(Width * Height);
     frameSurface1.Data.Pitch = Width;
 
+    /* We only need to encode one frame */
     do
     {
         ret = MFXVideoENCODE_EncodeFrameAsync(session, NULL, &frameSurface1,
                                               &bitstream, &syncPoint);
+
+        if (ret == MFX_WRN_DEVICE_BUSY)
+        {
+            av_usleep(1000);
+        }
     }
-    while (ret == MFX_WRN_DEVICE_BUSY && av_usleep(1000) >= 0);
+    while (ret == MFX_WRN_DEVICE_BUSY);
 
     hb_log("DEBUG: ret is %d, syncPoint is %#p", ret, syncPoint);//debug
+
+    if (ret < MFX_ERR_NONE && ret != MFX_ERR_MORE_DATA)
+    {
+        hb_log("qsv_h265_make_header: MFXVideoENCODE_EncodeFrameAsync failed (%d)", ret);
+        return -1;
+    }
+
+    /*
+     * If there is an encoding delay (because of e.g. lookahead),
+     * we may need to flush the encoder to get the output frame.
+     */
+    do
+    {
+        ret = MFXVideoENCODE_EncodeFrameAsync(session, NULL, NULL,
+                                              &bitstream, &syncPoint);
+
+        if (ret == MFX_WRN_DEVICE_BUSY)
+        {
+            av_usleep(1000);
+        }
+    }
+    while (ret >= MFX_ERR_NONE);
+
+    hb_log("DEBUG: ret is %d, syncPoint is %#p", ret, syncPoint);//debug
+
+    if (ret != MFX_ERR_MORE_DATA)
+    {
+        hb_log("qsv_h265_make_header: MFXVideoENCODE_EncodeFrameAsync failed (%d)", ret);
+        return -1;
+    }
 
     //fixme
     av_free(frameSurface1.Data.VU);
