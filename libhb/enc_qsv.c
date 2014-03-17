@@ -901,7 +901,10 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     sps_pps->PPSId           = 0;
     sps_pps->PPSBuffer       = w->config->h264.pps;
     sps_pps->PPSBufSize      = sizeof(w->config->h264.pps);
-    videoParam.ExtParam[videoParam.NumExtParam++] = (mfxExtBuffer*)sps_pps;
+    if (pv->qsv_info->codec_id == MFX_CODEC_AVC)
+    {
+        videoParam.ExtParam[videoParam.NumExtParam++] = (mfxExtBuffer*)sps_pps;
+    }
     // introduced in API 1.0
     memset(option1, 0, sizeof(mfxExtCodingOption));
     option1->Header.BufferId = MFX_EXTBUFF_CODING_OPTION;
@@ -939,21 +942,7 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     }
     else if (pv->qsv_info->codec_id == MFX_CODEC_HEVC)
     {
-        size_t  header_size;
-        uint8_t header_data[HB_CONFIG_MAX_SIZE];
-
-        header_size = sps_pps->SPSBufSize + sps_pps->PPSBufSize;
-
-        if (sizeof(header_data) < header_size)
-        {
-            hb_error("encqsvInit: H.265 headers too large (size: %lu, max: %lu)",
-                     header_size, sizeof(header_data));
-            hb_qsv_plugin_unload(session, version, pv->qsv_info->codec_id);
-            MFXClose(session);
-            return -1;
-        }
-
-        hb_log("encqsvInit: H.265 header size: %lu", header_size);
+        hb_log("encqsvInit: H.265 header size: %"PRIu16"", sps_pps->SPSBufSize + sps_pps->PPSBufSize);
     }
 
 #ifdef HB_DRIVER_FIX_33
