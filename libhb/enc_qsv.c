@@ -1488,7 +1488,22 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
                 buf->s.frametype = hb_qsv_frametype_xlat(task->bs->FrameType,
                                                          &buf->s.flags);
 
-                parse_nalus(task->bs->Data + task->bs->DataOffset,task->bs->DataLength, buf, pv->frames_out);
+                if (pv->qsv_info->codec_id == MFX_CODEC_AVC)
+                {
+                    /*
+                     * We need to convert the encoder's Annex B output
+                     * to an MP4-compatible format (ISO/IEC 14496-15).
+                     */
+                    parse_nalus(task->bs->Data + task->bs->DataOffset,
+                                task->bs->DataLength, buf, pv->frames_out);
+                }
+                else
+                {
+                    /* Muxers will take care of re-formatting the bitstream */
+                    buf->size = task->bs->DataLength;
+                    memcpy(buf->data, task->bs->Data + task->bs->DataOffset,
+                           buf->size);
+                }
 
                 if ( last_buf == NULL )
                     *buf_out = buf;
@@ -1664,12 +1679,6 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
     }
 }
 
-/*
- * fixme: the HEVC muxers expects either of:
- *
- * - hvcC-formatted extradata + MP4 formatted samples
- * - raw parameter sets and Annex B formatted samples
- */
 int nal_find_start_code(uint8_t** pb, size_t* size){
     if ((int) *size < 4 )
         return 0;
