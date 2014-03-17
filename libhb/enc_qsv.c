@@ -126,11 +126,11 @@ static int64_t hb_qsv_pop_next_dts(hb_list_t *list)
 static int qsv_h265_make_header(hb_work_object_t *w)
 {
     int i;
-    mfxStatus ret;
+//    mfxStatus ret;
     mfxBitstream bitstream;
     mfxSyncPoint syncPoint;
     mfxFrameAllocRequest frameAllocRequest;
-    mfxFrameSurface1 surfaces[AV_QSV_SURFACE_NUM];
+    mfxFrameSurface1 *surface, surfaces[AV_QSV_SURFACE_NUM];
     hb_work_private_t *pv = w->private_data;
 
     memset(&bitstream,         0, sizeof(mfxBitstream));
@@ -145,6 +145,29 @@ static int qsv_h265_make_header(hb_work_object_t *w)
 //        return -1;
 //    }
 
+    for (i = 0; i < sizeof(surfaces) / sizeof(surfaces[0]); i++)
+    {
+        mfxU16 Width, Height;
+
+        surface = &surfaces[i];
+
+        memset(surface, 0, sizeof(mfxFrameSurface1));
+
+        Height              = pv->param.videoParam->mfx.FrameInfo.Height;
+        Width               = pv->param.videoParam->mfx.FrameInfo.Width;
+        surface->Info       = pv->param.videoParam->mfx.FrameInfo;
+        surface->Data.VU    = av_mallocz(Width * Height / 2);
+        surface->Data.Y     = av_mallocz(Width * Height);
+        surface->Data.Pitch = Width;
+    }
+
+    for (i = 0; i < sizeof(surfaces) / sizeof(surfaces[0]); i++)
+    {
+        av_freep(&surfaces[i].Data.VU);
+        av_freep(&surfaces[i].Data.Y);
+    }
+
+    //fixme
     return 0;
 }
 
