@@ -146,6 +146,21 @@ int qsv_enc_init(av_qsv_context *qsv, hb_work_private_t *pv)
         job->qsv.ctx = qsv = av_mallocz(sizeof(av_qsv_context));
     }
 
+    av_qsv_space *qsv_encode = qsv->enc_space;
+    if (qsv_encode == NULL)
+    {
+        // if only for encode
+        if (pv->is_sys_mem)
+        {
+            // no need to use additional sync as encode only -> single thread
+            av_qsv_add_context_usage(qsv, 0);
+
+            // re-use the session from encqsvInit
+            qsv->mfx_session = pv->mfx_session;
+        }
+        qsv->enc_space = qsv_encode = &pv->enc_space;
+    }
+
     /* We need the actual API version for hb_qsv_plugin_load */
     if ((MFXQueryIMPL   (qsv->mfx_session, &impl)    == MFX_ERR_NONE) &&
         (MFXQueryVersion(qsv->mfx_session, &version) == MFX_ERR_NONE))
@@ -170,21 +185,6 @@ int qsv_enc_init(av_qsv_context *qsv, hb_work_private_t *pv)
         *job->done_error = HB_ERROR_INIT;
         *job->die = 1;
         return -1;
-    }
-
-    av_qsv_space *qsv_encode = qsv->enc_space;
-    if (qsv_encode == NULL)
-    {
-        // if only for encode
-        if (pv->is_sys_mem)
-        {
-            // no need to use additional sync as encode only -> single thread
-            av_qsv_add_context_usage(qsv, 0);
-
-            // re-use the session from encqsvInit
-            qsv->mfx_session = pv->mfx_session;
-        }
-        qsv->enc_space = qsv_encode = &pv->enc_space;
     }
 
     if (!pv->is_sys_mem)
