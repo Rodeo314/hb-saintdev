@@ -28,6 +28,8 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef USE_QSV
 
+#include "libavutil/time.h"
+
 #include "hb.h"
 #include "enc_qsv.h"
 #include "qsv_common.h"
@@ -126,7 +128,7 @@ static int64_t hb_qsv_pop_next_dts(hb_list_t *list)
 static int qsv_h265_make_header(hb_work_object_t *w)
 {
     int i;
-//    mfxStatus ret;
+    mfxStatus ret;
     hb_buffer_t *buf;
     mfxU16 Width, Height;
     mfxBitstream bitstream;
@@ -173,11 +175,25 @@ static int qsv_h265_make_header(hb_work_object_t *w)
         surface->Data.Pitch = Width;
     }
 
-//    do
-//    {
-//        ret = MFXVideoENCODE_EncodeFrameAsync(pv->mfx_session, NULL, surface,
-//                                              &bitstream, &syncPoint);
-//    } while (1);
+    surface = NULL;
+
+    for (i = 0; i < sizeof(surfaces) / sizeof(surfaces[0]); i++)
+    {
+        if (!surfaces[i].Data.Locked)
+        {
+            surface = &surfaces[i];
+            break;
+        }
+    }
+
+    do
+    {
+        ret = MFXVideoENCODE_EncodeFrameAsync(pv->mfx_session, NULL, surface,
+                                              &bitstream, &syncPoint);
+        av_usleep(1000);
+    } while (ret == MFX_WRN_DEVICE_BUSY);
+
+    hb_log("DEBUG: ret is %d", ret);//debug
 
     for (i = 0; i < sizeof(surfaces) / sizeof(surfaces[0]); i++)
     {
