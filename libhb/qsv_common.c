@@ -306,7 +306,7 @@ static int query_capabilities(mfxSession session, mfxVersion version, hb_qsv_inf
         }
 
         /*
-         * Check mfxExtCodingOption2 fields.
+         * Determine whether mfxExtCodingOption2 and its fields are supported.
          *
          * Mode 2 suffers from false negatives with some drivers, whereas mode 1
          * suffers from false positives instead. The latter is probably easier
