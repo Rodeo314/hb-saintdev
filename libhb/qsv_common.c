@@ -171,7 +171,6 @@ static int query_capabilities(mfxSession session, mfxVersion version, hb_qsv_inf
      * - MFXVideoENCODE_Query should sanitize all unsupported parameters
      */
     mfxStatus status;
-    mfxPluginUID *pluginUID;
     mfxExtBuffer *videoExtParam[1];
     mfxVideoParam videoParam, inputParam;
     mfxExtCodingOption2 extCodingOption2;
@@ -180,20 +179,9 @@ static int query_capabilities(mfxSession session, mfxVersion version, hb_qsv_inf
     info->capabilities = 0;
 
     /* Load optional codec plug-ins */
-    switch (info->codec_id)
+    if (hb_qsv_plugin_load(session, version, info->codec_id) < MFX_ERR_NONE)
     {
-        case MFX_CODEC_HEVC:
-            pluginUID = &qsv_encode_plugin_hevc;
-            break;
-        default:
-            pluginUID = NULL;
-            break;
-    }
-    if (pluginUID != NULL && HB_CHECK_MFX_VERSION(version, 1, 8) &&
-        MFXVideoUSER_Load(session, pluginUID, 0) < MFX_ERR_NONE)
-    {
-        // couldn't load plugin successfully
-        return 0;
+        return 0; // couldn't load plugin successfully
     }
 
     /*
@@ -437,10 +425,7 @@ static int query_capabilities(mfxSession session, mfxVersion version, hb_qsv_inf
     }
 
     /* Unload optional codec plug-ins */
-    if (pluginUID != NULL && HB_CHECK_MFX_VERSION(version, 1, 8))
-    {
-        MFXVideoUSER_UnLoad(session, pluginUID);
-    }
+    hb_qsv_plugin_unload(session, version, info->codec_id);
 
     return 0;
 }
@@ -604,6 +589,48 @@ hb_qsv_info_t* hb_qsv_info_get(int encoder)
         default:
             return NULL;
     }
+}
+
+mfxStatus hb_qsv_plugin_load(mfxSession session, mfxVersion version, mfxU32 CodecId)
+{
+    mfxPluginUID *pluginUID = NULL;
+
+    switch (CodecId)
+    {
+        case MFX_CODEC_HEVC:
+            pluginUID = &qsv_encode_plugin_hevc;
+            break;
+        default:
+            break;
+    }
+
+    if (pluginUID != NULL && HB_CHECK_MFX_VERSION(version, 1, 8))
+    {
+        return MFXVideoUSER_Load(session, pluginUID, 0);
+    }
+
+    return MFX_ERR_NONE;
+}
+
+mfxStatus hb_qsv_plugin_unload(mfxSession session, mfxVersion version, mfxU32 CodecId)
+{
+    mfxPluginUID *pluginUID = NULL;
+
+    switch (CodecId)
+    {
+        case MFX_CODEC_HEVC:
+            pluginUID = &qsv_encode_plugin_hevc;
+            break;
+        default:
+            break;
+    }
+
+    if (pluginUID != NULL && HB_CHECK_MFX_VERSION(version, 1, 8))
+    {
+        MFXVideoUSER_UnLoad(session, pluginUID);
+    }
+
+    return MFX_ERR_NONE;
 }
 
 const char* hb_qsv_decode_get_codec_name(enum AVCodecID codec_id)

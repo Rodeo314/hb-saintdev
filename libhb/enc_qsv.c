@@ -126,7 +126,9 @@ static int64_t hb_qsv_pop_next_dts(hb_list_t *list)
 int qsv_enc_init(av_qsv_context *qsv, hb_work_private_t *pv)
 {
     int i = 0;
+    mfxIMPL impl;
     mfxStatus sts;
+    mfxVersion version;
     hb_job_t *job = pv->job;
 
     if (pv->init_done)
@@ -285,6 +287,32 @@ int qsv_enc_init(av_qsv_context *qsv, hb_work_private_t *pv)
         AV_QSV_CHECK_POINTER(qsv_encode->p_syncp[i]->p_sync, MFX_ERR_MEMORY_ALLOC);
     }
 
+    /* We need the actual API version for hb_qsv_plugin_load */
+    if ((MFXQueryIMPL   (qsv->mfx_session, &impl)    == MFX_ERR_NONE) &&
+        (MFXQueryVersion(qsv->mfx_session, &version) == MFX_ERR_NONE))
+    {
+        /* log actual implementation details now that we know them */
+        hb_log("qsv_enc_init: using '%s' implementation, API: %"PRIu16".%"PRIu16"",
+               hb_qsv_impl_get_name(impl), version.Major, version.Minor);
+    }
+    else
+    {
+        hb_error("qsv_enc_init: MFXQueryIMPL/MFXQueryVersion failure");
+        *job->done_error = HB_ERROR_INIT;
+        *job->die = 1;
+        return -1;
+    }
+
+    /* Load optional codec plug-ins */
+    sts = hb_qsv_plugin_load(qsv->mfx_session, version, pv->qsv_info->codec_id);
+    if (sts < MFX_ERR_NONE)
+    {
+        hb_error("qsv_enc_init: hb_qsv_plugin_load failed (%d)", sts);
+        *job->done_error = HB_ERROR_INIT;
+        *job->die = 1;
+        return -1;
+    }
+
     // initialize the encoder
     sts = MFXVideoENCODE_Init(qsv->mfx_session, &qsv_encode->m_mfxVideoParam);
     if (sts < MFX_ERR_NONE) // ignore warnings
@@ -295,20 +323,6 @@ int qsv_enc_init(av_qsv_context *qsv, hb_work_private_t *pv)
         return -1;
     }
     qsv_encode->is_init_done = 1;
-
-    mfxIMPL impl;
-    mfxVersion version;
-    // log actual implementation details now that we know them
-    if ((MFXQueryIMPL   (qsv->mfx_session, &impl)    == MFX_ERR_NONE) &&
-        (MFXQueryVersion(qsv->mfx_session, &version) == MFX_ERR_NONE))
-    {
-        hb_log("qsv_enc_init: using '%s' implementation, API: %"PRIu16".%"PRIu16"",
-               hb_qsv_impl_get_name(impl), version.Major, version.Minor);
-    }
-    else
-    {
-        hb_log("qsv_enc_init: MFXQueryIMPL/MFXQueryVersion failure");
-    }
 
     pv->init_done = 1;
     return 0;
@@ -830,6 +844,23 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
         hb_error("encqsvInit: MFXInit failed (%d)", err);
         return -1;
     }
+
+    /* Query the API version for hb_qsv_plugin_load */
+    err = MFXQueryVersion(session, &version);
+    if (err != MFX_ERR_NONE)
+    {
+        hb_error("encqsvInit: MFXQueryVersion failed (%d)", err);
+        return -1;
+    }
+
+    /* Load optional codec plug-ins */
+    err = hb_qsv_plugin_load(session, version, pv->qsv_info->codec_id);
+    if (err < MFX_ERR_NONE)
+    {
+        hb_error("encqsvInit: hb_qsv_plugin_load failed (%d)", err);
+        return -1;
+    }
+
     err = MFXVideoENCODE_Init(session, pv->param.videoParam);
 // workaround for the early 15.33.x driver, should be removed later
 #define HB_DRIVER_FIX_33
@@ -846,6 +877,7 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     if (err < MFX_ERR_NONE) // ignore warnings
     {
         hb_error("encqsvInit: MFXVideoENCODE_Init failed (%d)", err);
+        hb_qsv_plugin_unload(session, version, pv->qsv_info->codec_id);
         MFXClose(session);
         return -1;
     }
@@ -894,6 +926,7 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     else
     {
         hb_error("encqsvInit: MFXVideoENCODE_GetVideoParam failed (%d)", err);
+        hb_qsv_plugin_unload(session, version, pv->qsv_info->codec_id);
         MFXClose(session);
         return -1;
     }
@@ -915,6 +948,7 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     }
     else
     {
+        hb_qsv_plugin_unload(session, version, pv->qsv_info->codec_id);
         MFXClose(session);
     }
 
