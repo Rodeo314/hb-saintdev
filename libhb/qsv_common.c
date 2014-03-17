@@ -599,6 +599,8 @@ hb_qsv_info_t* hb_qsv_info_get(int encoder)
     {
         case HB_VCODEC_QSV_H264:
             return hb_qsv_info_avc;
+        case HB_VCODEC_QSV_H265:
+            return hb_qsv_info_hevc;
         default:
             return NULL;
     }
