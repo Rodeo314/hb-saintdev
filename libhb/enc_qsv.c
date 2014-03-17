@@ -177,14 +177,21 @@ int qsv_enc_init(av_qsv_context *qsv, hb_work_private_t *pv)
         return -1;
     }
 
-    /* Load optional codec plug-ins */
-    sts = hb_qsv_plugin_load(qsv->mfx_session, version, pv->qsv_info->codec_id);
-    if (sts < MFX_ERR_NONE)
+    /*
+     * Load optional codec plug-ins.
+     *
+     * Note: in the encode-only path, hb_qsv_plugin_load was already called.
+     */
+    if (!pv->is_sys_mem)
     {
-        hb_error("qsv_enc_init: hb_qsv_plugin_load failed (%d)", sts);
-        *job->done_error = HB_ERROR_INIT;
-        *job->die = 1;
-        return -1;
+        sts = hb_qsv_plugin_load(qsv->mfx_session, version, pv->qsv_info->codec_id);
+        if (sts < MFX_ERR_NONE)
+        {
+            hb_error("qsv_enc_init: hb_qsv_plugin_load failed (%d)", sts);
+            *job->done_error = HB_ERROR_INIT;
+            *job->die = 1;
+            return -1;
+        }
     }
 
     if (!pv->is_sys_mem)
@@ -1231,13 +1238,24 @@ void encqsvClose( hb_work_object_t * w )
         }
         }
 
-        if(qsv){
-        // closing the commong stuff
-        av_qsv_context_clean(qsv);
+        if (qsv != NULL)
+        {
+            mfxVersion version;
 
-        if(pv->is_sys_mem){
-            av_freep(&qsv);
-        }
+            /* Unload optional codec plug-ins */
+            if (MFXQueryVersion(qsv->mfx_session, &version) == MFX_ERR_NONE)
+            {
+                hb_qsv_plugin_unload(qsv->mfx_session, version,
+                                     pv->qsv_info->codec_id);
+            }
+
+            /* QSV context cleanup and MFXClose */
+            av_qsv_context_clean(qsv);
+
+            if (pv->is_sys_mem)
+            {
+                av_freep(&qsv);
+            }
         }
     }
 
