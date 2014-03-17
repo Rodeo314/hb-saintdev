@@ -130,7 +130,6 @@ static int qsv_h265_make_header(hb_work_object_t *w, mfxSession session)
     int ret = 0;
     hb_buffer_t *buf;
     mfxStatus status;
-    mfxU16 Width, Height;
     mfxBitstream bitstream;
     mfxSyncPoint syncPoint;
     mfxFrameSurface1 frameSurface1;
@@ -140,24 +139,26 @@ static int qsv_h265_make_header(hb_work_object_t *w, mfxSession session)
     memset(&syncPoint,     0, sizeof(mfxSyncPoint));
     memset(&frameSurface1, 0, sizeof(mfxFrameSurface1));
 
-    Width  = pv->param.videoParam->mfx.FrameInfo.Width;
-    Height = pv->param.videoParam->mfx.FrameInfo.Height;
-    buf    = hb_video_buffer_init(Width, Height);
-
+    /* The bitstream buffer must not exceed the maximum H.265 header size */
+    buf = hb_buffer_init(sizeof(w->config->h265.headers));
     if (buf == NULL)
     {
         hb_log("qsv_h265_make_header: hb_buffer_init failed");
         ret = -1;
         goto end;
     }
+    bitstream.Data      = buf->data;
+    bitstream.MaxLength = buf->size;
 
-    bitstream.Data           = buf->data;
-    bitstream.MaxLength      = buf->size;
+    /* We only need to encode one frame, so we only need one surface */
+    mfxU16 Height            = pv->param.videoParam->mfx.FrameInfo.Height;
+    mfxU16 Width             = pv->param.videoParam->mfx.FrameInfo.Width;
     frameSurface1.Info       = pv->param.videoParam->mfx.FrameInfo;
     frameSurface1.Data.VU    = av_mallocz(Width * Height / 2);
     frameSurface1.Data.Y     = av_mallocz(Width * Height);
     frameSurface1.Data.Pitch = Width;
 
+    /* Encode our only frame */
     do
     {
         status = MFXVideoENCODE_EncodeFrameAsync(session, NULL, &frameSurface1,
@@ -169,8 +170,6 @@ static int qsv_h265_make_header(hb_work_object_t *w, mfxSession session)
         }
     }
     while (status == MFX_WRN_DEVICE_BUSY);
-
-    hb_log("DEBUG: status is %d, syncPoint is %#p", status, syncPoint);//debug
 
     if (status < MFX_ERR_NONE && status != MFX_ERR_MORE_DATA)
     {
@@ -212,8 +211,6 @@ static int qsv_h265_make_header(hb_work_object_t *w, mfxSession session)
     }
     while (status >= MFX_ERR_NONE);
 
-    hb_log("DEBUG: status is %d, syncPoint is %#p", status, syncPoint);//debug
-
     if (status != MFX_ERR_MORE_DATA)
     {
         hb_log("qsv_h265_make_header: MFXVideoENCODE_EncodeFrameAsync failed (%d)", status);
@@ -238,20 +235,31 @@ static int qsv_h265_make_header(hb_work_object_t *w, mfxSession session)
         }
     }
 
-    hb_log("DEBUG: bitstream.DataLength %"PRIu32"", bitstream.DataLength);//debug
-
-    if (bitstream.DataLength <= 0)
+    if (!bitstream.DataLength)
     {
         hb_log("qsv_h265_make_header: no output data found");
         ret = -1;
         goto end;
     }
 
+    /*
+     * We don't need to parse the bitstream, the muxers will do it for us.
+     *
+     * XXX: the config struct is not supposed to hold complete frames,
+     * but it should be plenty large enough so let's use it anyway.
+     *
+     * Note: bitstream.MaxLength (and thus bitstream.DataLength)
+     * cannot exceed the size of the output buffer (see above).
+     */
+    memcpy(w->config->h265.headers,
+           bitstream.Data + bitstream.DataOffset, bitstream.DataLength);
+    w->config->h265.headers_length = bitstream.DataLength;
+
 end:
     av_free(frameSurface1.Data.VU);
     av_free(frameSurface1.Data.Y);
     hb_buffer_close(&buf);
-    return ret;//fixme
+    return ret;
 }
 
 int qsv_enc_init(av_qsv_context *qsv, hb_work_private_t *pv)
