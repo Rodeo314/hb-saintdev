@@ -149,16 +149,13 @@ static int qsv_h265_make_header(hb_work_object_t *w, mfxSession session)
         return -1;
     }
 
-    bitstream.Data       = buf->data;
-    bitstream.DataLength = buf->size;
-    bitstream.MaxLength  = buf->alloc;
-
+    bitstream.Data           = buf->data;
+    bitstream.MaxLength      = buf->size;
     frameSurface1.Info       = pv->param.videoParam->mfx.FrameInfo;
     frameSurface1.Data.VU    = av_mallocz(Width * Height / 2);
     frameSurface1.Data.Y     = av_mallocz(Width * Height);
     frameSurface1.Data.Pitch = Width;
 
-    /* We only need to encode one frame */
     do
     {
         ret = MFXVideoENCODE_EncodeFrameAsync(session, NULL, &frameSurface1,
@@ -202,6 +199,8 @@ static int qsv_h265_make_header(hb_work_object_t *w, mfxSession session)
         hb_log("qsv_h265_make_header: MFXVideoENCODE_EncodeFrameAsync failed (%d)", ret);
         return -1;
     }
+
+    hb_log("DEBUG: bitstream.DataLength %"PRIu32"", bitstream.DataLength);//debug
 
     //fixme
     av_free(frameSurface1.Data.VU);
