@@ -665,12 +665,12 @@ void hb_qsv_info_print()
                    hb_qsv_impl_get_name(hb_qsv_info_hevc->implementation));
             if (qsv_hardware_info_hevc.available)
             {
-                log_capabilities(2, qsv_hardware_info_hevc.capabilities,
+                log_capabilities(1, qsv_hardware_info_hevc.capabilities,
                                  "    - capabilities (hardware): ");
             }
             if (qsv_software_info_hevc.available)
             {
-                log_capabilities(2, qsv_software_info_hevc.capabilities,
+                log_capabilities(1, qsv_software_info_hevc.capabilities,
                                  "    - capabilities (software): ");
             }
         }
