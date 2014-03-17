@@ -1218,7 +1218,6 @@ int hb_qsv_param_parse(hb_qsv_param_t *param, hb_qsv_info_t *info,
         switch (info->codec_id)
         {
             case MFX_CODEC_AVC:
-            case MFX_CODEC_HEVC:
                 ivalue = hb_qsv_atobool(value, &error);
                 break;
             default:
@@ -1236,7 +1235,6 @@ int hb_qsv_param_parse(hb_qsv_param_t *param, hb_qsv_info_t *info,
         switch (info->codec_id)
         {
             case MFX_CODEC_AVC:
-            case MFX_CODEC_HEVC:
                 ivalue = hb_qsv_atobool(value, &error);
                 break;
             default:
