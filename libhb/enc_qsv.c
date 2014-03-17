@@ -34,8 +34,6 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "enc_qsv.h"
 #include "qsv_common.h"
 #include "qsv_memory.h"
-#include "h264_common.h"
-#include "h265_common.h"
 
 int  encqsvInit( hb_work_object_t *, hb_job_t * );
 int  encqsvWork( hb_work_object_t *, hb_buffer_t **, hb_buffer_t ** );
@@ -1711,9 +1709,10 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
                 else
                 {
                     /* Muxers will take care of re-formatting the bitstream */
+                    memcpy(buf->data,
+                           task->bs->Data + task->bs->DataOffset,
+                           task->bs->DataLength);
                     buf->size = task->bs->DataLength;
-                    memcpy(buf->data, task->bs->Data + task->bs->DataOffset,
-                           buf->size);
                 }
 
                 if ( last_buf == NULL )
