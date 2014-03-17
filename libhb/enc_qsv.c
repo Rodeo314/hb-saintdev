@@ -939,7 +939,21 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     }
     else if (pv->qsv_info->codec_id == MFX_CODEC_HEVC)
     {
-        //fixme
+        size_t  header_size;
+        uint8_t header_data[HB_CONFIG_MAX_SIZE];
+
+        header_size = sps_pps->SPSBufSize + sps_pps->PPSBufSize;
+
+        if (sizeof(header_data) < header_size)
+        {
+            hb_error("encqsvInit: H.265 headers too large (size: %lu, max: %lu)",
+                     header_size, sizeof(header_data));
+            hb_qsv_plugin_unload(session, version, pv->qsv_info->codec_id);
+            MFXClose(session);
+            return -1;
+        }
+
+        hb_log("encqsvInit: H.265 header size: %lu", header_size);
     }
 
 #ifdef HB_DRIVER_FIX_33
