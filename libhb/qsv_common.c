@@ -188,8 +188,9 @@ static int query_capabilities(mfxSession session, mfxVersion version, hb_qsv_inf
     mfxStatus status;
     mfxExtBuffer *videoExtParam[1];
     mfxVideoParam videoParam, inputParam;
-    mfxExtCodingOption2 extCodingOption2;
     mfxExtCodingOption extCodingOption;
+    mfxExtCodingOption2 extCodingOption2;
+    mfxExtVideoSignalInfo extVideoSignalInfo;
 
     /* Reset capabilities before querying */
     info->capabilities = 0;
@@ -322,11 +323,7 @@ static int query_capabilities(mfxSession session, mfxVersion version, hb_qsv_inf
         }
 
         /*
-         * Determine whether mfxExtCodingOption and its fields are supported.
-         *
-//         * Mode 2 suffers from false negatives with some drivers, whereas mode 1
-//         * suffers from false positives instead. The latter is probably easier
-//         * and/or safer to sanitize for us, so use mode 1.
+         * Determine whether mfxExtCodingOption is supported.
          */
         if (HB_CHECK_MFX_VERSION(version, 1, 0))
         {
