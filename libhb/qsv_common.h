@@ -50,15 +50,17 @@ typedef struct hb_qsv_info_s
 #define HB_QSV_CAP_RATECONTROL_LAi   (1LL << 11)
 #define HB_QSV_CAP_RATECONTROL_ICQ   (1LL << 12)
 
-    // mfxExtCodingOption2 fields
-#define HB_QSV_CAP_OPTION2           (1LL << 20)
-#define HB_QSV_CAP_OPTION2_MBBRC     (1LL << 21)
-#define HB_QSV_CAP_OPTION2_EXTBRC    (1LL << 22)
-#define HB_QSV_CAP_OPTION2_TRELLIS   (1LL << 23)
-#define HB_QSV_CAP_OPTION2_BREFTYPE  (1LL << 24)
-#define HB_QSV_CAP_OPTION2_IB_ADAPT  (1LL << 25)
-#define HB_QSV_CAP_OPTION2_LA_DOWNS  (1LL << 26)
-#define HB_QSV_CAP_OPTION2_NMBSLICE  (1LL << 27)
+    // optional configuration structures and fields
+#define HB_QSV_CAP_VSINFO            (1LL << 20)
+#define HB_QSV_CAP_OPTION1           (1LL << 21)
+#define HB_QSV_CAP_OPTION2           (1LL << 22)
+#define HB_QSV_CAP_OPTION2_MBBRC     (1LL << 23)
+#define HB_QSV_CAP_OPTION2_EXTBRC    (1LL << 24)
+#define HB_QSV_CAP_OPTION2_TRELLIS   (1LL << 25)
+#define HB_QSV_CAP_OPTION2_BREFTYPE  (1LL << 26)
+#define HB_QSV_CAP_OPTION2_IB_ADAPT  (1LL << 27)
+#define HB_QSV_CAP_OPTION2_LA_DOWNS  (1LL << 28)
+#define HB_QSV_CAP_OPTION2_NMBSLICE  (1LL << 29)
 
     // TODO: add maximum encode resolution, etc.
 } hb_qsv_info_t;

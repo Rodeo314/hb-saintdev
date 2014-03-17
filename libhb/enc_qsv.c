@@ -900,14 +900,16 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     memset(option1, 0, sizeof(mfxExtCodingOption));
     option1->Header.BufferId = MFX_EXTBUFF_CODING_OPTION;
     option1->Header.BufferSz = sizeof(mfxExtCodingOption);
-    videoParam.ExtParam[videoParam.NumExtParam++] = (mfxExtBuffer*)option1;
+    if (pv->qsv_info->capabilities & HB_QSV_CAP_OPTION1)
+    {
+        videoParam.ExtParam[videoParam.NumExtParam++] = (mfxExtBuffer*)option1;
+    }
     // introduced in API 1.6
     memset(option2, 0, sizeof(mfxExtCodingOption2));
     option2->Header.BufferId = MFX_EXTBUFF_CODING_OPTION2;
     option2->Header.BufferSz = sizeof(mfxExtCodingOption2);
     if (pv->qsv_info->capabilities & HB_QSV_CAP_OPTION2)
     {
-        // attach to get the final output mfxExtCodingOption2 settings
         videoParam.ExtParam[videoParam.NumExtParam++] = (mfxExtBuffer*)option2;
     }
     err = MFXVideoENCODE_GetVideoParam(session, &videoParam);
@@ -1114,8 +1116,11 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
                      videoParam.mfx.FrameInfo.PicStruct);
             return -1;
     }
-    hb_log("encqsvInit: CAVLC %s",
-           hb_qsv_codingoption_get_name(option1->CAVLC));
+    if (pv->qsv_info->capabilities & HB_QSV_CAP_OPTION1)
+    {
+        hb_log("encqsvInit: CAVLC %s",
+               hb_qsv_codingoption_get_name(option1->CAVLC));
+    }
     if (pv->param.rc.lookahead           == 0 &&
         videoParam.mfx.RateControlMethod != MFX_RATECONTROL_CQP)
     {
