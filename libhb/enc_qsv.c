@@ -535,9 +535,9 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
         return -1;
     }
 
-    // fixme: codec-specific
     // interlaced encoding is not always possible
-    if (pv->param.videoParam->mfx.FrameInfo.PicStruct != MFX_PICSTRUCT_PROGRESSIVE)
+    if (pv->param.videoParam->mfx.CodecId             == MFX_CODEC_AVC &&
+        pv->param.videoParam->mfx.FrameInfo.PicStruct != MFX_PICSTRUCT_PROGRESSIVE)
     {
         if (pv->param.videoParam->mfx.CodecProfile == MFX_PROFILE_AVC_CONSTRAINED_BASELINE ||
             pv->param.videoParam->mfx.CodecProfile == MFX_PROFILE_AVC_BASELINE             ||
