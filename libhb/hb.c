@@ -196,6 +196,18 @@ hb_sws_get_context(int srcW, int srcH, enum AVPixelFormat srcFormat,
     {
         int srcRange, dstRange;
 
+#ifdef USE_QSV
+        /*
+         * Our libav QSV wrapper patch uses this custom pix_fmt,
+         * but it's just NV12 with a special QSV "atom", and can
+         * be processed as such by libswscale without any issue.
+         */
+        if (srcFormat == AV_PIX_FMT_QSV_H264)
+        {
+            srcFormat  = AV_PIX_FMT_NV12;
+        }
+#endif
+
         srcRange = handle_jpeg(&srcFormat);
         dstRange = handle_jpeg(&dstFormat);
         /* enable this when implemented in Libav

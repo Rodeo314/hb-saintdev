@@ -774,10 +774,12 @@ static void do_job(hb_job_t *job)
     }
 
     /*
-     * When QSV is used for decoding, not all CPU-based filters are supported,
+     * Full QSV path, decode -> vpp -> encode.
+     *
+     * Not all CPU-based filters are supported,
      * so we need to do a little extra setup here.
      */
-    if (hb_qsv_decode_is_enabled(job))
+    if (hb_qsv_decode_is_enabled(job) && (job->vcodec & HB_VCODEC_QSV_MASK))
     {
         int vpp_settings[7];
         int num_cpu_filters = 0;
@@ -948,8 +950,9 @@ static void do_job(hb_job_t *job)
     }
 
 #ifdef USE_QSV
-    if (hb_qsv_decode_is_enabled(job))
+    if (hb_qsv_decode_is_enabled(job) && (job->vcodec & HB_VCODEC_QSV_MASK))
     {
+        /* Full QSV path, decode -> vpp -> encode. */
         job->fifo_mpeg2  = hb_fifo_init( FIFO_MINI, FIFO_MINI_WAKE );
         job->fifo_raw    = hb_fifo_init( FIFO_MINI, FIFO_MINI_WAKE );
         job->fifo_sync   = hb_fifo_init( FIFO_MINI, FIFO_MINI_WAKE );
