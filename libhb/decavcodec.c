@@ -893,6 +893,9 @@ static hb_buffer_t *copy_frame( hb_work_private_t *pv )
             AVPicture dstpic;
             hb_avpicture_fill(&dstpic, buf);
 
+            hb_log("context, width: %d, height: %d, pix_fmt: %d",
+                   context->width, context->height, context->pix_fmt);//debug
+
             if (pv->sws_context == NULL            ||
                 pv->sws_width   != context->width  ||
                 pv->sws_height  != context->height ||
