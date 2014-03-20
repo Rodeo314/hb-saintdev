@@ -1699,8 +1699,11 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
                 buf = hb_nal_bitstream_annexb_to_mp4(task->bs->Data +
                                                      task->bs->DataOffset,
                                                      task->bs->DataLength);
-                *buf_out = hb_buffer_init(0);//debug
-                return HB_WORK_DONE;         //debug
+                if (pv->frames_out > 1)
+                {
+                    *buf_out = hb_buffer_init(0);//debug
+                    return HB_WORK_DONE;         //debug
+                }
             }
             else
             {
