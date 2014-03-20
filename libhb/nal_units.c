@@ -68,6 +68,7 @@ uint8_t* hb_annexb_find_next_nalu(const uint8_t *start, size_t *size)
         *size = 0;
         return NULL;
     }
+    hb_log("buf found after %lu bytes", buf - start);//debug
 
     /*
      * Start code prefix found, look for the next one to determine the size
