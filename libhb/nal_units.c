@@ -53,7 +53,7 @@ uint8_t* hb_annexb_find_next_nalu(const uint8_t *start, size_t *size)
     uint8_t *end = (uint8_t*)start + *size;
 
     /* Look for an Annex B start code prefix (3-byte sequence == 1) */
-    while (end - buf > 3)
+    while (end - buf > 4)
     {
         if (!buf[0] && !buf[1] && !buf[2] && buf[3] == 1)
         {
