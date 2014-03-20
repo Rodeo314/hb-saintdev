@@ -1768,8 +1768,6 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
                                                      task->bs->DataLength);
                 parse_nalus(task->bs->Data + task->bs->DataOffset,      //debug
                             task->bs->DataLength, tmp, pv->frames_out); //debug
-                hb_log("buf->size:  %d", buf->size);                    //debug
-                hb_log("tmp->size:  %d", tmp->size);                    //debug
                 int ttt, uuu;
                 for (ttt = 0; ttt < buf->size; ttt++)
                 {
@@ -1777,17 +1775,24 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
                     uint8_t *t2 = tmp->data + ttt;
                     if (t1[0] != t2[0])
                     {
+                        hb_log("buf->size:  %d", buf->size);
+                        hb_log("tmp->size:  %d", tmp->size);
                         hb_log("buffers differ at %d, 0x%02"PRIx8" != 0x%02"PRIx8"", ttt, t1[0], t2[0]);
+                        if (t2[0] - t1[0] != tmp->size - buf->size)
+                        {
+                            hb_error("BUG");
+                            abort();
+                        }
                         break;
                     }
                 }
-                for (uuu = 0; uuu <= ttt + 4; uuu += 4)
-                {
-                    uint8_t *t1 = buf->data + uuu;
-                    uint8_t *t2 = tmp->data + uuu;
-                    hb_log("buf[%3d]: 0x%02"PRIx8" 0x%02"PRIx8" 0x%02"PRIx8" 0x%02"PRIx8"", uuu, t1[0], t1[1], t1[2], t1[3]);
-                    hb_log("tmp[%3d]: 0x%02"PRIx8" 0x%02"PRIx8" 0x%02"PRIx8" 0x%02"PRIx8"", uuu, t2[0], t2[1], t2[2], t2[3]);
-                }
+//                for (uuu = 0; uuu <= ttt + 4; uuu += 4)
+//                {
+//                    uint8_t *t1 = buf->data + uuu;
+//                    uint8_t *t2 = tmp->data + uuu;
+//                    hb_log("buf[%3d]: 0x%02"PRIx8" 0x%02"PRIx8" 0x%02"PRIx8" 0x%02"PRIx8"", uuu, t1[0], t1[1], t1[2], t1[3]);
+//                    hb_log("tmp[%3d]: 0x%02"PRIx8" 0x%02"PRIx8" 0x%02"PRIx8" 0x%02"PRIx8"", uuu, t2[0], t2[1], t2[2], t2[3]);
+//                }
                 hb_buffer_close(&tmp); //debug
             }
             else
