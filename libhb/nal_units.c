@@ -38,7 +38,7 @@ size_t hb_nal_unit_write_isomp4(uint8_t *buf,
 
     if (buf != NULL)
     {
-        hb_log("hb_nal_unit_write_isomp4:       NAL with type %02"PRIu8" and size %5lu", buf[0] & 0x1f, buf_size);//debug
+        hb_log("hb_nal_unit_write_isomp4:       NAL with type %02"PRIu8" and size %5lu", nal_unit[0] & 0x1f, nal_unit_size);//debug
         memcpy(buf, &nalu_length, sizeof(nalu_length));
         memcpy(buf + sizeof(nalu_length), nal_unit, nal_unit_size);
     }
