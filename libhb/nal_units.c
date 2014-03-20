@@ -51,14 +51,19 @@ size_t hb_nal_unit_write_isomp4(uint8_t *buf,
                                 const uint8_t *nal_unit,
                                 const size_t nal_unit_size)
 {
-    uint32_t nalu_length = nal_unit_size; // 4-byte length replaces startcode
+    int i;
+    uint8_t nalu_length[4]; // 4-byte length replaces Annex B start code prefix
 
     if (buf != NULL)
     {
-        hb_log("hb_nal_unit_write_isomp4: (1)   NAL with type %02"PRIu8" and size %5lu (%5"PRIu32", %lu bytes)", nal_unit[0] & 0x1f, nal_unit_size, nalu_length, sizeof(nalu_length));//debug
-        memcpy(buf, &nalu_length, sizeof(nalu_length));
+        for (i = 0; i < sizeof(nalu_length); i++)
+        {
+            nalu_length[i] = (nal_unit_size >> (8 * (sizeof(nalu_length) - 1 - i))) & 0xff;
+        }
+
+        memcpy(buf, &nalu_length[0], sizeof(nalu_length));
         memcpy(buf + sizeof(nalu_length), nal_unit, nal_unit_size);
-        size_t temp; mp4_nal_unit_length2(buf, sizeof(nalu_length), &temp);                                    //debug
+        size_t temp; mp4_nal_unit_length2(buf, sizeof(nalu_length), &temp);                                   //debug
         hb_log("hb_nal_unit_write_isomp4: (2)   NAL with type %02"PRIu8" and size %5lu", buf[4] & 0x1f, temp);//debug
     }
 
