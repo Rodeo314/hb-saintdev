@@ -110,7 +110,7 @@ hb_buffer_t* hb_nal_bitstream_annexb_to_mp4(const uint8_t *data,
 
     while ((buf = hb_annexb_find_next_nalu(buf, &buf_size)) != NULL)
     {
-        hb_log("hb_nal_unit_write_isomp4: NAL with type %02"PRIu8" and size %5lu", buf[0] & 0x1f, nal_unit_size);//debug
+        hb_log("hb_nal_bitstream_annexb_to_mp4: NAL with type %02"PRIu8" and size %5lu", buf[0] & 0x1f, buf_size);//debug
         out_size += hb_nal_unit_write_isomp4(NULL, buf, buf_size);
         buf_size  = end - buf;
     }
