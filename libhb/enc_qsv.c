@@ -1757,8 +1757,8 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
 
             if (pv->qsv_info->codec_id == MFX_CODEC_AVC)
             {
-                hb_buffer_t *tmp = hb_video_buffer_init(job->width, job->height);
-                tmp->size = 0;
+                hb_buffer_t *tmp = hb_video_buffer_init(job->width, job->height);//debug
+                tmp->size = 0;                                                   //debug
                 /*
                  * We need to convert the encoder's Annex B output
                  * to an MP4-compatible format (ISO/IEC 14496-15).
@@ -1766,11 +1766,12 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
                 buf = hb_nal_bitstream_annexb_to_mp4(task->bs->Data +
                                                      task->bs->DataOffset,
                                                      task->bs->DataLength);
-                parse_nalus(task->bs->Data + task->bs->DataOffset,
-                            task->bs->DataLength, tmp, pv->frames_out);
-                hb_log("buf->size: %d", buf->size);//debug
-                hb_log("tmp->size: %d", tmp->size);//debug
-                hb_buffer_close(&tmp);
+                parse_nalus(task->bs->Data + task->bs->DataOffset,                //debug
+                            task->bs->DataLength, tmp, pv->frames_out);           //debug
+                hb_log("buf->size:  %d", buf->size);                              //debug
+                hb_log("tmp->size:  %d", tmp->size);                              //debug
+                hb_log("difference: %d", memcmp(buf->data, tmp->data, buf->size));//debug
+                hb_buffer_close(&tmp);                                            //debug
             }
             else
             {
