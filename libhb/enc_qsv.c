@@ -1770,7 +1770,16 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
                             task->bs->DataLength, tmp, pv->frames_out);           //debug
                 hb_log("buf->size:  %d", buf->size);                              //debug
                 hb_log("tmp->size:  %d", tmp->size);                              //debug
-                hb_log("difference: %d", memcmp(buf->data, tmp->data, buf->size));//debug
+                for (int ttt = 0; ttt < buf->size; ttt++)
+                {
+                    uint8_t *t1 = buf->data + ttt;
+                    uint8_t *t2 = tmp->data + ttt;
+                    if (t1[0] != t2[0])
+                    {
+                        hb_log("buffers differ at %d, 0x%02"PRIx8" != 0x%02"PRIx8"", i, t1[0], t2[0]);
+                        break;
+                    }
+                }
                 hb_buffer_close(&tmp);                                            //debug
             }
             else
