@@ -1767,8 +1767,8 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
                 hb_log("buf->size: %d", buf->size);//debug
                 hb_buffer_t *tmp = hb_video_buffer_init(job->width, job->height);
                 tmp->size = 0;
-                parse_nalus(task->bs->Data + task->bs->DataOffset,task->bs->DataLength, buf, pv->frames_out);
-                hb_log("tmp->size: %d", buf->size);//debug
+                parse_nalus(task->bs->Data + task->bs->DataOffset,task->bs->DataLength, tmp, pv->frames_out);
+                hb_log("tmp->size: %d", tmp->size);//debug
             }
             else
             {
