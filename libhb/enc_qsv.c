@@ -1699,6 +1699,7 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
                 buf = hb_nal_bitstream_annexb_to_mp4(task->bs->Data +
                                                      task->bs->DataOffset,
                                                      task->bs->DataLength);
+                hb_log("buf->size: %d (%"PRIu32")", buf->size, task->bs->DataLength);//debug
             }
             else
             {
