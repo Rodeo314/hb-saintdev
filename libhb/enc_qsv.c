@@ -123,7 +123,7 @@ static int64_t hb_qsv_pop_next_dts(hb_list_t *list)
     return next_dts;
 }
 
-static int qsv_h265_make_header(hb_work_object_t *w, mfxSession session)
+static int qsv_hevc_make_header(hb_work_object_t *w, mfxSession session)
 {
     int ret = 0;
     hb_buffer_t *buf;
@@ -141,7 +141,7 @@ static int qsv_h265_make_header(hb_work_object_t *w, mfxSession session)
     buf = hb_buffer_init(sizeof(w->config->h265.headers));
     if (buf == NULL)
     {
-        hb_log("qsv_h265_make_header: hb_buffer_init failed");
+        hb_log("qsv_hevc_make_header: hb_buffer_init failed");
         ret = -1;
         goto end;
     }
@@ -171,7 +171,7 @@ static int qsv_h265_make_header(hb_work_object_t *w, mfxSession session)
 
     if (status < MFX_ERR_NONE && status != MFX_ERR_MORE_DATA)
     {
-        hb_log("qsv_h265_make_header: MFXVideoENCODE_EncodeFrameAsync failed (%d)", status);
+        hb_log("qsv_hevc_make_header: MFXVideoENCODE_EncodeFrameAsync failed (%d)", status);
         ret = -1;
         goto end;
     }
@@ -187,7 +187,7 @@ static int qsv_h265_make_header(hb_work_object_t *w, mfxSession session)
 
         if (status != MFX_ERR_NONE)
         {
-            hb_log("qsv_h265_make_header: MFXVideoCORE_SyncOperation failed (%d)", status);
+            hb_log("qsv_hevc_make_header: MFXVideoCORE_SyncOperation failed (%d)", status);
             ret = -1;
             goto end;
         }
@@ -211,7 +211,7 @@ static int qsv_h265_make_header(hb_work_object_t *w, mfxSession session)
 
     if (status != MFX_ERR_MORE_DATA)
     {
-        hb_log("qsv_h265_make_header: MFXVideoENCODE_EncodeFrameAsync failed (%d)", status);
+        hb_log("qsv_hevc_make_header: MFXVideoENCODE_EncodeFrameAsync failed (%d)", status);
         ret = -1;
         goto end;
     }
@@ -227,7 +227,7 @@ static int qsv_h265_make_header(hb_work_object_t *w, mfxSession session)
 
         if (status != MFX_ERR_NONE)
         {
-            hb_log("qsv_h265_make_header: MFXVideoCORE_SyncOperation failed (%d)", status);
+            hb_log("qsv_hevc_make_header: MFXVideoCORE_SyncOperation failed (%d)", status);
             ret = -1;
             goto end;
         }
@@ -235,7 +235,7 @@ static int qsv_h265_make_header(hb_work_object_t *w, mfxSession session)
 
     if (!bitstream.DataLength)
     {
-        hb_log("qsv_h265_make_header: no output data found");
+        hb_log("qsv_hevc_make_header: no output data found");
         ret = -1;
         goto end;
     }
@@ -1080,9 +1080,9 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
                 w->config->h264.pps_length);
     }
     else if (pv->qsv_info->codec_id == MFX_CODEC_HEVC &&
-             qsv_h265_make_header(w, session) < 0)
+             qsv_hevc_make_header(w, session) < 0)
     {
-        hb_error("encqsvInit: qsv_h265_make_header failed");
+        hb_error("encqsvInit: qsv_hevc_make_header failed");
         hb_qsv_plugin_unload(session, version, pv->qsv_info->codec_id);
         MFXVideoENCODE_Close(session);
         MFXClose(session);
