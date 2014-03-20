@@ -107,14 +107,6 @@ hb_buffer_t* hb_nal_bitstream_annexb_to_mp4(const uint8_t *data,
     buf      = (uint8_t*)data;
     end      = (uint8_t*)data + size;
 
-//    while (buf < end)
-//    {
-//        hb_log("bitstream: 0x%02"PRIx8" 0x%02"PRIx8" 0x%02"PRIx8" 0x%02"PRIx8"", buf[0], buf[1], buf[2], buf[3]);//debug
-//        buf += 4;
-//    }
-//    buf = (uint8_t*)data;
-
-    hb_log("hb_nal_bitstream_annexb_to_mp4: new frame");//debug
     while ((buf = hb_annexb_find_next_nalu(buf, &buf_size)) != NULL)
     {
         out_size += hb_nal_unit_write_isomp4(NULL, buf, buf_size);

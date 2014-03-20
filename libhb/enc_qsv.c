@@ -94,71 +94,6 @@ struct chapter_s
     int64_t start;
 };
 
-#if 1
-static int nal_find_start_code(uint8_t** pb, size_t* size){
-    if ((int) *size < 4 )
-        return 0;
-    
-    // find start code by MSDK , see ff_prefix_code[]
-    while ((4 <= *size) &&
-           ((0 != (*pb)[0]) ||
-            (0 != (*pb)[1]) ||
-            (1 != (*pb)[2]) ))
-    {
-        *pb += 1;
-        *size -= 1;
-    }
-    
-    if (4 <= *size)
-        return (((*pb)[0] << 24) | ((*pb)[1] << 16) | ((*pb)[2] << 8) | ((*pb)[3]));
-    
-    return 0;
-}
-
-static void parse_nalus(uint8_t *nal_inits, size_t length, hb_buffer_t *buf, uint32_t frame_num){
-    uint8_t *offset = nal_inits;
-    size_t size     = length;
-    
-    if( nal_find_start_code(&offset,&size) == 0 )
-        size = 0;
-    
-    while( size > 0 ){
-        
-        uint8_t* current_nal = offset + sizeof(ff_prefix_code)-1;
-        uint8_t *next_offset = offset + sizeof(ff_prefix_code);
-        size_t next_size     = size - sizeof(ff_prefix_code);
-        size_t current_size  = next_size;
-        if( nal_find_start_code(&next_offset,&next_size) == 0 ){
-            size = 0;
-            current_size += 1;
-        }
-        else{
-            current_size -= next_size;
-            if( next_offset > 0 && *(next_offset-1) != 0  )
-                current_size += 1;
-        }
-        {
-            char size_position[4] = {0,0,0,0};
-            size_position[1] = (current_size >> 24) & 0xFF;
-            size_position[1] = (current_size >> 16) & 0xFF;
-            size_position[2] = (current_size >> 8)  & 0xFF;
-            size_position[3] =  current_size        & 0xFF;
-            
-            memcpy(buf->data + buf->size,&size_position ,sizeof(size_position));
-            buf->size += sizeof(size_position);
-            
-            memcpy(buf->data + buf->size,current_nal ,current_size);
-            buf->size += current_size;
-        }
-        
-        if(size){
-            size   = next_size;
-            offset = next_offset;
-        }
-    }
-}
-#endif // 1
-
 // for DTS generation (when MSDK API < 1.6 or VFR)
 static void hb_qsv_add_new_dts(hb_list_t *list, int64_t new_dts)
 {
@@ -1757,8 +1692,6 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
 
             if (pv->qsv_info->codec_id == MFX_CODEC_AVC)
             {
-                hb_buffer_t *tmp = hb_video_buffer_init(job->width, job->height);//debug
-                tmp->size = 0;                                                   //debug
                 /*
                  * We need to convert the encoder's Annex B output
                  * to an MP4-compatible format (ISO/IEC 14496-15).
@@ -1766,34 +1699,6 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
                 buf = hb_nal_bitstream_annexb_to_mp4(task->bs->Data +
                                                      task->bs->DataOffset,
                                                      task->bs->DataLength);
-                parse_nalus(task->bs->Data + task->bs->DataOffset,      //debug
-                            task->bs->DataLength, tmp, pv->frames_out); //debug
-                int ttt, uuu;
-                for (ttt = 0; ttt < buf->size; ttt++)
-                {
-                    uint8_t *t1 = buf->data + ttt;
-                    uint8_t *t2 = tmp->data + ttt;
-                    if (t1[0] != t2[0])
-                    {
-                        hb_log("buf->size:  %d", buf->size);
-                        hb_log("tmp->size:  %d", tmp->size);
-                        hb_log("buffers differ at %d, 0x%02"PRIx8" != 0x%02"PRIx8"", ttt, t1[0], t2[0]);
-                        if (t2[0] - t1[0] != tmp->size - buf->size)
-                        {
-                            hb_error("BUG");
-                            abort();
-                        }
-                        break;
-                    }
-                }
-//                for (uuu = 0; uuu <= ttt + 4; uuu += 4)
-//                {
-//                    uint8_t *t1 = buf->data + uuu;
-//                    uint8_t *t2 = tmp->data + uuu;
-//                    hb_log("buf[%3d]: 0x%02"PRIx8" 0x%02"PRIx8" 0x%02"PRIx8" 0x%02"PRIx8"", uuu, t1[0], t1[1], t1[2], t1[3]);
-//                    hb_log("tmp[%3d]: 0x%02"PRIx8" 0x%02"PRIx8" 0x%02"PRIx8" 0x%02"PRIx8"", uuu, t2[0], t2[1], t2[2], t2[3]);
-//                }
-                hb_buffer_close(&tmp); //debug
             }
             else
             {
