@@ -1776,7 +1776,7 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
                     uint8_t *t2 = tmp->data + ttt;
                     if (t1[0] != t2[0])
                     {
-                        hb_log("buffers differ at %d, 0x%02"PRIx8" != 0x%02"PRIx8"", i, t1[0], t2[0]);
+                        hb_log("buffers differ at %d, 0x%02"PRIx8" != 0x%02"PRIx8"", ttt, t1[0], t2[0]);
                         break;
                     }
                 }
