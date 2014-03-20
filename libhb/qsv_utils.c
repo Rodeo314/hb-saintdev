@@ -12,10 +12,14 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "common.h"
 #include "qsv_utils.h"
 
+static const uint8_t hb_annexb_startcode[] = { 0x00, 0x00, 0x00, 0x01, };
+
 size_t hb_nal_unit_write_annexb(uint8_t *buf,
-                                const uint8_t *nal_unit, size_t nal_unit_size)
+                                const uint8_t *nal_unit,
+                                const size_t nal_unit_size)
 {
     if (buf != NULL)
     {
@@ -27,7 +31,8 @@ size_t hb_nal_unit_write_annexb(uint8_t *buf,
 }
 
 size_t hb_nal_unit_write_isomp4(uint8_t *buf,
-                                const uint8_t *nal_unit, size_t nal_unit_size)
+                                const uint8_t *nal_unit,
+                                const size_t nal_unit_size)
 {
     uint32_t nalu_length = nal_unit_size; // 4-byte length replaces startcode
 
@@ -40,11 +45,11 @@ size_t hb_nal_unit_write_isomp4(uint8_t *buf,
     return sizeof(nalu_length) + nal_unit_size;
 }
 
-uint8_t* hb_annexb_find_next_nalu(uint8_t *start, size_t *size)
+uint8_t* hb_annexb_find_next_nalu(const uint8_t *start, size_t *size)
 {
     uint8_t *nal = NULL;
-    uint8_t *buf = start;
-    uint8_t *end = start + *size;
+    uint8_t *buf = (uint8_t*)start;
+    uint8_t *end = (uint8_t*)start + *size;
 
     /* Look for an Annex B start code prefix (3-byte sequence == 1) */
     while (end - buf > 3)
@@ -82,6 +87,107 @@ uint8_t* hb_annexb_find_next_nalu(uint8_t *start, size_t *size)
 
     *size = end - nal;
     return  nal;
+}
+
+hb_buffer_t* hb_nal_bitstream_annexb_to_mp4(const uint8_t *data,
+                                            const size_t size)
+{
+    hb_buffer_t *out;
+    uint8_t *buf, *end;
+    size_t out_size, buf_size;
+
+    out_size = 0;
+    buf_size = size;
+    buf      = (uint8_t*)data;
+    end      = (uint8_t*)data + size;
+
+    while ((buf = hb_annexb_find_next_nalu(buf, &buf_size)) != NULL)
+    {
+        out_size += hb_nal_unit_write_isomp4(NULL, buf, buf_size);
+        buf_size  = end - buf;
+    }
+
+    out = hb_buffer_init(out_size);
+    if (out == NULL)
+    {
+        hb_error("hb_nal_bitstream_annexb_to_mp4: hb_buffer_init failed");
+        return NULL;
+    }
+
+    out_size = 0;
+    buf_size = size;
+    buf      = (uint8_t*)data;
+    end      = (uint8_t*)data + size;
+
+    while ((buf = hb_annexb_find_next_nalu(buf, &buf_size)) != NULL)
+    {
+        out_size += hb_nal_unit_write_isomp4(out->data + out_size, buf, buf_size);
+        buf_size  = end - buf;
+    }
+
+    return out;
+}
+
+static size_t mp4_nal_unit_length(const uint8_t *data,
+                                  const size_t nal_length_size,
+                                  size_t *nal_unit_length)
+{
+    uint8_t i;
+
+    /* In MP4, NAL units are preceded by a 2-4 byte length field */
+    for (i = 0, *nal_unit_length = 0; i < nal_length_size; i++)
+    {
+        *nal_unit_length |= data[i] << (8 * (nal_length_size - 1 - i));
+    }
+
+    return nal_length_size;
+}
+
+hb_buffer_t* hb_nal_bitstream_mp4_to_annexb(const uint8_t *data,
+                                            const size_t size,
+                                            const uint8_t nal_length_size)
+{
+    hb_buffer_t *out;
+    uint8_t *buf, *end;
+    size_t out_size, nal_size;
+
+    out_size = 0;
+    buf      = (uint8_t*)data;
+    end      = (uint8_t*)data + size;
+
+    while (end - buf > nal_length_size)
+    {
+        buf += mp4_nal_unit_length(buf, nal_length_size, &nal_size);
+        if (end - buf < nal_size)
+        {
+            hb_log("hb_nal_bitstream_mp4_to_annexb: truncated bitstream"
+                   " (remaining: %lu, expected: %lu)", end - buf, nal_size);
+            return NULL;
+        }
+
+        out_size += hb_nal_unit_write_annexb(NULL, buf, nal_size);
+        buf      += nal_size;
+    }
+
+    out = hb_buffer_init(out_size);
+    if (out == NULL)
+    {
+        hb_error("hb_nal_bitstream_mp4_to_annexb: hb_buffer_init failed");
+        return NULL;
+    }
+
+    out_size = 0;
+    buf      = (uint8_t*)data;
+    end      = (uint8_t*)data + size;
+
+    while (end - buf > nal_length_size)
+    {
+        buf      += mp4_nal_unit_length(buf, nal_length_size, &nal_size);
+        out_size += hb_nal_unit_write_annexb(out->data + out_size, buf, nal_size);
+        buf      += nal_size;
+    }
+
+    return out;
 }
 
 #endif // USE_QSV
