@@ -48,7 +48,7 @@ size_t hb_nal_unit_write_isomp4(uint8_t *buf,
         memcpy(buf + sizeof(length), nal_unit, nal_unit_size);
     }
 
-    return sizeof(nalu_length) + nal_unit_size;
+    return sizeof(length) + nal_unit_size;
 }
 
 uint8_t* hb_annexb_find_next_nalu(const uint8_t *start, size_t *size)
