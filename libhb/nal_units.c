@@ -15,23 +15,6 @@
 #include "common.h"
 #include "nal_units.h"
 
-#if 1
-static size_t mp4_nal_unit_length2(const uint8_t *data,
-                                   const size_t nal_length_size,
-                                   size_t *nal_unit_length)
-{
-    uint8_t i;
-    
-    /* In MP4, NAL units are preceded by a 2-4 byte length field */
-    for (i = 0, *nal_unit_length = 0; i < nal_length_size; i++)
-    {
-        *nal_unit_length |= data[i] << (8 * (nal_length_size - 1 - i));
-    }
-    
-    return nal_length_size;
-}
-#endif
-
 static const uint8_t hb_annexb_startcode[] = { 0x00, 0x00, 0x00, 0x01, };
 
 size_t hb_nal_unit_write_annexb(uint8_t *buf,
@@ -52,19 +35,17 @@ size_t hb_nal_unit_write_isomp4(uint8_t *buf,
                                 const size_t nal_unit_size)
 {
     int i;
-    uint8_t nalu_length[4]; // 4-byte length replaces Annex B start code prefix
+    uint8_t length[4]; // 4-byte length replaces Annex B start code prefix
 
     if (buf != NULL)
     {
-        for (i = 0; i < sizeof(nalu_length); i++)
+        for (i = 0; i < sizeof(length); i++)
         {
-            nalu_length[i] = (nal_unit_size >> (8 * (sizeof(nalu_length) - 1 - i))) & 0xff;
+            length[i] = (nal_unit_size >> (8 * (sizeof(length) - 1 - i))) & 0xff;
         }
 
-        memcpy(buf, &nalu_length[0], sizeof(nalu_length));
-        memcpy(buf + sizeof(nalu_length), nal_unit, nal_unit_size);
-        size_t temp; mp4_nal_unit_length2(buf, sizeof(nalu_length), &temp);                                   //debug
-        hb_log("hb_nal_unit_write_isomp4: (2)   NAL with type %02"PRIu8" and size %5lu", buf[4] & 0x1f, temp);//debug
+        memcpy(buf, &length[0], sizeof(length));
+        memcpy(buf + sizeof(length), nal_unit, nal_unit_size);
     }
 
     return sizeof(nalu_length) + nal_unit_size;
@@ -154,7 +135,6 @@ hb_buffer_t* hb_nal_bitstream_annexb_to_mp4(const uint8_t *data,
 
     while ((buf = hb_annexb_find_next_nalu(buf, &buf_size)) != NULL)
     {
-        hb_log("hb_nal_bitstream_annexb_to_mp4: NAL with type %02"PRIu8" and size %5lu", buf[0] & 0x1f, buf_size);//debug
         out_size += hb_nal_unit_write_isomp4(out->data + out_size, buf, buf_size);
         buf_size  = end - buf;
     }
