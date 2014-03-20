@@ -1785,8 +1785,8 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
                 {
                     uint8_t *t1 = buf->data + uuu;
                     uint8_t *t2 = tmp->data + uuu;
-                    hb_log("buf[%3d]: 0x%02"PRIx8" 0x%02"PRIx8" 0x%02"PRIx8" 0x%02"PRIx8"", uuu, t1, t1 + 1, t1 + 2, t1 + 3);
-                    hb_log("tmp[%3d]: 0x%02"PRIx8" 0x%02"PRIx8" 0x%02"PRIx8" 0x%02"PRIx8"", uuu, t2, t2 + 1, t2 + 2, t2 + 3);
+                    hb_log("buf[%3d]: 0x%02"PRIx8" 0x%02"PRIx8" 0x%02"PRIx8" 0x%02"PRIx8"", uuu, t1[0], t1[1], t1[2], t1[3]);
+                    hb_log("tmp[%3d]: 0x%02"PRIx8" 0x%02"PRIx8" 0x%02"PRIx8" 0x%02"PRIx8"", uuu, t2[0], t2[1], t2[2], t2[3]);
                 }
                 hb_buffer_close(&tmp); //debug
             }
