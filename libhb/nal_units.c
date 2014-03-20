@@ -101,14 +101,16 @@ hb_buffer_t* hb_nal_bitstream_annexb_to_mp4(const uint8_t *data,
     buf      = (uint8_t*)data;
     end      = (uint8_t*)data + size;
 
-    while (++buf <= end)
+    while (buf < end)
     {
-        hb_log("bitstream: %02"PRIx8"", buf[-1]);//debug
+        hb_log("bitstream: 0x%02"PRIx8" 0x%02"PRIx8" 0x%02"PRIx8" 0x%02"PRIx8"", buf[0], buf[1], buf[2], buf[3]);//debug
+        buf += 4;
     }
     buf = (uint8_t*)data;
 
     while ((buf = hb_annexb_find_next_nalu(buf, &buf_size)) != NULL)
     {
+        hb_log("hb_nal_unit_write_isomp4: NAL with type %02"PRIu8" and size %5lu", buf[0] & 0x1f, nal_unit_size);//debug
         out_size += hb_nal_unit_write_isomp4(NULL, buf, buf_size);
         buf_size  = end - buf;
     }
