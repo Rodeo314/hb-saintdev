@@ -13,7 +13,7 @@
 #include <string.h>
 
 #include "common.h"
-#include "qsv_utils.h"
+#include "nal_units.h"
 
 static const uint8_t hb_annexb_startcode[] = { 0x00, 0x00, 0x00, 0x01, };
 
