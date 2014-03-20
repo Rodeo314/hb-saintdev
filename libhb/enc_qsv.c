@@ -31,7 +31,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "libavutil/time.h"
 
 #include "hb.h"
-#include "enc_qsv.h"
+#include "nal_units.h"
 #include "qsv_common.h"
 #include "qsv_memory.h"
 
@@ -1686,40 +1686,44 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
         // after this step - we continue to work with bitstream, muxing ...
         av_qsv_wait_on_sync( qsv,stage );
 
-        if(task->bs->DataLength>0){
-                av_qsv_flush_stages( qsv->pipes, &this_pipe );
+        if (task->bs->DataLength > 0)
+        {
+            av_qsv_flush_stages(qsv->pipes, &this_pipe);
 
-                // see nal_encode
-                buf = hb_video_buffer_init( job->width, job->height );
-                buf->size = 0;
+            if (pv->qsv_info->codec_id == MFX_CODEC_AVC)
+            {
+                /*
+                 * We need to convert the encoder's Annex B output
+                 * to an MP4-compatible format (ISO/IEC 14496-15).
+                 */
+                buf = hb_nal_bitstream_annexb_to_mp4(task->bs->Data +
+                                                     task->bs->DataOffset,
+                                                     task->bs->DataLength);
+            }
+            else
+            {
+                /* Muxers will take care of re-formatting the bitstream */
+                buf = hb_buffer_init(task->bs->DataLength);
+                memcpy(buf->data,
+                       task->bs->Data + task->bs->DataOffset,
+                       task->bs->DataLength);
+            }
+            task->bs->DataOffset = 0;
+            task->bs->DataLength = 0;
 
-                // map Media SDK's FrameType to our internal representation
-                buf->s.frametype = hb_qsv_frametype_xlat(task->bs->FrameType,
-                                                         &buf->s.flags);
+            // map Media SDK's FrameType to our internal representation
+            buf->s.frametype = hb_qsv_frametype_xlat(task->bs->FrameType,
+                                                     &buf->s.flags);
 
-                if (pv->qsv_info->codec_id == MFX_CODEC_AVC)
-                {
-                    /*
-                     * We need to convert the encoder's Annex B output
-                     * to an MP4-compatible format (ISO/IEC 14496-15).
-                     */
-                    parse_nalus(task->bs->Data + task->bs->DataOffset,
-                                task->bs->DataLength, buf, pv->frames_out);
-                }
-                else
-                {
-                    /* Muxers will take care of re-formatting the bitstream */
-                    memcpy(buf->data,
-                           task->bs->Data + task->bs->DataOffset,
-                           task->bs->DataLength);
-                    buf->size = task->bs->DataLength;
-                }
-
-                if ( last_buf == NULL )
-                    *buf_out = buf;
-                else
-                    last_buf->next = buf;
-                last_buf = buf;
+            if (last_buf == NULL)
+            {
+                *buf_out = last_buf = buf;
+            }
+            else
+            {
+                last_buf->next = buf;
+                last_buf       = buf;
+            }
 
             // simple for now but check on TimeStampCalc from MSDK
             int64_t duration  = ((double)pv->enc_space.m_mfxVideoParam.mfx.FrameInfo.FrameRateExtD /
@@ -1852,8 +1856,6 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
                     av_qsv_list_add(qsv_encode->tasks,task);
                 }
 
-                task->bs->DataLength    = 0;
-                task->bs->DataOffset    = 0;
                 task->bs->MaxLength = qsv_encode->p_buf_max_size;
                 task->stage        = 0;
                 pv->frames_out++;
@@ -1887,69 +1889,6 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
     else{
         return HB_WORK_OK;
     }
-}
-
-int nal_find_start_code(uint8_t** pb, size_t* size){
-    if ((int) *size < 4 )
-        return 0;
-
-    // find start code by MSDK , see ff_prefix_code[]
-    while ((4 <= *size) &&
-        ((0 != (*pb)[0]) ||
-         (0 != (*pb)[1]) ||
-         (1 != (*pb)[2]) ))
-    {
-        *pb += 1;
-        *size -= 1;
-    }
-
-    if (4 <= *size)
-        return (((*pb)[0] << 24) | ((*pb)[1] << 16) | ((*pb)[2] << 8) | ((*pb)[3]));
-
-    return 0;
-}
-
-void parse_nalus(uint8_t *nal_inits, size_t length, hb_buffer_t *buf, uint32_t frame_num){
-    uint8_t *offset = nal_inits;
-    size_t size     = length;
-
-    if( nal_find_start_code(&offset,&size) == 0 )
-        size = 0;
-
-    while( size > 0 ){
-
-            uint8_t* current_nal = offset + sizeof(ff_prefix_code)-1;
-            uint8_t *next_offset = offset + sizeof(ff_prefix_code);
-            size_t next_size     = size - sizeof(ff_prefix_code);
-            size_t current_size  = next_size;
-            if( nal_find_start_code(&next_offset,&next_size) == 0 ){
-                size = 0;
-                current_size += 1;
-            }
-            else{
-                current_size -= next_size;
-                if( next_offset > 0 && *(next_offset-1) != 0  )
-                    current_size += 1;
-            }
-            {
-                char size_position[4] = {0,0,0,0};
-                size_position[1] = (current_size >> 24) & 0xFF;
-                size_position[1] = (current_size >> 16) & 0xFF;
-                size_position[2] = (current_size >> 8)  & 0xFF;
-                size_position[3] =  current_size        & 0xFF;
-
-                memcpy(buf->data + buf->size,&size_position ,sizeof(size_position));
-                buf->size += sizeof(size_position);
-
-                memcpy(buf->data + buf->size,current_nal ,current_size);
-                buf->size += current_size;
-            }
-
-            if(size){
-                size   = next_size;
-                offset = next_offset;
-            }
-        }
 }
 
 #endif // USE_QSV
