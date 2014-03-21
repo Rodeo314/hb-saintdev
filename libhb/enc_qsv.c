@@ -1731,8 +1731,6 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
                        task->bs->Data + task->bs->DataOffset,
                        task->bs->DataLength);
             }
-            task->bs->DataOffset = 0;
-            task->bs->DataLength = 0;
 
             // map Media SDK's FrameType to our internal representation
             buf->s.frametype = hb_qsv_frametype_xlat(task->bs->FrameType,
@@ -1879,6 +1877,8 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
                     av_qsv_list_add(qsv_encode->tasks,task);
                 }
 
+                task->bs->DataLength    = 0;
+                task->bs->DataOffset    = 0;
                 task->bs->MaxLength = qsv_encode->p_buf_max_size;
                 task->stage        = 0;
                 pv->frames_out++;
