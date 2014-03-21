@@ -257,7 +257,6 @@ static int qsv_hevc_make_header(hb_work_object_t *w, mfxSession session)
             case 34: // PPS_NUT
             case 39: // PREFIX_SEI_NUT
             case 40: // SUFFIX_SEI_NUT
-                hb_log("qsv_hevc_make_header: NAL unit %"PRIu8"", (buf[0] >> 1) & 0x3f);//debug
                 break;
             default:
                 len = end - buf;
