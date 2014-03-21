@@ -171,7 +171,7 @@ static int  HandleEvents( hb_handle_t * h );
 static void str_vfree( char **strv );
 static char** str_split( char *str, char delem );
 
-static void print_preset_list(FILE *out, const char* const *list, const char *indent);
+static void print_string_list(FILE *out, const char* const *list, const char *prefix);
 
 #ifdef __APPLE_CC__
 static char* bsd_name_for_path(char *path);
@@ -4193,6 +4193,34 @@ static int ParseOptions( int argc, char ** argv )
             case ENCODER_LEVEL:
                 h264_level = strdup( optarg );
                 break;
+            case ENCODER_PRESET_LIST:
+                fprintf(stderr, "Available --encoder-preset values for '%s' encoder:\n",
+                        hb_video_encoder_get_short_name(hb_video_encoder_get_from_name(optarg)));
+                print_string_list(stderr,
+                                  hb_video_encoder_get_presets(hb_video_encoder_get_from_name(optarg)),
+                                  "    ");
+                exit(0);
+            case ENCODER_TUNE_LIST:
+                fprintf(stderr, "Available --encoder-tune values for '%s' encoder:\n",
+                        hb_video_encoder_get_short_name(hb_video_encoder_get_from_name(optarg)));
+                print_string_list(stderr,
+                                  hb_video_encoder_get_tunes(hb_video_encoder_get_from_name(optarg)),
+                                  "    ");
+                exit(0);
+            case ENCODER_PROFILE_LIST:
+                fprintf(stderr, "Available --encoder-profile values for '%s' encoder:\n",
+                        hb_video_encoder_get_short_name(hb_video_encoder_get_from_name(optarg)));
+                print_string_list(stderr,
+                                  hb_video_encoder_get_profiles(hb_video_encoder_get_from_name(optarg)),
+                                  "    ");
+                exit(0);
+            case ENCODER_LEVEL_LIST:
+                fprintf(stderr, "Available --encoder-level values for '%s' encoder:\n",
+                        hb_video_encoder_get_short_name(hb_video_encoder_get_from_name(optarg)));
+                print_string_list(stderr,
+                                  hb_video_encoder_get_levels(hb_video_encoder_get_from_name(optarg)),
+                                  "    ");
+                exit(0);
             case 'T':
                 turbo_opts_enabled = 1;
                 break;
@@ -4399,30 +4427,20 @@ static int CheckOptions( int argc, char ** argv )
     return 0;
 }
 
-static void print_preset_list(FILE *out, const char* const *list, const char *indent)
+static void print_string_list(FILE *out, const char* const *list, const char *prefix)
 {
-    if (out != NULL && list != NULL && indent != NULL)
+    if (out != NULL && prefix != NULL)
     {
-        int len = 0;
-        char tmp[80];
-        tmp[0] = '\0';
-        while (list != NULL && *list != NULL)
+        if (list != NULL)
         {
-            strncat(tmp, *list++, sizeof(tmp) - 1  - len);
-            if (*list != NULL)
+            while (*list != NULL)
             {
-                strcat(tmp, "/");
-            }
-            if ((len = strlen(tmp)) > 40 && *list != NULL)
-            {
-                fprintf(out, "%s\n%s", tmp, indent);
-                tmp[0] = '\0';
-                len = 0;
+                fprintf(out, "%s%s\n", prefix, *list++);
             }
         }
-        if (len)
+        else
         {
-            fprintf(out, "%s\n", tmp);
+            fprintf(out, "%s" "Option not supported by encoder\n", prefix);
         }
     }
 }
