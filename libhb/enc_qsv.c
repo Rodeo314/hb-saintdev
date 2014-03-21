@@ -125,10 +125,12 @@ static int64_t hb_qsv_pop_next_dts(hb_list_t *list)
 
 static int qsv_hevc_make_header(hb_work_object_t *w, mfxSession session)
 {
+    size_t len;
     int ret = 0;
-    hb_buffer_t *buf;
-    mfxStatus status;
+    uint8_t *buf, *end;
     mfxBitstream bitstream;
+    hb_buffer_t *bitstream_buf;
+    mfxStatus status;
     mfxSyncPoint syncPoint;
     mfxFrameSurface1 frameSurface1;
     hb_work_private_t *pv = w->private_data;
@@ -137,16 +139,16 @@ static int qsv_hevc_make_header(hb_work_object_t *w, mfxSession session)
     memset(&syncPoint,     0, sizeof(mfxSyncPoint));
     memset(&frameSurface1, 0, sizeof(mfxFrameSurface1));
 
-    /* The bitstream buffer must not exceed the maximum H.265 header size */
-    buf = hb_buffer_init(sizeof(w->config->h265.headers));
-    if (buf == NULL)
+    /* The bitstream buffer should be able to hold any encoded frame */
+    bitstream_buf = hb_video_buffer_init(pv->job->width, pv->job->height);
+    if (bitstream_buf == NULL)
     {
         hb_log("qsv_hevc_make_header: hb_buffer_init failed");
         ret = -1;
         goto end;
     }
-    bitstream.Data      = buf->data;
-    bitstream.MaxLength = buf->size;
+    bitstream.Data      = bitstream_buf->data;
+    bitstream.MaxLength = bitstream_buf->size;
 
     /* We only need to encode one frame, so we only need one surface */
     mfxU16 Height            = pv->param.videoParam->mfx.FrameInfo.Height;
@@ -240,23 +242,45 @@ static int qsv_hevc_make_header(hb_work_object_t *w, mfxSession session)
         goto end;
     }
 
-    /*
-     * We don't need to parse the bitstream, the muxers will do it for us.
-     *
-     * XXX: the config struct is not supposed to hold complete frames,
-     * but it should be plenty large enough so let's use it anyway.
-     *
-     * Note: bitstream.MaxLength (and thus bitstream.DataLength)
-     * cannot exceed the size of the output buffer (see above).
-     */
-    memcpy(w->config->h265.headers,
-           bitstream.Data + bitstream.DataOffset, bitstream.DataLength);
-    w->config->h265.headers_length = bitstream.DataLength;
+    /* Include any parameter sets and SEI NAL units in the headers. */
+    len = bitstream.DataLength;
+    buf = bitstream.Data + bitstream.DataOffset;
+    end = bitstream.Data + bitstream.DataOffset + bitstream.DataLength;
+    w->config->h265.headers_length = 0;
+
+    while ((buf = hb_annexb_find_next_nalu(buf, &len)) != NULL)
+    {
+        switch ((buf[0] >> 1) & 0x3f)
+        {
+            case 32: // VPS_NUT
+            case 33: // SPS_NUT
+            case 34: // PPS_NUT
+            case 39: // PREFIX_SEI_NUT
+            case 40: // SUFFIX_SEI_NUT
+                hb_log("qsv_hevc_make_header: NAL unit %"PRIu8"", (buf[0] >> 1) & 0x3f);//debug
+                break;
+            default:
+                len = end - buf;
+                continue;
+        }
+
+        size_t size = hb_nal_unit_write_annexb(NULL, buf, len) + w->config->h265.headers_length;
+        if (sizeof(w->config->h265.headers) < size)
+        {
+            /* Will never happen in practice */
+            hb_log("qsv_hevc_make_header: header too large (size: %lu, max: %lu)",
+                   size, sizeof(w->config->h265.headers));
+        }
+
+        w->config->h265.headers_length += hb_nal_unit_write_annexb(w->config->h265.headers +
+                                                                   w->config->h265.headers_length, buf, len);
+        len = end - buf;
+    }
 
 end:
+    hb_buffer_close(&bitstream_buf);
     av_free(frameSurface1.Data.VU);
     av_free(frameSurface1.Data.Y);
-    hb_buffer_close(&buf);
     return ret;
 }
 
