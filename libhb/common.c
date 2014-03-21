@@ -17,6 +17,8 @@
 #include "lang.h"
 #include "common.h"
 #include "h264_common.h"
+#include "hevc_common.h"
+
 #ifdef USE_QSV
 #include "qsv_common.h"
 #endif
@@ -1208,7 +1210,7 @@ const char* const* hb_video_encoder_get_profiles(int encoder)
 
 #ifdef USE_X265
         case HB_VCODEC_X265:
-            return x265_profile_names;
+            return hb_hevc_profile_names;
 #endif
         default:
             return NULL;
