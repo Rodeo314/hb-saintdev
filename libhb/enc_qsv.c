@@ -1506,7 +1506,7 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
 
                 if (received_item != NULL)
                 {
-                    av_qsv_add_stagee(&received_item, new_stage,HAVE_THREADS);
+                    av_qsv_add_stagee(&received_item, new_stage, HAVE_THREADS);
                 }
                 else
                 {
@@ -1522,7 +1522,7 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
 
                     if (item != NULL)
                     {
-                        hb_list_rem(pv->delayed_processing,item);
+                        hb_list_rem(pv->delayed_processing, item);
                         av_qsv_flush_stages(qsv->pipes, (av_qsv_list**)&item);
                     }
                 }
