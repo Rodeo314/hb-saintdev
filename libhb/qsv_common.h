@@ -38,22 +38,29 @@ typedef struct hb_qsv_info_s
 
     // version-specific or hardware-specific capabilities
     uint64_t capabilities;
+
     // support for API 1.6 or later
 #define HB_QSV_CAP_MSDK_API_1_6      (1LL <<  0)
-    // H.264, H.265: B-frames can be used as references
+
+    // H.264, HEVC: B-frames can be used as references
 #define HB_QSV_CAP_B_REF_PYRAMID     (1LL <<  1)
+
     // optional rate control methods
 #define HB_QSV_CAP_RATECONTROL_LA    (1LL << 10)
 #define HB_QSV_CAP_RATECONTROL_LAi   (1LL << 11)
 #define HB_QSV_CAP_RATECONTROL_ICQ   (1LL << 12)
-    // mfxExtCodingOption2 fields
-#define HB_QSV_CAP_OPTION2_MBBRC     (1LL << 20)
-#define HB_QSV_CAP_OPTION2_EXTBRC    (1LL << 21)
-#define HB_QSV_CAP_OPTION2_TRELLIS   (1LL << 22)
-#define HB_QSV_CAP_OPTION2_BREFTYPE  (1LL << 23)
-#define HB_QSV_CAP_OPTION2_IB_ADAPT  (1LL << 24)
-#define HB_QSV_CAP_OPTION2_LA_DOWNS  (1LL << 25)
-#define HB_QSV_CAP_OPTION2_NMBSLICE  (1LL << 26)
+
+    // optional configuration structures and fields
+#define HB_QSV_CAP_VSINFO            (1LL << 20)
+#define HB_QSV_CAP_OPTION1           (1LL << 21)
+#define HB_QSV_CAP_OPTION2           (1LL << 22)
+#define HB_QSV_CAP_OPTION2_MBBRC     (1LL << 23)
+#define HB_QSV_CAP_OPTION2_EXTBRC    (1LL << 24)
+#define HB_QSV_CAP_OPTION2_TRELLIS   (1LL << 25)
+#define HB_QSV_CAP_OPTION2_BREFTYPE  (1LL << 26)
+#define HB_QSV_CAP_OPTION2_IB_ADAPT  (1LL << 27)
+#define HB_QSV_CAP_OPTION2_LA_DOWNS  (1LL << 28)
+#define HB_QSV_CAP_OPTION2_NMBSLICE  (1LL << 29)
 
     // TODO: add maximum encode resolution, etc.
 } hb_qsv_info_t;
@@ -65,6 +72,10 @@ int            hb_qsv_audio_encoder_is_enabled(int encoder);
 int            hb_qsv_info_init();
 void           hb_qsv_info_print();
 hb_qsv_info_t* hb_qsv_info_get(int encoder);
+
+/* Automatically load required plugins, if any */
+mfxStatus hb_qsv_plugin_load  (mfxSession session, mfxVersion version, mfxU32 CodecId);
+mfxStatus hb_qsv_plugin_unload(mfxSession session, mfxVersion version, mfxU32 CodecId);
 
 /* Intel Quick Sync Video DECODE utilities */
 const char* hb_qsv_decode_get_codec_name(enum AVCodecID codec_id);
@@ -153,7 +164,12 @@ float hb_qsv_atof    (const char *str, int *err);
 int hb_qsv_param_default_preset(hb_qsv_param_t *param, mfxVideoParam *videoParam, hb_qsv_info_t *info, const char *preset);
 int hb_qsv_param_default       (hb_qsv_param_t *param, mfxVideoParam *videoParam, hb_qsv_info_t *info);
 int hb_qsv_param_parse         (hb_qsv_param_t *param,                            hb_qsv_info_t *info, const char *key, const char *value);
+int hb_qsv_profile_parse       (hb_qsv_param_t *param,                            hb_qsv_info_t *info, const char *profile);
+int hb_qsv_level_parse         (hb_qsv_param_t *param,                            hb_qsv_info_t *info, const char *level);
 
+const char* hb_qsv_codec_name    (uint32_t qsv_codec);
+const char* hb_qsv_profile_name  (uint32_t qsv_codec, uint16_t qsv_profile);
+const char* hb_qsv_level_name    (uint32_t qsv_codec, uint16_t qsv_level);
 const char* hb_qsv_frametype_name(uint16_t qsv_frametype);
 uint8_t     hb_qsv_frametype_xlat(uint16_t qsv_frametype, uint16_t *out_flags);
 

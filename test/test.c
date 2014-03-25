@@ -3210,10 +3210,10 @@ static void ShowHelp()
     "                            ");
     print_preset_list(out, hb_video_encoder_get_profiles(HB_VCODEC_X264),
     "                            ");
-#ifdef USE_X265
+#if defined(USE_X265) || defined (USE_QSV)
     fprintf(out,
-    "        --h265-profile      When using H.265, ensures compliance with the\n"
-    "          <string>          specified H.265 profile:\n"
+    "        --hevc-profile      When using HEVC, ensures compliance with the\n"
+    "          <string>          specified HEVC profile:\n"
     "                            ");
     print_preset_list(out, hb_video_encoder_get_profiles(HB_VCODEC_X265),
     "                            ");
@@ -3224,6 +3224,14 @@ static void ShowHelp()
     "                            ");
     print_preset_list(out, hb_video_encoder_get_levels(HB_VCODEC_X264),
     "                            ");
+#if defined(USE_X265) || defined (USE_QSV)
+    fprintf(out,
+    "        --hevc-level        When using HEVC, ensures compliance with the\n"
+    "          <string>          specified HEVC level:\n"
+    "                            ");
+    print_preset_list(out, hb_video_encoder_get_levels(HB_VCODEC_X265),
+    "                            ");
+#endif
     fprintf(out,
     "    -q, --quality <number>  Set video quality\n"
     "    -b, --vb <kb/s>         Set video bitrate (default: 1000)\n"
@@ -3777,7 +3785,11 @@ static int ParseOptions( int argc, char ** argv )
 #ifdef USE_X265
             { "x265-preset",  required_argument, NULL,   ENCODER_PRESET },
             { "x265-tune",    required_argument, NULL,   ENCODER_TUNE },
+#endif
+#if defined(USE_X265) || defined (USE_QSV)
+            { "hevc-profile", required_argument, NULL,   ENCODER_PROFILE },
             { "h265-profile", required_argument, NULL,   ENCODER_PROFILE },
+            { "hevc-level",   required_argument, NULL,   ENCODER_LEVEL },
             { "h265-level",   required_argument, NULL,   ENCODER_LEVEL },
 #endif
             { "turbo",       no_argument,       NULL,    'T' },

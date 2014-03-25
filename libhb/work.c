@@ -318,6 +318,7 @@ void hb_display_job_info(hb_job_t *job)
                     break;
 #ifdef USE_QSV
                 case HB_VCODEC_QSV_H264:
+                case HB_VCODEC_QSV_HEVC:
                     hb_log("     + QSV preset: %s", job->encoder_preset);
                     break;
 #endif
@@ -353,7 +354,8 @@ void hb_display_job_info(hb_job_t *job)
                     hb_log("     + H.264 profile: %s", job->encoder_profile);
                     break;
                 case HB_VCODEC_X265:
-                    hb_log("     + H.265 profile: %s", job->encoder_profile);
+                case HB_VCODEC_QSV_HEVC:
+                    hb_log("     + HEVC profile: %s", job->encoder_profile);
                     break;
                 default:
                     break;
@@ -366,6 +368,9 @@ void hb_display_job_info(hb_job_t *job)
                 case HB_VCODEC_X264:
                 case HB_VCODEC_QSV_H264:
                     hb_log("     + H.264 level: %s", job->encoder_level);
+                    break;
+                case HB_VCODEC_QSV_HEVC:
+                    hb_log("     + HEVC level: %s", job->encoder_level);
                     break;
                 default:
                     break;
@@ -1264,9 +1269,12 @@ static void do_job(hb_job_t *job)
         case HB_VCODEC_X264:
             w = hb_get_work( WORK_ENCX264 );
             break;
+#ifdef USE_QSV
         case HB_VCODEC_QSV_H264:
+        case HB_VCODEC_QSV_HEVC:
             w = hb_get_work( WORK_ENCQSV );
             break;
+#endif
         case HB_VCODEC_THEORA:
             w = hb_get_work( WORK_ENCTHEORA );
             break;
