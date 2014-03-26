@@ -1486,9 +1486,7 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
     av_qsv_context *qsv         = job->qsv.ctx;
     hb_buffer_t *in             = *buf_in;
     hb_buffer_t *buf, *last_buf = NULL;
-    av_qsv_list *received_item  = NULL;
     av_qsv_space *qsv_encode    = NULL;
-    av_qsv_stage *stage         = NULL;
 
     mfxStatus sts = MFX_ERR_NONE;
     int i, is_end = 0;
@@ -1523,6 +1521,8 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
 
     while (1)
     {
+        av_qsv_list      *atom         = NULL;
+        av_qsv_stage     *stage        = NULL;
         mfxEncodeCtrl    *work_control = NULL;
         mfxFrameSurface1 *work_surface = NULL;
 
@@ -1540,9 +1540,9 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
             }
             else
             {
-                received_item = in->qsv_details.qsv_atom;
-                stage         = av_qsv_get_last_stage(received_item);
-                work_surface  = stage->out.p_surface;
+                atom         = in->qsv_details.qsv_atom;
+                stage        = av_qsv_get_last_stage(atom);
+                work_surface = stage->out.p_surface;
 
                 // don't let qsv->dts_seq grow needlessly
                 av_qsv_dts_pop(qsv);
@@ -1624,11 +1624,6 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
              */
             work_surface->Info.PicStruct = pv->enc_space.m_mfxVideoParam.mfx.FrameInfo.PicStruct;
         }
-        else
-        {
-            work_surface  = NULL;
-            received_item = NULL;
-        }
 
         int sync_idx = av_qsv_get_free_sync(qsv_encode, qsv);
         if (sync_idx == -1)
@@ -1658,9 +1653,9 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
             {
                 ff_qsv_atomic_dec(&qsv_encode->p_syncp[sync_idx]->in_use);
 
-                if (work_surface != NULL && received_item != NULL)
+                if (work_surface != NULL && atom != NULL)
                 {
-                    hb_list_add(pv->delayed_processing, received_item);
+                    hb_list_add(pv->delayed_processing, atom);
                 }
 
                 break;
@@ -1686,9 +1681,9 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
 
                 pv->async_depth++;
 
-                if (received_item != NULL)
+                if (atom != NULL)
                 {
-                    av_qsv_add_stagee(&received_item, new_stage, HAVE_THREADS);
+                    av_qsv_add_stagee(&atom, new_stage, HAVE_THREADS);
                 }
                 else
                 {
