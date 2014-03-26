@@ -1729,9 +1729,9 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
                 pv->async_depth--;
 
                 sts                     = MFX_ERR_NONE;
-                av_qsv_task *task       = av_qsv_list_item(qsv_encode->tasks, 0);
-                av_qsv_stage* stage     = task->stage;
-                av_qsv_list*  this_pipe = av_qsv_pipe_by_stage(qsv->pipes, stage);
+                av_qsv_task  *task      = av_qsv_list_item(qsv_encode->tasks, 0);
+                av_qsv_stage *stage     = task->stage;
+                av_qsv_list  *this_pipe = av_qsv_pipe_by_stage(qsv->pipes, stage);
 
                 // only here we need to wait on operation been completed, therefore SyncOperation is used,
                 // after this step - we continue to work with bitstream, muxing ...
