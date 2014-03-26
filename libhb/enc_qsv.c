@@ -447,10 +447,16 @@ int qsv_enc_init(av_qsv_context *qsv, hb_work_private_t *pv)
         }
         for (i = 0; i < qsv_encode->surface_num; i++)
         {
-            qsv_encode->p_surfaces[i] = av_mallocz(sizeof(mfxFrameSurface1));
-            AV_QSV_CHECK_POINTER(qsv_encode->p_surfaces[i], MFX_ERR_MEMORY_ALLOC);
-            memcpy(&(qsv_encode->p_surfaces[i]->Info),
-                   &(qsv_encode->request[0].Info), sizeof(mfxFrameInfo));
+            mfxFrameSurface1 *surface = av_mallocz(sizeof(mfxFrameSurface1));
+            AV_QSV_CHECK_POINTER(surface, MFX_ERR_MEMORY_ALLOC);
+
+            qsv_encode->p_surfaces[i] = surface;
+            surface->Info             = qsv_encode->request[0].Info;
+            mfxU16 Width              = qsv_encode->request[0].Info.Width;
+            mfxU16 Height             = qsv_encode->request[0].Info.Height;
+            surface->Data.Y           = calloc(1, Width * Height);
+            surface->Data.VU          = calloc(1, Width * Height / 2);
+            surface->Data.Pitch       = Width;
         }
     }
     else
@@ -1525,16 +1531,10 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
             if (pv->is_sys_mem)
             {
                 int surface_idx = av_qsv_get_free_surface(qsv_encode, qsv,
-                                                          &qsv_encode->request[0].Info, QSV_PART_ANY);
-                work_surface = qsv_encode->p_surfaces[surface_idx];
+                                                          &qsv_encode->request[0].Info,
+                                                          QSV_PART_ANY);
 
-                if (work_surface->Data.Y == NULL)
-                {
-                    mfxFrameInfo *frameInfo  = &pv->enc_space.m_mfxVideoParam.mfx.FrameInfo;
-                    work_surface->Data.Y     = calloc(1, frameInfo->Width * frameInfo->Height);
-                    work_surface->Data.VU    = calloc(1, frameInfo->Width * frameInfo->Height / 2);
-                    work_surface->Data.Pitch = frameInfo->Width;
-                }
+                work_surface = qsv_encode->p_surfaces[surface_idx];
 
                 qsv_yuv420_to_nv12(pv->sws_context_to_nv12, work_surface, in);
             }
