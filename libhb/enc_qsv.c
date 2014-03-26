@@ -1675,9 +1675,8 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
                 new_stage->type         = AV_QSV_ENCODE;
                 new_stage->in.p_surface = work_surface;
                 new_stage->out.sync     = qsv_encode->p_syncp[sync_idx];
-
-                new_stage->out.p_bs = task->bs;
-                task->stage         = new_stage;
+                new_stage->out.p_bs     = task->bs;
+                task->stage             = new_stage;
 
                 pv->async_depth++;
 
