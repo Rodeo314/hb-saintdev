@@ -1617,6 +1617,7 @@ static hb_buffer_t* bitstream2buf(hb_work_private_t *pv, mfxBitstream *bs)
         }
     }
 
+    pv->frames_out++;
     return buf;
 }
 
@@ -1786,6 +1787,9 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
              * well have a good reason to do so; mis-flagged sources do exist).
              */
             work_surface->Info.PicStruct = pv->enc_space.m_mfxVideoParam.mfx.FrameInfo.PicStruct;
+
+            // this is a non-EOF input packet, so an input frame
+            pv->frames_in++;
         }
 
         int sync_idx = av_qsv_get_free_sync(qsv_encode, qsv);
@@ -1959,7 +1963,6 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
                     task->bs->DataLength = 0;
                     task->bs->DataOffset = 0;
                     task->bs->MaxLength  = qsv_encode->p_buf_max_size;
-                    pv->frames_out++;
                 }
             }
         }
@@ -1982,7 +1985,6 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
     }
     else
     {
-        ++pv->frames_in;
         *buf_out = link_buffer_list(pv->encoded_frames);
         return HB_WORK_OK;
     }
