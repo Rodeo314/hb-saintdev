@@ -1794,8 +1794,10 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
         pv->frames_in++;
     }
 
+    static int debug_counter; debug_counter = 0; hb_log("DEBUG: before loop");//debug
     while (1)
     {
+        hb_log("DEBUG: loop %d", ++debug_counter);//debug
         int sync_idx = av_qsv_get_free_sync(qsv_encode, qsv);
         if (sync_idx == -1)
         {
