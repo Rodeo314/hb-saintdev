@@ -1926,10 +1926,10 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
                         av_qsv_list_add(qsv_encode->tasks, task);
                     }
 
-                    task->stage             = 0;
-                    task->bs->DataLength    = 0;
-                    task->bs->DataOffset    = 0;
-                    task->bs->MaxLength     = qsv_encode->p_buf_max_size;
+                    task->stage          = 0;
+                    task->bs->DataLength = 0;
+                    task->bs->DataOffset = 0;
+                    task->bs->MaxLength  = qsv_encode->p_buf_max_size;
                     pv->frames_out++;
                 }
             }
