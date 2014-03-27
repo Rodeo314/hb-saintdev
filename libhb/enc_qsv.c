@@ -89,6 +89,7 @@ struct hb_work_private_s
     int init_done;
 
     hb_list_t *delayed_processing;
+    hb_list_t *encoded_frames;
 };
 
 // used in delayed_chapters list
@@ -521,6 +522,7 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     pv->is_sys_mem         = !hb_qsv_decode_is_enabled(job);
     pv->qsv_info           = hb_qsv_info_get(job->vcodec);
     pv->delayed_processing = hb_list_init();
+    pv->encoded_frames     = hb_list_init();
     pv->last_start         = INT64_MIN;
     pv->frames_in          = 0;
     pv->frames_out         = 0;
@@ -1478,6 +1480,20 @@ void encqsvClose(hb_work_object_t *w)
             }
             hb_list_close(&pv->delayed_chapters);
         }
+
+        if (pv->encoded_frames != NULL)
+        {
+            hb_buffer_t *item;
+
+            // should never happen
+            while ((item = hb_list_item(pv->encoded_frames, 0)) != NULL)
+            {
+                hb_log("encqsvClose: found encoded frame(s) not in output");//fixme
+                hb_list_rem(pv->encoded_frames, item);
+                hb_buffer_close(&item);
+            }
+            hb_list_close(&pv->encoded_frames);
+        }
     }
 
     free(pv);
@@ -1604,17 +1620,39 @@ static hb_buffer_t* bitstream2buf(hb_work_private_t *pv, mfxBitstream *bs)
     return buf;
 }
 
+static hb_buffer_t* link_buffer_list(hb_list_t *list)
+{
+    hb_buffer_t *buf, *out = NULL, *prev = NULL;
+
+    while ((buf = hb_list_item(list, 0)) != NULL)
+    {
+        hb_list_rem(list, buf);
+
+        if (prev == NULL)
+        {
+            prev = out = buf;
+        }
+        else
+        {
+            prev->next = buf;
+            prev       = buf;
+        }
+    }
+
+    return out;
+}
+
 int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
 {
     hb_work_private_t *pv       = w->private_data;
     hb_job_t *job               = pv->job;
     av_qsv_context *qsv         = job->qsv.ctx;
     hb_buffer_t *in             = *buf_in;
-    hb_buffer_t *buf, *last_buf = NULL;
     av_qsv_space *qsv_encode    = NULL;
 
     mfxStatus sts = MFX_ERR_NONE;
     int i, is_end = 0;
+    hb_buffer_t *buf;
 
     while (1)
     {
@@ -1908,16 +1946,7 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
                     }
 
                     buf = bitstream2buf(pv, task->bs);
-
-                    if (last_buf == NULL)
-                    {
-                        *buf_out = last_buf = buf;
-                    }
-                    else
-                    {
-                        last_buf->next = buf;
-                        last_buf       = buf;
-                    }
+                    hb_list_add(pv->encoded_frames, buf);
 
                     // shift for fifo
                     if (pv->async_depth)
@@ -1946,19 +1975,15 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
 
     if (is_end)
     {
-        if (last_buf != NULL)
-        {
-            last_buf->next = in;
-        }
-        else
-        {
-            *buf_out = in;
-        }
+        // don't forget to add EOF buffer to output
+        hb_list_add(pv->encoded_frames, in);
+        *buf_out = link_buffer_list(pv->encoded_frames);
         return HB_WORK_DONE;
     }
     else
     {
         ++pv->frames_in;
+        *buf_out = link_buffer_list(pv->encoded_frames);
         return HB_WORK_OK;
     }
 }
