@@ -2002,6 +2002,7 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
      */
     if (in->s.new_chap > 0 && job->chapter_markers)
     {
+        hb_log("INSERTING chapter %d", in->s.new_chap);//debug
         if (encode_loop(pv, NULL, NULL, NULL) < 0)
         {
             *pv->job->done_error = HB_ERROR_UNKNOWN;
@@ -2009,7 +2010,6 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
         }
         ctrl = &pv->force_keyframe;
         save_chapter(pv, in);
-        hb_log("INSERTING chapter %d", in->s.new_chap);//debug
     }
 
     /*
