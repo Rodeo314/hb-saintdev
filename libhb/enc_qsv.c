@@ -1827,7 +1827,7 @@ static int encode_loop(hb_work_private_t *pv, av_qsv_list *qsv_atom,
                 {
                     av_qsv_add_stagee(&qsv_atom, new_stage, HAVE_THREADS);
                 }
-                else if (surface == NULL)//debug
+                else
                 {
                     // flushing the end
                     int pipe_idx           = av_qsv_list_add (qsv_ctx->pipes, av_qsv_list_init(HAVE_THREADS));
