@@ -2014,7 +2014,7 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
         {
             goto fail;
         }
-        ctrl = &pv->force_keyframe;
+//        ctrl = &pv->force_keyframe;
         save_chapter(pv, in);
     }
 
