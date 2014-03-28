@@ -2000,7 +2000,7 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
      */
     if (in->s.new_chap > 0 && job->chapter_markers)
     {
-        if (encode_loop(pv, NULL, NULL, NULL) < 0)
+        if (pv->is_sys_mem/*fixme*/&& encode_loop(pv, NULL, NULL, NULL) < 0)
         {
             goto fail;
         }
