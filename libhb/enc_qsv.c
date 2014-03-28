@@ -1874,7 +1874,7 @@ static int encode_loop(hb_work_private_t *pv, av_qsv_list *qsv_atom,
                 av_qsv_list  *this_pipe = av_qsv_pipe_by_stage(qsv_ctx->pipes, stage);
 
                 /* perform a sync operation to get the output bitstream */
-                av_qsv_wait_on_sync(qsv_ctx, stage);//fixme: check return value?
+                av_qsv_wait_on_sync(qsv_ctx, stage);
 
                 if (task->bs->DataLength > 0)
                 {
