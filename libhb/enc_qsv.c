@@ -1959,7 +1959,14 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
             pv->next_chapter_pts = in->s.start;
         }
 
-        /* insert an IDR */
+        /*
+         * Insert an IDR; note: this may cause issues with frame
+         * reordering, so we have to flush the encoder first.
+         */
+        if (encode_loop(w, NULL, NULL, NULL) < 0)
+        {
+            goto fail;
+        }
         ctrl = &pv->force_keyframe;
 
         /*
