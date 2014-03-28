@@ -1949,7 +1949,7 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
 
     mfxEncodeCtrl *ctrl         = NULL;
     mfxFrameSurface1 *surface   = NULL;
-    av_qsv_list *qsv_atom       = NULL;
+    av_qsv_list  *qsv_atom      = NULL;
     av_qsv_space *qsv_enc_space = qsv_ctx->enc_space;
 
     /*
