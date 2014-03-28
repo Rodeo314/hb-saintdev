@@ -1770,7 +1770,7 @@ static int encode_loop(hb_work_private_t *pv, av_qsv_list *qsv_atom,
 
         do
         {
-            // encode a frame asychronously (returns immediately)
+            /* encode a frame asychronously (returns immediately) */
             sts = MFXVideoENCODE_EncodeFrameAsync(qsv_ctx->mfx_session,
                                                   ctrl, surface, task->bs,
                                                   qsv_enc_space->p_syncp[sync_idx]->p_sync);
@@ -1801,7 +1801,7 @@ static int encode_loop(hb_work_private_t *pv, av_qsv_list *qsv_atom,
                 return -1;
             }
 
-            if (sts >= MFX_ERR_NONE /*&& !syncpE*/) // repeat the call if warning and no output
+            if (sts >= MFX_ERR_NONE)
             {
                 if (sts == MFX_WRN_DEVICE_BUSY)
                 {
@@ -1860,7 +1860,7 @@ static int encode_loop(hb_work_private_t *pv, av_qsv_list *qsv_atom,
         {
             if (pv->async_depth == 0) break;
 
-            // working properly with sync depth approach of MediaSDK OR flushing
+            /* we've done enough asynchronous operations or we're flushing */
             if (pv->async_depth >= pv->max_async_depth || surface == NULL)
             {
                 pv->async_depth--;
@@ -1870,8 +1870,7 @@ static int encode_loop(hb_work_private_t *pv, av_qsv_list *qsv_atom,
                 av_qsv_stage *stage     = task->stage;
                 av_qsv_list  *this_pipe = av_qsv_pipe_by_stage(qsv_ctx->pipes, stage);
 
-                // only here we need to wait on operation been completed, therefore SyncOperation is used,
-                // after this step - we continue to work with bitstream, muxing ...
+                /* perform a sync operation to get the output bitstream */
                 av_qsv_wait_on_sync(qsv_ctx, stage);//fixme: check return value?
 
                 if (task->bs->DataLength > 0)
@@ -1881,7 +1880,7 @@ static int encode_loop(hb_work_private_t *pv, av_qsv_list *qsv_atom,
                     buf = bitstream2buf(pv, task->bs);
                     hb_list_add(pv->encoded_frames, buf);//fixme: merge with above
 
-                    // shift for fifo
+                    /* shift for fifo */
                     if (pv->async_depth)
                     {
                         av_qsv_list_rem(qsv_enc_space->tasks, task);
