@@ -511,7 +511,6 @@ int qsv_enc_init(av_qsv_context *qsv, hb_work_private_t *pv)
     }
     qsv_encode->is_init_done = 1;
 
-    hb_log("0: pv->async_depth %d/%d", pv->async_depth, pv->max_async_depth);//debug
     pv->init_done = 1;
     return 0;
 }
@@ -1876,15 +1875,6 @@ static int encode_loop(hb_work_private_t *pv, av_qsv_list *qsv_atom,
 
                 /* perform a sync operation to get the output bitstream */
                 av_qsv_wait_on_sync(qsv_ctx, stage);
-                if (surface == NULL)
-                    hb_log("encqsv: av_qsv_wait_on_sync at async_depth %d "
-                           "with stage %#p and NULL (frame %d)", pv->async_depth, stage, pv->frames_out);//debug
-                else if (ctrl != NULL)
-                    hb_log("encqsv: av_qsv_wait_on_sync at async_depth %d "
-                           "with stage %#p and ctrl (frame %d)", pv->async_depth, stage, pv->frames_out);//debug
-                else
-                    hb_log("encqsv: av_qsv_wait_on_sync at async_depth %d "
-                           "with stage %#p and surf (frame %d)", pv->async_depth, stage, pv->frames_out);//debug
 
                 if (task->bs->DataLength > 0)
                 {
@@ -1968,7 +1958,6 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
             *pv->job->done_error = HB_ERROR_UNKNOWN;
             goto fail;
         }
-        hb_log("surface_index %d for frame %d", surface_index, pv->frames_in);//debug
 
         surface = qsv_enc_space->p_surfaces[surface_index];
         qsv_yuv420_to_nv12(pv->sws_context_to_nv12, surface, in);
@@ -1983,8 +1972,8 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
     }
 
     /*
-     * Debugging code to check that the upstream modules have generated
-     * a continuous, self-consistent frame stream.
+     * Debugging code to check that the upstream modules have
+     * generated a continuous, self-consistent frame stream.
      */
     if (pv->last_start > in->s.start)
     {
@@ -2014,7 +2003,6 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
      */
     if (in->s.new_chap > 0 && job->chapter_markers)
     {
-        hb_log("1: pv->async_depth %d/%d", pv->async_depth, pv->max_async_depth);//debug
         if (encode_loop(pv, NULL, NULL, NULL) < 0)
         {
             *pv->job->done_error = HB_ERROR_UNKNOWN;
@@ -2022,7 +2010,6 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
         }
         ctrl = &pv->force_keyframe;
         save_chapter(pv, in);
-        hb_log("2: pv->async_depth %d/%d", pv->async_depth, pv->max_async_depth);//debug
     }
 
     /*
