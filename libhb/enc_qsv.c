@@ -2009,6 +2009,7 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
         }
         ctrl = &pv->force_keyframe;
         save_chapter(pv, in);
+        hb_log("INSERTING chapter %d", in->s.new_chap);//debug
     }
 
     /*
