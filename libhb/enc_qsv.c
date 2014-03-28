@@ -1836,12 +1836,12 @@ static int encode_loop(hb_work_private_t *pv, av_qsv_list *qsv_atom,
 
                 for (i = hb_list_count(pv->delayed_processing); i > 0; i--)
                 {
-                    hb_list_t *item = hb_list_item(pv->delayed_processing, i - 1);
+                    av_qsv_list *item = hb_list_item(pv->delayed_processing, i - 1);
 
                     if (item != NULL)
                     {
-                        hb_list_rem(pv->delayed_processing, item);
-                        av_qsv_flush_stages(qsv_ctx->pipes, (av_qsv_list**)&item);
+                        hb_list_rem(pv->delayed_processing,  item);
+                        av_qsv_flush_stages(qsv_ctx->pipes, &item);
                     }
                 }
                 break;
