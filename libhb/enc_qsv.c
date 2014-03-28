@@ -2016,16 +2016,16 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
             goto fail;
         }
 
-//        mfxStatus sts = MFXVideoENCODE_Reset(qsv_ctx->mfx_session,
-//                                             pv->param.videoParam);
-//        if (sts < MFX_ERR_NONE)
-//        {
-//            hb_error("encqsvWork: MFXVideoENCODE_Reset failed (%d)", sts);
-//            *pv->job->done_error = HB_ERROR_UNKNOWN;
-//            goto fail;
-//        }
-//
-//        ctrl = &pv->force_keyframe;
+        mfxStatus sts = MFXVideoENCODE_Reset(qsv_ctx->mfx_session,
+                                             pv->param.videoParam);
+        if (sts < MFX_ERR_NONE)
+        {
+            hb_error("encqsvWork: MFXVideoENCODE_Reset failed (%d)", sts);
+            *pv->job->done_error = HB_ERROR_UNKNOWN;
+            goto fail;
+        }
+
+        ctrl = &pv->force_keyframe;
         save_chapter(pv, in);
     }
 
