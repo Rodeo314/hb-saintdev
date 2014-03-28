@@ -1620,7 +1620,7 @@ static void compute_init_delay(hb_work_private_t *pv, mfxBitstream *bs)
     pv->init_delay    = NULL;
 }
 
-static hb_buffer_t* bitstream2buf(hb_work_private_t *pv, mfxBitstream *bs)
+static void bitstream_consume(hb_work_private_t *pv, mfxBitstream *bs)
 {
     hb_buffer_t *buf;
 
@@ -1633,27 +1633,29 @@ static hb_buffer_t* bitstream2buf(hb_work_private_t *pv, mfxBitstream *bs)
         buf = hb_nal_bitstream_annexb_to_mp4(bs->Data + bs->DataOffset, bs->DataLength);
         if (buf == NULL)
         {
-            return NULL;
+            hb_error("encqsv: hb_nal_bitstream_annexb_to_mp4 failed");
+            goto fail;
         }
     }
     else
     {
-        // muxers will take care of re-formatting the bitstream
+        /* muxers will take care of re-formatting the bitstream */
         buf = hb_buffer_init(bs->DataLength);
         if (buf == NULL)
         {
-            return NULL;
+            hb_error("encqsv: hb_buffer_init failed");
+            goto fail;
         }
 
         memcpy(buf->data, bs->Data + bs->DataOffset, bs->DataLength);
     }
+    bs->DataLength = 0;
+    bs->DataOffset = 0;
 
-    // map Media SDK's FrameType to our internal representation
     buf->s.frametype = hb_qsv_frametype_xlat(bs->FrameType, &buf->s.flags);
-
-    buf->s.start    = buf->s.renderOffset = bs->TimeStamp;
-    buf->s.stop     = buf->s.start + pv->default_duration;
-    buf->s.duration = pv->default_duration;
+    buf->s.start     = buf->s.renderOffset = bs->TimeStamp;
+    buf->s.stop      = buf->s.start + pv->default_duration;
+    buf->s.duration  = pv->default_duration;
 
     if (pv->init_delay != NULL)
     {
@@ -1691,7 +1693,7 @@ static hb_buffer_t* bitstream2buf(hb_work_private_t *pv, mfxBitstream *bs)
             }
         }
 
-        // check whether B-pyramid is used even though it's disabled
+        /* check whether B-pyramid is used even though it's disabled */
         if ((pv->param.gop.b_pyramid == 0)    &&
             (bs->FrameType & MFX_FRAMETYPE_B) &&
             (bs->FrameType & MFX_FRAMETYPE_REF))
@@ -1700,7 +1702,7 @@ static hb_buffer_t* bitstream2buf(hb_work_private_t *pv, mfxBitstream *bs)
                    pv->bfrm_delay);
         }
 
-        // check for PTS < DTS
+        /* check for PTS < DTS */
         if (buf->s.start < buf->s.renderOffset)
         {
             hb_log("encqsvWork: PTS %"PRId64" < DTS %"PRId64" for frame %d with type '%s' (bfrm_workaround: %d)",
@@ -1722,8 +1724,13 @@ static hb_buffer_t* bitstream2buf(hb_work_private_t *pv, mfxBitstream *bs)
         restore_chapter(pv, buf);
     }
 
+    hb_list_add(pv->encoded_frames, buf);
     pv->frames_out++;
-    return buf;
+    return;
+
+fail:
+    *pv->job->done_error = HB_ERROR_UNKNOWN;
+    *pv->job->die        = 1;
 }
 
 static hb_buffer_t* link_buffer_list(hb_list_t *list)
@@ -1754,7 +1761,6 @@ static int encode_loop(hb_work_private_t *pv, av_qsv_list *qsv_atom,
     av_qsv_context *qsv_ctx     = pv->job->qsv.ctx;
     av_qsv_space *qsv_enc_space = pv->job->qsv.ctx->enc_space;
     mfxStatus sts               = MFX_ERR_NONE;
-    hb_buffer_t *buf;
     int i;
 
     do
@@ -1853,8 +1859,6 @@ static int encode_loop(hb_work_private_t *pv, av_qsv_list *qsv_atom,
         }
         while (1);
 
-        buf = NULL;
-
         do
         {
             if (pv->async_depth == 0) break;
@@ -1876,8 +1880,7 @@ static int encode_loop(hb_work_private_t *pv, av_qsv_list *qsv_atom,
                 {
                     av_qsv_flush_stages(qsv_ctx->pipes, &this_pipe);
 
-                    buf = bitstream2buf(pv, task->bs);
-                    hb_list_add(pv->encoded_frames, buf);//fixme: merge with above
+                    bitstream_consume(pv, task->bs);
 
                     /* shift for fifo */
                     if (pv->async_depth)
@@ -1886,22 +1889,14 @@ static int encode_loop(hb_work_private_t *pv, av_qsv_list *qsv_atom,
                         av_qsv_list_add(qsv_enc_space->tasks, task);
                     }
 
-                    task->stage          = 0;
-                    task->bs->DataLength = 0;
-                    task->bs->DataOffset = 0;
-                    task->bs->MaxLength  = qsv_enc_space->p_buf_max_size;
+                    task->stage         = NULL;
+                    task->bs->MaxLength = qsv_enc_space->p_buf_max_size;
                 }
             }
         }
         while (surface == NULL);
-
-        /* TODO: condition below, instead of 1 */
-        if (surface != NULL || (buf == NULL && sts == MFX_ERR_MORE_DATA))
-        {
-            break;
-        }
     }
-    while (1);
+    while (surface == NULL && sts != MFX_ERR_MORE_DATA);
 
     return 0;
 }
