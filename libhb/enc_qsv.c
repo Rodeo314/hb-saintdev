@@ -1927,6 +1927,7 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
             av_qsv_sleep(1); // encoding not yet done initializing, wait
             continue;
         }
+        hb_log("0: pv->async_depth %d/%d", pv->async_depth, pv->max_async_depth);//debug
         break;
     }
 
