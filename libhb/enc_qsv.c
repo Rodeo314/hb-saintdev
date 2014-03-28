@@ -1877,13 +1877,13 @@ static int encode_loop(hb_work_private_t *pv, av_qsv_list *qsv_atom,
                 av_qsv_wait_on_sync(qsv_ctx, stage);
                 if (surface == NULL)
                     hb_log("encqsv: av_qsv_wait_on_sync at async_depth %d "
-                           "with stage %#p", pv->async_depth, stage);//debug
+                           "with stage %#p and NULL (frame %d)", pv->async_depth, stage, pv->frames_out);//debug
                 else if (ctrl != NULL)
                     hb_log("encqsv: av_qsv_wait_on_sync at async_depth %d "
                            "with stage %#p and ctrl (frame %d)", pv->async_depth, stage, pv->frames_out);//debug
                 else
                     hb_log("encqsv: av_qsv_wait_on_sync at async_depth %d "
-                           "with stage %#p and NULL (frame %d)", pv->async_depth, stage, pv->frames_out);//debug
+                           "with stage %#p and surf (frame %d)", pv->async_depth, stage, pv->frames_out);//debug
 
                 if (task->bs->DataLength > 0)
                 {
