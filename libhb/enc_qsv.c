@@ -1963,6 +1963,7 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
         mfxFrameInfo *fip = &qsv_enc_space->request[0].Info;
         int surface_index = av_qsv_get_free_surface(qsv_enc_space, qsv_ctx, fip,
                                                     QSV_PART_ANY);
+        hb_log("surface_index %d for frame %d", surface_index, pv->frames_in);//debug
 
         surface = qsv_enc_space->p_surfaces[surface_index];
 
