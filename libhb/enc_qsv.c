@@ -65,7 +65,7 @@ struct hb_work_private_s
     hb_list_t *delayed_chapters;
     int64_t next_chapter_pts;
 
-    double default_duration;
+    double default_duration;//fixme: remove
     uint32_t *init_delay;
 
 #define BFRM_DELAY_MAX 16
