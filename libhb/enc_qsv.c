@@ -1933,7 +1933,7 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
     if (*job->die)
     {
         *buf_out = NULL;
-        return HB_WORK_DONE; // unrecoverable error in qsv_enc_init
+        return HB_WORK_DONE; // unrecoverable error, don't attempt to encode
     }
 
     /*
