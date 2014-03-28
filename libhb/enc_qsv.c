@@ -1492,6 +1492,7 @@ void encqsvClose(hb_work_object_t *w)
             hb_buffer_t *item;
 
             // should never happen
+            hb_log("encqsvClose: closing pv->encoded_frames");//fixme
             while ((item = hb_list_item(pv->encoded_frames, 0)) != NULL)
             {
                 hb_log("encqsvClose: found encoded frame(s) not in output");//fixme
