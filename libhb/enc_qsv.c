@@ -65,7 +65,8 @@ struct hb_work_private_s
     hb_list_t *delayed_chapters;
     int64_t next_chapter_pts;
 
-    int64_t default_duration;
+    double default_duration;
+    uint32_t *init_delay;
 
 #define BFRM_DELAY_MAX 16
     // for DTS generation (when MSDK API < 1.6 or VFR)
@@ -1208,6 +1209,18 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
         pv->bfrm_workaround = 0;
         pv->list_dts        = NULL;
     }
+    if (pv->bfrm_delay)
+    {
+        switch (pv->qsv_info->codec_id)
+        {
+            case MFX_CODEC_AVC:
+            case MFX_CODEC_HEVC:
+                pv->init_delay = &w->config->h264.init_delay;
+                break;
+            default:
+                break;
+        }
+    }
 
     // log code path and main output settings
     hb_log("encqsvInit: using %s path",
@@ -1564,6 +1577,50 @@ static void restore_chapter(hb_work_private_t *pv, hb_buffer_t *buf)
     }
 }
 
+static void compute_init_delay(hb_work_private_t *pv, mfxBitstream *bs)
+{
+    /*
+     * In the MP4 container, DT(0) = STTS(0) = 0.
+     *
+     * Which gives us:
+     * CT(0) = CTTS(0) + STTS(0) = CTTS(0) = PTS(0) - DTS(0)
+     * When DTS(0) < PTS(0), we then have:
+     * CT(0) > 0 for video, but not audio (breaks A/V sync).
+     *
+     * This is typically solved by writing an edit list shifting
+     * video samples by the initial delay, PTS(0) - DTS(0).
+     *
+     * See:
+     * ISO/IEC 14496-12:2008(E), ISO base media file format
+     *  - 8.6.1.2 Decoding Time to Sample Box
+     */
+    int64_t init_delay = pv->init_pts[1] - pv->init_pts[0];
+
+    if (pv->qsv_info->capabilities & HB_QSV_CAP_MSDK_API_1_6)
+    {
+        /* Compute the delay (in ticks) based on the DTS provided by MSDK. */
+        init_delay = bs->TimeStamp - bs->DecodeTimeStamp;
+
+        /* The delay in frames is the delay in ticks divided by the frame duration */
+        pv->bfrm_delay = (init_delay + (pv->default_duration / 2)) / pv->default_duration;
+        if (pv->bfrm_delay < 1 || pv->bfrm_delay > BFRM_DELAY_MAX)
+        {
+            hb_log("encqsv: invalid delay %d (PTS: %"PRIu64", DTS: %"PRId64")",
+                   pv->bfrm_delay, bs->TimeStamp, bs->DecodeTimeStamp);
+            pv->bfrm_delay = HB_QSV_CLIP3(1, BFRM_DELAY_MAX, pv->bfrm_delay);
+        }
+    }
+
+    if (pv->bfrm_workaround)
+    {
+        init_delay = pv->init_pts[pv->bfrm_delay] - pv->init_pts[0];
+    }
+
+    /* The delay only needs to be set once. */
+    pv->init_delay[0] = init_delay;
+    pv->init_delay    = NULL;
+}
+
 static hb_buffer_t* bitstream2buf(hb_work_private_t *pv, mfxBitstream *bs)
 {
     hb_buffer_t *buf;
@@ -1598,6 +1655,11 @@ static hb_buffer_t* bitstream2buf(hb_work_private_t *pv, mfxBitstream *bs)
     buf->s.start    = buf->s.renderOffset = bs->TimeStamp;
     buf->s.stop     = buf->s.start + pv->default_duration;
     buf->s.duration = pv->default_duration;
+
+    if (pv->init_delay != NULL)
+    {
+        compute_init_delay(pv, bs);
+    }
 
     if (pv->bfrm_delay)
     {
@@ -1687,10 +1749,9 @@ static hb_buffer_t* link_buffer_list(hb_list_t *list)
     return out;
 }
 
-static int encode_loop(hb_work_object_t *w, av_qsv_list *qsv_atom,
+static int encode_loop(hb_work_private_t *pv, av_qsv_list *qsv_atom,
                        mfxEncodeCtrl *ctrl, mfxFrameSurface1 *surface)
 {
-    hb_work_private_t *pv       = w->private_data;
     av_qsv_context *qsv_ctx     = pv->job->qsv.ctx;
     av_qsv_space *qsv_enc_space = pv->job->qsv.ctx->enc_space;
     mfxStatus sts               = MFX_ERR_NONE;
@@ -1817,49 +1878,6 @@ static int encode_loop(hb_work_object_t *w, av_qsv_list *qsv_atom,
                 {
                     av_qsv_flush_stages(qsv_ctx->pipes, &this_pipe);
 
-                    if ((pv->bfrm_delay && pv->frames_out == 0)                &&
-                        (pv->qsv_info->capabilities & HB_QSV_CAP_MSDK_API_1_6) &&
-                        (pv->qsv_info->capabilities & HB_QSV_CAP_B_REF_PYRAMID))
-                    {
-                        /*
-                         * with B-pyramid, the delay may be more than 1 frame,
-                         * so compute the actual delay based on the initial DTS
-                         * provided by MSDK; variables are used for readibility.
-                         */
-                        int64_t init_delay = (task->bs->TimeStamp -
-                                              task->bs->DecodeTimeStamp);
-
-                        pv->bfrm_delay = HB_QSV_CLIP3(1, BFRM_DELAY_MAX,
-                                                      init_delay /
-                                                      pv->default_duration);
-
-                        /*
-                         * In the MP4 container, DT(0) = STTS(0) = 0.
-                         *
-                         * Which gives us:
-                         * CT(0) = CTTS(0) + STTS(0) = CTTS(0) = PTS(0) - DTS(0)
-                         * When DTS(0) < PTS(0), we then have:
-                         * CT(0) > 0 for video, but not audio (breaks A/V sync).
-                         *
-                         * This is typically solved by writing an edit list shifting
-                         * video samples by the initial delay, PTS(0) - DTS(0).
-                         *
-                         * See:
-                         * ISO/IEC 14496-12:2008(E), ISO base media file format
-                         *  - 8.6.1.2 Decoding Time to Sample Box
-                         */
-                        /* TODO: factor out init_delay setup? */
-                        if (pv->bfrm_workaround)
-                        {
-                            w->config->h264.init_delay = (pv->init_pts[pv->bfrm_delay] -
-                                                          pv->init_pts[0]);
-                        }
-                        else
-                        {
-                            w->config->h264.init_delay = init_delay;
-                        }
-                    }
-
                     buf = bitstream2buf(pv, task->bs);
                     hb_list_add(pv->encoded_frames, buf);
 
@@ -1922,7 +1940,7 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
      */
     if (in->size <= 0)
     {
-        encode_loop(w, NULL, NULL, NULL);
+        encode_loop(pv, NULL, NULL, NULL);
         hb_list_add(pv->encoded_frames, in);
         *buf_out = link_buffer_list(pv->encoded_frames);
         *buf_in  = NULL; // don't let 'work_loop' close this buffer
@@ -1989,7 +2007,7 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
      */
     if (in->s.new_chap > 0 && job->chapter_markers)
     {
-        if (encode_loop(w, NULL, NULL, NULL) < 0)
+        if (encode_loop(pv, NULL, NULL, NULL) < 0)
         {
             goto fail;
         }
@@ -2015,7 +2033,7 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
     /*
      * Now that the input surface is setup, we can encode it.
      */
-    if (encode_loop(w, qsv_atom, ctrl, surface) < 0)
+    if (encode_loop(pv, qsv_atom, ctrl, surface) < 0)
     {
         goto fail;
     }
