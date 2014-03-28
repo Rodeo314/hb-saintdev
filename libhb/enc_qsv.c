@@ -1752,7 +1752,7 @@ static int encode_loop(hb_work_private_t *pv,
 {
     av_qsv_context *qsv_ctx     = pv->job->qsv.ctx;
     av_qsv_space *qsv_enc_space = pv->job->qsv.ctx->enc_space;
-    mfxStatus sts               = MFX_ERR_NONE;
+    mfxStatus sts;
     int i;
 
     do
