@@ -1872,14 +1872,14 @@ static int encode_loop(hb_work_private_t *pv, av_qsv_list *qsv_atom,
 
                 // only here we need to wait on operation been completed, therefore SyncOperation is used,
                 // after this step - we continue to work with bitstream, muxing ...
-                av_qsv_wait_on_sync(qsv_ctx, stage);
+                av_qsv_wait_on_sync(qsv_ctx, stage);//fixme: check return value?
 
                 if (task->bs->DataLength > 0)
                 {
                     av_qsv_flush_stages(qsv_ctx->pipes, &this_pipe);
 
                     buf = bitstream2buf(pv, task->bs);
-                    hb_list_add(pv->encoded_frames, buf);
+                    hb_list_add(pv->encoded_frames, buf);//fixme: merge with above
 
                     // shift for fifo
                     if (pv->async_depth)
