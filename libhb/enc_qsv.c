@@ -1972,8 +1972,7 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
         av_qsv_stage *stage = av_qsv_get_last_stage(qsv_atom);
         surface             = stage->out.p_surface;
 
-        // don't let qsv_ctx->dts_seq grow needlessly
-        av_qsv_dts_pop(qsv_ctx);
+        av_qsv_dts_pop(qsv_ctx); // don't let qsv_ctx->dts_seq grow needlessly
     }
 
     /*
@@ -1987,7 +1986,7 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
     }
     pv->last_start = in->s.start;
 
-    // for DTS generation (when MSDK API < 1.6 or VFR)
+    /* for DTS generation (when MSDK API < 1.6 or VFR) */
     if (pv->bfrm_delay && pv->bfrm_workaround)
     {
         if (pv->frames_in <= BFRM_DELAY_MAX)
@@ -1999,6 +1998,7 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
             hb_qsv_add_new_dts(pv->list_dts, in->s.start);
         }
     }
+    pv->frames_in++;
 
     /*
      * Chapters have to start with a keyframe so request that this
@@ -2026,9 +2026,6 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
      */
     surface->Info.PicStruct = pv->param.videoParam->mfx.FrameInfo.PicStruct;
     surface->Data.TimeStamp = in->s.start;
-
-    // this is a non-EOF input packet, so an input frame
-    pv->frames_in++;
 
     /*
      * Now that the input surface is setup, we can encode it.
