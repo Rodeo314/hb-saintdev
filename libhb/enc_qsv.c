@@ -1763,6 +1763,9 @@ static int encode_loop(hb_work_private_t *pv, av_qsv_list *qsv_atom,
     mfxStatus sts               = MFX_ERR_NONE;
     int i;
 
+    static int enc = 0;//debug
+    static int syn = 0;//debug
+
     do
     {
         int sync_idx = av_qsv_get_free_sync(qsv_enc_space, qsv_ctx);
@@ -1776,10 +1779,10 @@ static int encode_loop(hb_work_private_t *pv, av_qsv_list *qsv_atom,
         do
         {
             /* encode a frame asychronously (returns immediately) */
-            if (surface) hb_log("MFXVideoENCODE_EncodeFrameAsync");//debug
             sts = MFXVideoENCODE_EncodeFrameAsync(qsv_ctx->mfx_session,
                                                   ctrl, surface, task->bs,
                                                   qsv_enc_space->p_syncp[sync_idx]->p_sync);
+            if (surface) { syn = 0; hb_log("MFXVideoENCODE_EncodeFrameAsync %d (%d)", ++enc, sts); }//debug
 
             if (sts == MFX_ERR_MORE_DATA || (sts >= MFX_ERR_NONE &&
                                              sts != MFX_WRN_DEVICE_BUSY))
@@ -1874,7 +1877,7 @@ static int encode_loop(hb_work_private_t *pv, av_qsv_list *qsv_atom,
                 av_qsv_list  *this_pipe = av_qsv_pipe_by_stage(qsv_ctx->pipes, stage);
 
                 /* perform a sync operation to get the output bitstream */
-                if (surface) hb_log("av_qsv_wait_on_sync");//debug
+                if (surface) { enc = 0; hb_log("av_qsv_wait_on_sync %d", ++syn); }//debug
                 av_qsv_wait_on_sync(qsv_ctx, stage);
 
                 if (task->bs->DataLength > 0)
