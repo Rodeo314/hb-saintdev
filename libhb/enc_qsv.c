@@ -451,7 +451,13 @@ int qsv_enc_init(av_qsv_context *qsv, hb_work_private_t *pv)
         for (i = 0; i < qsv_encode->surface_num; i++)
         {
             mfxFrameSurface1 *surface = av_mallocz(sizeof(mfxFrameSurface1));
-            AV_QSV_CHECK_POINTER(surface, MFX_ERR_MEMORY_ALLOC);
+            if (surface == NULL)
+            {
+                hb_error("qsv_enc_init: av_mallocz failed");
+                *job->done_error = HB_ERROR_INIT;
+                *job->die = 1;
+                return -1;
+            }
 
             qsv_encode->p_surfaces[i] = surface;
             surface->Info             = qsv_encode->request[0].Info;
@@ -1659,7 +1665,7 @@ static int encode_loop(hb_work_object_t *w, av_qsv_list *qsv_atom,
         int sync_idx = av_qsv_get_free_sync(qsv_enc_space, qsv_ctx);
         if (sync_idx == -1)
         {
-            hb_error("qsv: Not enough resources allocated for QSV encode");
+            hb_error("encqsv: av_qsv_get_free_sync failed");
             return -1;
         }
         av_qsv_task *task = av_qsv_list_item(qsv_enc_space->tasks, pv->async_depth);
@@ -1691,7 +1697,11 @@ static int encode_loop(hb_work_object_t *w, av_qsv_list *qsv_atom,
                 break;
             }
 
-            AV_QSV_CHECK_RESULT(sts, MFX_ERR_NONE, sts);
+            if (sts < MFX_ERR_NONE)
+            {
+                hb_error("encqsv: MFXVideoENCODE_EncodeFrameAsync failed (%s)", sts);
+                return -1;
+            }
 
             if (sts >= MFX_ERR_NONE /*&& !syncpE*/) // repeat the call if warning and no output
             {
@@ -1845,31 +1855,27 @@ static int encode_loop(hb_work_object_t *w, av_qsv_list *qsv_atom,
 
 int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
 {
-    hb_work_private_t *pv       = w->private_data;
-    hb_job_t *job               = pv->job;
-    av_qsv_context *qsv         = job->qsv.ctx;
-    hb_buffer_t *in             = *buf_in;
-    av_qsv_space *qsv_encode    = NULL;
+    hb_work_private_t *pv   = w->private_data;
+    hb_job_t *job           = pv->job;
+    av_qsv_context *qsv_ctx = pv->job->qsv.ctx;
+    hb_buffer_t *in         = *buf_in;
 
     while (1)
     {
-        int ret    = qsv_enc_init(qsv, pv);
-        qsv        = job->qsv.ctx;
-        qsv_encode = qsv->enc_space;
+        int ret = qsv_enc_init(qsv_ctx, pv);
+        qsv_ctx = job->qsv.ctx;
 
         if (ret >= 2)
         {
-            av_qsv_sleep(1);
+            av_qsv_sleep(1); // encoding not yet done initializing, wait
+            continue;
         }
-        else
-        {
-            break;
-        }
+        break;
     }
-    *buf_out = NULL;
 
     if (*job->die)
     {
+        *buf_out = NULL;
         return HB_WORK_DONE; // unrecoverable error in qsv_enc_init
     }
 
@@ -1886,9 +1892,10 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
         return HB_WORK_DONE;
     }
 
-    av_qsv_list      *qsv_atom = NULL;
-    mfxEncodeCtrl    *ctrl     = NULL;
-    mfxFrameSurface1 *surface  = NULL;
+    av_qsv_list *qsv_atom       = NULL;
+    mfxEncodeCtrl *ctrl         = NULL;
+    mfxFrameSurface1 *surface   = NULL;
+    av_qsv_space *qsv_enc_space = qsv_ctx->enc_space;
 
     /*
      * If we have some input, we need to obtain
@@ -1896,11 +1903,11 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
      */
     if (pv->is_sys_mem)
     {
-        int surface_idx = av_qsv_get_free_surface(qsv_encode, qsv,
-                                                  &qsv_encode->request[0].Info,
-                                                  QSV_PART_ANY);
+        mfxFrameInfo *fip = &qsv_enc_space->request[0].Info;
+        int surface_index = av_qsv_get_free_surface(qsv_enc_space, qsv_ctx, fip,
+                                                    QSV_PART_ANY);
 
-        surface = qsv_encode->p_surfaces[surface_idx];
+        surface = qsv_enc_space->p_surfaces[surface_index];
 
         qsv_yuv420_to_nv12(pv->sws_context_to_nv12, surface, in);
     }
@@ -1910,34 +1917,31 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
         av_qsv_stage *stage = av_qsv_get_last_stage(qsv_atom);
         surface             = stage->out.p_surface;
 
-        // don't let qsv->dts_seq grow needlessly
-        av_qsv_dts_pop(qsv);
+        // don't let qsv_ctx->dts_seq grow needlessly
+        av_qsv_dts_pop(qsv_ctx);
     }
-
-    surface->Data.TimeStamp = in->s.start;
 
     /*
      * Debugging code to check that the upstream modules have generated
      * a continuous, self-consistent frame stream.
      */
-    int64_t start = surface->Data.TimeStamp;
-    if (pv->last_start > start)
+    if (pv->last_start > in->s.start)
     {
         hb_log("encqsvWork: input continuity error, last start %"PRId64" start %"PRId64"",
-               pv->last_start, start);
+               pv->last_start, in->s.start);
     }
-    pv->last_start = start;
+    pv->last_start = in->s.start;
 
     // for DTS generation (when MSDK API < 1.6 or VFR)
     if (pv->bfrm_delay && pv->bfrm_workaround)
     {
         if (pv->frames_in <= BFRM_DELAY_MAX)
         {
-            pv->init_pts[pv->frames_in] = surface->Data.TimeStamp;
+            pv->init_pts[pv->frames_in] = in->s.start;
         }
         if (pv->frames_in)
         {
-            hb_qsv_add_new_dts(pv->list_dts, surface->Data.TimeStamp);
+            hb_qsv_add_new_dts(pv->list_dts, in->s.start);
         }
     }
 
@@ -1953,7 +1957,7 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
         /* TODO: factor out chapter insertion */
         if (pv->next_chapter_pts == AV_NOPTS_VALUE)
         {
-            pv->next_chapter_pts = surface->Data.TimeStamp;
+            pv->next_chapter_pts = in->s.start;
         }
 
         /* insert an IDR */
@@ -1970,8 +1974,8 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
         struct chapter_s *item = malloc(sizeof(struct chapter_s));
         if (item != NULL)
         {
+            item->start = in->s.start;
             item->index = in->s.new_chap;
-            item->start = surface->Data.TimeStamp;
             hb_list_add(pv->delayed_chapters, item);
         }
 
@@ -1988,7 +1992,8 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
      * progressive-flagged source using interlaced compression - he may
      * well have a good reason to do so; mis-flagged sources do exist).
      */
-    surface->Info.PicStruct = pv->enc_space.m_mfxVideoParam.mfx.FrameInfo.PicStruct;
+    surface->Info.PicStruct = pv->param.videoParam->mfx.FrameInfo.PicStruct;
+    surface->Data.TimeStamp = in->s.start;
 
     // this is a non-EOF input packet, so an input frame
     pv->frames_in++;
@@ -1998,12 +2003,15 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
      */
     if (encode_loop(w, qsv_atom, ctrl, surface) < 0)
     {
-        *buf_out = NULL;
-        return HB_WORK_ERROR;
+        goto fail;
     }
 
     *buf_out = link_buffer_list(pv->encoded_frames);
     return HB_WORK_OK;
+
+fail:
+    *buf_out = NULL;
+    return HB_WORK_ERROR;
 }
 
 #endif // USE_QSV
