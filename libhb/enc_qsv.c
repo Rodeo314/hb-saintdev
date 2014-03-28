@@ -2045,7 +2045,9 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
     return HB_WORK_OK;
 
 fail:
-    *buf_out = NULL;
+    *pv->job->done_error = HB_ERROR_UNKNOWN;
+    *pv->job->die        = 1;
+    *buf_out             = NULL;
     return HB_WORK_ERROR;
 }
 
