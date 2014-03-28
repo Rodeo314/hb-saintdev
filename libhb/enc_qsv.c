@@ -1782,7 +1782,7 @@ static int encode_loop(hb_work_private_t *pv, av_qsv_list *qsv_atom,
             sts = MFXVideoENCODE_EncodeFrameAsync(qsv_ctx->mfx_session,
                                                   ctrl, surface, task->bs,
                                                   qsv_enc_space->p_syncp[sync_idx]->p_sync);
-            if (surface) { syn = 0; hb_log("MFXVideoENCODE_EncodeFrameAsync %2d (%+02d)", ++enc, sts); }//debug
+            if (surface) { syn = 0; hb_log("MFXVideoENCODE_EncodeFrameAsync %2d (%+03d)", ++enc, sts); }//debug
 
             if (sts == MFX_ERR_MORE_DATA || (sts >= MFX_ERR_NONE &&
                                              sts != MFX_WRN_DEVICE_BUSY))
