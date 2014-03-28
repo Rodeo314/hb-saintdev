@@ -1763,9 +1763,6 @@ static int encode_loop(hb_work_private_t *pv, av_qsv_list *qsv_atom,
     mfxStatus sts               = MFX_ERR_NONE;
     int i;
 
-    static int enc = 0;//debug
-    static int syn = 0;//debug
-
     do
     {
         int sync_idx = av_qsv_get_free_sync(qsv_enc_space, qsv_ctx);
@@ -1782,7 +1779,6 @@ static int encode_loop(hb_work_private_t *pv, av_qsv_list *qsv_atom,
             sts = MFXVideoENCODE_EncodeFrameAsync(qsv_ctx->mfx_session,
                                                   ctrl, surface, task->bs,
                                                   qsv_enc_space->p_syncp[sync_idx]->p_sync);
-            if (surface) { syn = 0; hb_log("MFXVideoENCODE_EncodeFrameAsync %2d (%+03d)", ++enc, sts); }//debug
 
             if (sts == MFX_ERR_MORE_DATA || (sts >= MFX_ERR_NONE &&
                                              sts != MFX_WRN_DEVICE_BUSY))
@@ -1877,7 +1873,6 @@ static int encode_loop(hb_work_private_t *pv, av_qsv_list *qsv_atom,
                 av_qsv_list  *this_pipe = av_qsv_pipe_by_stage(qsv_ctx->pipes, stage);
 
                 /* perform a sync operation to get the output bitstream */
-                if (surface) { enc = 0; hb_log("av_qsv_wait_on_sync %d", ++syn); }//debug
                 av_qsv_wait_on_sync(qsv_ctx, stage);
 
                 if (task->bs->DataLength > 0)
@@ -1958,7 +1953,7 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
         int surface_index = av_qsv_get_free_surface(qsv_enc_space, qsv_ctx, fip, QSV_PART_ANY);
         if (surface_index == -1)
         {
-            hb_error("encqsv: av_qsv_get_free_surface failed");
+            hb_error("encqsvWork: av_qsv_get_free_surface failed");
             *pv->job->done_error = HB_ERROR_UNKNOWN;
             goto fail;
         }
@@ -2004,19 +1999,34 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
      * Chapters have to start with a keyframe so request that this
      * frame be coded as IDR. Note: this may cause issues with
      * frame reordering, so we have to flush the encoder first.
+     *
+     * Also, flushing the encoder doesn't seem to empty the lookahead. For some
+     * reason, resuming an encode-only session with  a full lookahead after
+     * flushing causes errors (specifically, MFX_ERR_UNDEFINED_BEHAVIOR), and
+     * ultimately results in a complete failure once we run out of unlocked
+     * input frame surfaces. Resetting the encoder before resuming the encode
+     * works around the issue, at the expense of a negligible speed hit while
+     * the encoder fills the lookahead again.
      */
     if (in->s.new_chap > 0 && job->chapter_markers)
     {
-        hb_log("INSERTING chapter %d", in->s.new_chap);//debug
         if (encode_loop(pv, NULL, NULL, NULL) < 0)
         {
             *pv->job->done_error = HB_ERROR_UNKNOWN;
             goto fail;
         }
-        ctrl = &pv->force_keyframe;
-        save_chapter(pv, in);
 
-        MFXVideoENCODE_Reset(qsv_ctx->mfx_session, pv->param.videoParam);//debug
+//        mfxStatus sts = MFXVideoENCODE_Reset(qsv_ctx->mfx_session,
+//                                             pv->param.videoParam);
+//        if (sts < MFX_ERR_NONE)
+//        {
+//            hb_error("encqsvWork: MFXVideoENCODE_Reset failed (%d)", sts);
+//            *pv->job->done_error = HB_ERROR_UNKNOWN;
+//            goto fail;
+//        }
+//
+//        ctrl = &pv->force_keyframe;
+        save_chapter(pv, in);
     }
 
     /*
