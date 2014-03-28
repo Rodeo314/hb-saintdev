@@ -61,6 +61,7 @@ struct hb_work_private_s
     av_qsv_space enc_space;
     hb_qsv_info_t *qsv_info;
 
+    mfxEncodeCtrl force_keyframe;
     hb_list_t *delayed_chapters;
     int64_t next_chapter_pts;
 
@@ -534,6 +535,14 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     pv->frames_out         = 0;
     pv->init_done          = 0;
     pv->is_vpp_present     = 0;
+
+    // set up a re-usable mfxEncodeCtrl to force keyframes (e.g. for chapters)
+    pv->force_keyframe.QP          = 0;
+    pv->force_keyframe.FrameType   = MFX_FRAMETYPE_I|MFX_FRAMETYPE_IDR|MFX_FRAMETYPE_REF;
+    pv->force_keyframe.NumExtParam = 0;
+    pv->force_keyframe.NumPayload  = 0;
+    pv->force_keyframe.ExtParam    = NULL;
+    pv->force_keyframe.Payload     = NULL;
 
     pv->next_chapter_pts = AV_NOPTS_VALUE;
     pv->delayed_chapters = hb_list_init();
@@ -1746,9 +1755,8 @@ static hb_buffer_t* link_buffer_list(hb_list_t *list)
     return out;
 }
 
-static int encode_loop(hb_work_private_t *pv,
-                       av_qsv_list *qsv_atom,
-                       mfxFrameSurface1 *surface)
+static int encode_loop(hb_work_private_t *pv, av_qsv_list *qsv_atom,
+                       mfxEncodeCtrl *ctrl, mfxFrameSurface1 *surface)
 {
     av_qsv_context *qsv_ctx     = pv->job->qsv.ctx;
     av_qsv_space *qsv_enc_space = pv->job->qsv.ctx->enc_space;
@@ -1769,7 +1777,7 @@ static int encode_loop(hb_work_private_t *pv,
         {
             /* encode a frame asychronously (returns immediately) */
             sts = MFXVideoENCODE_EncodeFrameAsync(qsv_ctx->mfx_session,
-                                                  NULL, surface, task->bs,
+                                                  ctrl, surface, task->bs,
                                                   qsv_enc_space->p_syncp[sync_idx]->p_sync);
 
             if (sts == MFX_ERR_MORE_DATA || (sts >= MFX_ERR_NONE &&
@@ -1923,13 +1931,14 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
      */
     if (in->size <= 0)
     {
-        encode_loop(pv, NULL, NULL);
+        encode_loop(pv, NULL, NULL, NULL);
         hb_list_add(pv->encoded_frames, in);
         *buf_out = link_buffer_list(pv->encoded_frames);
         *buf_in  = NULL; // don't let 'work_loop' close this buffer
         return HB_WORK_DONE;
     }
 
+    mfxEncodeCtrl *ctrl         = NULL;
     mfxFrameSurface1 *surface   = NULL;
     av_qsv_list  *qsv_atom      = NULL;
     av_qsv_space *qsv_enc_space = qsv_ctx->enc_space;
@@ -1997,12 +2006,11 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
      * ultimately results in a complete failure once we run out of unlocked
      * input frame surfaces. Resetting the encoder before resuming the encode
      * works around the issue, at the expense of a negligible speed hit while
-     * the encoder fills the lookahead again. It also ensures the next encoded
-     * frame will be an IDR, without having to request it from the encoder.
+     * the encoder fills the lookahead again.
      */
     if (in->s.new_chap > 0 && job->chapter_markers)
     {
-        if (encode_loop(pv, NULL, NULL) < 0)
+        if (encode_loop(pv, NULL, NULL, NULL) < 0)
         {
             *pv->job->done_error = HB_ERROR_UNKNOWN;
             goto fail;
@@ -2017,6 +2025,7 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
             goto fail;
         }
 
+        ctrl = &pv->force_keyframe;
         save_chapter(pv, in);
     }
 
@@ -2035,7 +2044,7 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
     /*
      * Now that the input surface is setup, we can encode it.
      */
-    if (encode_loop(pv, qsv_atom, surface) < 0)
+    if (encode_loop(pv, qsv_atom, ctrl, surface) < 0)
     {
         *pv->job->done_error = HB_ERROR_UNKNOWN;
         goto fail;
