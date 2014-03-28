@@ -1506,7 +1506,6 @@ void encqsvClose(hb_work_object_t *w)
 
             while ((item = hb_list_item(pv->encoded_frames, 0)) != NULL)
             {
-                // should never happen
                 hb_list_rem(pv->encoded_frames, item);
                 hb_buffer_close(&item);
             }
