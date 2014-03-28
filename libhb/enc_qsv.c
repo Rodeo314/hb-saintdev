@@ -1505,6 +1505,65 @@ void encqsvClose(hb_work_object_t *w)
     w->private_data = NULL;
 }
 
+static void save_chapter(hb_work_private_t *pv, hb_buffer_t *buf)
+{
+    /*
+     * Since there may be several frames buffered in the encoder, remember the
+     * timestamp so when this frame finally pops out of the encoder we'll mark
+     * its buffer as the start of a chapter.
+     */
+    if (pv->next_chapter_pts == AV_NOPTS_VALUE)
+    {
+        pv->next_chapter_pts = buf->s.start;
+    }
+
+    /*
+     * Chapter markers are sometimes so close we can get a new
+     * one before the previous goes through the encoding queue.
+     *
+     * Dropping markers can cause weird side-effects downstream,
+     * including but not limited to missing chapters in the
+     * output, so we need to save it somehow.
+     */
+    struct chapter_s *item = malloc(sizeof(struct chapter_s));
+    if (item != NULL)
+    {
+        item->start = buf->s.start;
+        item->index = buf->s.new_chap;
+        hb_list_add(pv->delayed_chapters, item);
+    }
+
+    /* don't let 'work_loop' put a chapter mark on the wrong buffer */
+    buf->s.new_chap = 0;
+}
+
+static void restore_chapter(hb_work_private_t *pv, hb_buffer_t *buf)
+{
+    /* we're no longer looking for this chapter */
+    pv->next_chapter_pts = AV_NOPTS_VALUE;
+
+    /* get the chapter index from the list */
+    struct chapter_s *item = hb_list_item(pv->delayed_chapters, 0);
+    if (item != NULL)
+    {
+        /* we're done with this chapter */
+        hb_list_rem(pv->delayed_chapters, item);
+        buf->s.new_chap = item->index;
+        free(item);
+
+        /* we may still have another pending chapter */
+        item = hb_list_item(pv->delayed_chapters, 0);
+        if (item != NULL)
+        {
+            /*
+             * we're looking for this chapter now
+             * we still need it, don't remove it
+             */
+            pv->next_chapter_pts = item->start;
+        }
+    }
+}
+
 static hb_buffer_t* bitstream2buf(hb_work_private_t *pv, mfxBitstream *bs)
 {
     hb_buffer_t *buf;
@@ -1591,36 +1650,15 @@ static hb_buffer_t* bitstream2buf(hb_work_private_t *pv, mfxBitstream *bs)
     }
 
     /*
-     * If we have a chapter marker pending and this frame's
-     * presentation time stamp is at or after the marker's time stamp,
-     * use this as the chapter start.
+     * If we have a chapter marker pending and this frame's presentation
+     * time stamp is at or after the marker's time stamp, use this frame
+     * as the chapter start.
      */
     if (pv->next_chapter_pts != AV_NOPTS_VALUE &&
         pv->next_chapter_pts <= buf->s.start   && (bs->FrameType &
                                                    MFX_FRAMETYPE_IDR))
     {
-        /* TODO: factor out chapter insertion */
-        // we're no longer looking for this chapter
-        pv->next_chapter_pts = AV_NOPTS_VALUE;
-
-        // get the chapter index from the list
-        struct chapter_s *item = hb_list_item(pv->delayed_chapters, 0);
-        if (item != NULL)
-        {
-            // we're done with this chapter
-            buf->s.new_chap = item->index;
-            hb_list_rem(pv->delayed_chapters, item);
-            free(item);
-
-            // we may still have another pending chapter
-            item = hb_list_item(pv->delayed_chapters, 0);
-            if (item != NULL)
-            {
-                // we're looking for this one now
-                // we still need it, don't remove it
-                pv->next_chapter_pts = item->start;
-            }
-        }
+        restore_chapter(pv, buf);
     }
 
     pv->frames_out++;
@@ -1946,47 +1984,17 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
 
     /*
      * Chapters have to start with a keyframe so request that this
-     * frame be coded as IDR. Since there may be several frames
-     * buffered in the encoder, remember the timestamp so when this
-     * frame finally pops out of the encoder we'll mark its buffer
-     * as the start of a chapter.
+     * frame be coded as IDR. Note: this may cause issues with
+     * frame reordering, so we have to flush the encoder first.
      */
     if (in->s.new_chap > 0 && job->chapter_markers)
     {
-        /* TODO: factor out chapter insertion */
-        if (pv->next_chapter_pts == AV_NOPTS_VALUE)
-        {
-            pv->next_chapter_pts = in->s.start;
-        }
-
-        /*
-         * Insert an IDR; note: this may cause issues with frame
-         * reordering, so we have to flush the encoder first.
-         */
         if (encode_loop(w, NULL, NULL, NULL) < 0)
         {
             goto fail;
         }
         ctrl = &pv->force_keyframe;
-
-        /*
-         * Chapter markers are sometimes so close we can get a new
-         * one before the previous goes through the encoding queue.
-         *
-         * Dropping markers can cause weird side-effects downstream,
-         * including but not limited to missing chapters in the
-         * output, so we need to save it somehow.
-         */
-        struct chapter_s *item = malloc(sizeof(struct chapter_s));
-        if (item != NULL)
-        {
-            item->start = in->s.start;
-            item->index = in->s.new_chap;
-            hb_list_add(pv->delayed_chapters, item);
-        }
-
-        /* don't let 'work_loop' put a chapter mark on the wrong buffer */
-        in->s.new_chap = 0;
+        save_chapter(pv, in);
     }
 
     /*
