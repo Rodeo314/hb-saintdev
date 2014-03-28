@@ -1829,10 +1829,9 @@ static int encode_loop(hb_work_private_t *pv, av_qsv_list *qsv_atom,
                 }
                 else
                 {
-                    // flushing the end
-                    int pipe_idx           = av_qsv_list_add (qsv_ctx->pipes, av_qsv_list_init(HAVE_THREADS));
-                    av_qsv_list *list_item = av_qsv_list_item(qsv_ctx->pipes, pipe_idx);
-                    av_qsv_add_stagee(&list_item, new_stage, HAVE_THREADS);
+                    av_qsv_list *new_atom = av_qsv_list_init(HAVE_THREADS);
+                    av_qsv_add_stagee(&new_atom, new_stage,  HAVE_THREADS);
+                    av_qsv_list_add(qsv_ctx->pipes, new_atom);
                 }
 
                 for (i = hb_list_count(pv->delayed_processing); i > 0; i--)
