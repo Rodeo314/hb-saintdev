@@ -1875,6 +1875,9 @@ static int encode_loop(hb_work_private_t *pv, av_qsv_list *qsv_atom,
 
                 /* perform a sync operation to get the output bitstream */
                 av_qsv_wait_on_sync(qsv_ctx, stage);
+                if (surface == NULL)
+                    hb_log("encqsv: av_qsv_wait_on_sync at async_depth %d "
+                           "with stage %#p", pv->async_depth, stage);//debug
 
                 if (task->bs->DataLength > 0)
                 {
@@ -2000,7 +2003,7 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
      */
     if (in->s.new_chap > 0 && job->chapter_markers)
     {
-        if (!pv->is_sys_mem/*fixme*/&& encode_loop(pv, NULL, NULL, NULL) < 0)
+        if (encode_loop(pv, NULL, NULL, NULL) < 0)
         {
             goto fail;
         }
