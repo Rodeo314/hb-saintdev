@@ -511,6 +511,7 @@ int qsv_enc_init(av_qsv_context *qsv, hb_work_private_t *pv)
     }
     qsv_encode->is_init_done = 1;
 
+    hb_log("0: pv->async_depth %d/%d", pv->async_depth, pv->max_async_depth);//debug
     pv->init_done = 1;
     return 0;
 }
@@ -1927,14 +1928,12 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
             av_qsv_sleep(1); // encoding not yet done initializing, wait
             continue;
         }
-        hb_log("0: pv->async_depth %d/%d", pv->async_depth, pv->max_async_depth);//debug
         break;
     }
 
     if (*job->die)
     {
-        *buf_out = NULL;
-        return HB_WORK_DONE; // unrecoverable error, don't attempt to encode
+        goto fail; // unrecoverable error, don't attempt to encode
     }
 
     /*
@@ -1966,6 +1965,7 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
         if (surface_index == -1)
         {
             hb_error("encqsv: av_qsv_get_free_surface failed");
+            *pv->job->done_error = HB_ERROR_UNKNOWN;
             goto fail;
         }
         hb_log("surface_index %d for frame %d", surface_index, pv->frames_in);//debug
@@ -2017,6 +2017,7 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
         hb_log("1: pv->async_depth %d/%d", pv->async_depth, pv->max_async_depth);//debug
         if (encode_loop(pv, NULL, NULL, NULL) < 0)
         {
+            *pv->job->done_error = HB_ERROR_UNKNOWN;
             goto fail;
         }
         ctrl = &pv->force_keyframe;
@@ -2041,6 +2042,7 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
      */
     if (encode_loop(pv, qsv_atom, ctrl, surface) < 0)
     {
+        *pv->job->done_error = HB_ERROR_UNKNOWN;
         goto fail;
     }
 
@@ -2048,10 +2050,9 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
     return HB_WORK_OK;
 
 fail:
-    *pv->job->done_error = HB_ERROR_UNKNOWN;
-    *pv->job->die        = 1;
-    *buf_out             = NULL;
-    return HB_WORK_ERROR;
+    *pv->job->die = 1;
+    *buf_out      = NULL;
+    return HB_WORK_DONE;
 }
 
 #endif // USE_QSV
