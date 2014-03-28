@@ -2013,12 +2013,14 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
      */
     if (in->s.new_chap > 0 && job->chapter_markers)
     {
+        hb_log("1: pv->async_depth %d/%d", pv->async_depth, pv->max_async_depth);//debug
         if (encode_loop(pv, NULL, NULL, NULL) < 0)
         {
             goto fail;
         }
-//        ctrl = &pv->force_keyframe;
+        ctrl = &pv->force_keyframe;
         save_chapter(pv, in);
+        hb_log("2: pv->async_depth %d/%d", pv->async_depth, pv->max_async_depth);//debug
     }
 
     /*
