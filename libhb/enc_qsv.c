@@ -1961,12 +1961,15 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
     if (pv->is_sys_mem)
     {
         mfxFrameInfo *fip = &qsv_enc_space->request[0].Info;
-        int surface_index = av_qsv_get_free_surface(qsv_enc_space, qsv_ctx, fip,
-                                                    QSV_PART_ANY);
+        int surface_index = av_qsv_get_free_surface(qsv_enc_space, qsv_ctx, fip, QSV_PART_ANY);
+        if (surface_index == -1)
+        {
+            hb_error("encqsv: av_qsv_get_free_surface failed");
+            goto fail;
+        }
         hb_log("surface_index %d for frame %d", surface_index, pv->frames_in);//debug
 
         surface = qsv_enc_space->p_surfaces[surface_index];
-
         qsv_yuv420_to_nv12(pv->sws_context_to_nv12, surface, in);
     }
     else
