@@ -2015,6 +2015,8 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
         }
         ctrl = &pv->force_keyframe;
         save_chapter(pv, in);
+
+        MFXVideoENCODE_Reset(qsv_ctx->mfx_session, pv->param.videoParam);//debug
     }
 
     /*
