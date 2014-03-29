@@ -37,6 +37,29 @@
 #include "qsv_common.h"
 #include "qsv_memory.h"
 
+/*
+ * The frame info struct remembers information about each frame across calls to
+ * the encoder. Since frames are uniquely identified by their timestamp, we use
+ * some bits of the timestamp as an index. The LSB is chosen so that two
+ * successive frames will have different values in the bits over any plausible
+ * range of frame rates (starting with bit 8 allows any frame rate slower than
+ * 352fps). The MSB determines the size of the array. It is chosen so that two
+ * frames can't use the same slot during the encoder's max frame delay so that,
+ * up to some minimum frame rate, frames are guaranteed to map to different
+ * slots (an MSB of 17 which is 2^(17-8+1) = 1024 slots guarantees no collisions
+ * down to a rate of 0.7 fps).
+ */
+
+#define FRAME_INFO_MAX2 (8)  // 2^8  = 256;  90000/256    = 352 frames/sec
+#define FRAME_INFO_MIN2 (17) // 2^17 = 128K; 90000/131072 = 0.7 frames/sec
+#define FRAME_INFO_SIZE (1 << (FRAME_INFO_MIN2 - FRAME_INFO_MAX2 + 1))
+#define FRAME_INFO_MASK (FRAME_INFO_SIZE - 1)
+
+struct frame_info_s
+{
+    int64_t duration;
+};
+
 int  encqsvInit (hb_work_object_t*, hb_job_t*);
 int  encqsvWork (hb_work_object_t*, hb_buffer_t**, hb_buffer_t**);
 void encqsvClose(hb_work_object_t*);
@@ -65,15 +88,15 @@ struct hb_work_private_s
     hb_list_t *delayed_chapters;
     int64_t next_chapter_pts;
 
-    double default_duration;//fixme: remove
-    uint32_t *init_delay;
-
 #define BFRM_DELAY_MAX 16
     // for DTS generation (when MSDK API < 1.6 or VFR)
+    uint32_t      *init_delay;
     int            bfrm_delay;
     int            bfrm_workaround;
     int64_t        init_pts[BFRM_DELAY_MAX + 1];
     hb_list_t     *list_dts;
+
+    struct frame_info_s frame_info[FRAME_INFO_SIZE];
 
     int async_depth;
     int max_async_depth;
@@ -113,6 +136,7 @@ static void hb_qsv_add_new_dts(hb_list_t *list, int64_t new_dts)
         }
     }
 }
+
 static int64_t hb_qsv_pop_next_dts(hb_list_t *list)
 {
     int64_t next_dts = INT64_MIN;
@@ -127,6 +151,18 @@ static int64_t hb_qsv_pop_next_dts(hb_list_t *list)
         }
     }
     return next_dts;
+}
+
+static void save_frame_info(hb_work_private_t *pv, hb_buffer_t *buf)
+{
+    int i = (buf->s.start >> FRAME_INFO_MAX2) & FRAME_INFO_MASK;
+    pv->frame_info[i].duration = buf->s.stop - buf->s.start;
+}
+
+static int64_t get_frame_duration(hb_work_private_t *pv, hb_buffer_t *buf)
+{
+    int i = (buf->s.start >> FRAME_INFO_MAX2) & FRAME_INFO_MASK;
+    return pv->frame_info[i].duration;
 }
 
 static int qsv_hevc_make_header(hb_work_object_t *w, mfxSession session)
@@ -546,9 +582,6 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
 
     pv->next_chapter_pts = AV_NOPTS_VALUE;
     pv->delayed_chapters = hb_list_init();
-
-    // default frame duration in ticks (based on average frame rate)
-    pv->default_duration = (double)job->vrate_base / (double)job->vrate * 90000.;
 
     // default encoding parameters
     if (hb_qsv_param_default_preset(&pv->param, &pv->enc_space.m_mfxVideoParam,
@@ -1587,11 +1620,16 @@ static void compute_init_delay(hb_work_private_t *pv, mfxBitstream *bs)
 
     if (pv->qsv_info->capabilities & HB_QSV_CAP_MSDK_API_1_6)
     {
+        /* Frame duration (based on average frame rate) */
+        double frame_dur = ((double)pv->job->vrate_base /
+                            (double)pv->job->vrate * 90000.);
+
         /* Compute the delay (in ticks) based on the DTS provided by MSDK. */
         init_delay = bs->TimeStamp - bs->DecodeTimeStamp;
 
-        /* The delay in frames is the delay in ticks divided by the frame duration */
-        pv->bfrm_delay = (init_delay + (pv->default_duration / 2)) / pv->default_duration;
+        /* The delay in frames is the delay in ticks divided by frame_dur */
+        pv->bfrm_delay = (init_delay + (frame_dur / 2)) / frame_dur;
+
         if (pv->bfrm_delay < 1 || pv->bfrm_delay > BFRM_DELAY_MAX)
         {
             hb_log("encqsv: invalid delay %d (PTS: %"PRIu64", DTS: %"PRId64")",
@@ -1644,8 +1682,8 @@ static void bitstream_consume(hb_work_private_t *pv, mfxBitstream *bs)
 
     buf->s.frametype = hb_qsv_frametype_xlat(bs->FrameType, &buf->s.flags);
     buf->s.start     = buf->s.renderOffset = bs->TimeStamp;
-    buf->s.stop      = buf->s.start + pv->default_duration;
-    buf->s.duration  = pv->default_duration;
+    buf->s.duration  = get_frame_duration(pv, buf);
+    buf->s.stop      = buf->s.start + buf->s.duration;
 
     if (pv->init_delay != NULL)
     {
@@ -2030,6 +2068,7 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
      */
     surface->Info.PicStruct = pv->param.videoParam->mfx.FrameInfo.PicStruct;
     surface->Data.TimeStamp = in->s.start;
+    save_frame_info(pv, in);
 
     /*
      * Now that the input surface is setup, we can encode it.
