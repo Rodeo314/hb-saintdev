@@ -930,16 +930,6 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
         {
             gop_ref_dist *= 2;
         }
-        /*
-         * XXX: B-pyramid + forced keyframes will cause visual artifacts,
-         *      force-disable B-pyramid until we insert keyframes properly
-         */
-        if (pv->param.gop.b_pyramid && job->chapter_markers)
-        {
-            pv->param.gop.b_pyramid = 0;
-            hb_log("encqsvInit: chapter markers enabled, disabling B-pyramid "
-                   "to work around a bug in our keyframe insertion code");
-        }
         if ((pv->param.gop.b_pyramid) &&
             (pv->param.videoParam->mfx.GopPicSize == 0 ||
              pv->param.videoParam->mfx.GopPicSize > gop_ref_dist))
