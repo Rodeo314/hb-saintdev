@@ -2084,7 +2084,7 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
 
 fail:
     *pv->job->die = 1;
-    *buf_out      = hb_buffer_init(0); // fake EOF
+    *buf_out      = NULL;
     return HB_WORK_DONE;
 }
 
