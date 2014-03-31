@@ -1973,6 +1973,84 @@ const char* hb_qsv_impl_get_name(int impl)
     }
 }
 
+const char* hb_qsv_strerror(mfxStatus errnum)
+{
+    switch (errnum)
+    {
+        case MFX_ERR_NONE:
+            return "MFX_ERR_NONE";
+
+        case MFX_ERR_UNKNOWN:
+            return "MFX_ERR_UNKNOWN";
+
+        case MFX_ERR_NULL_PTR:
+            return "MFX_ERR_NULL_PTR";
+        case MFX_ERR_UNSUPPORTED:
+            return "MFX_ERR_UNSUPPORTED";
+        case MFX_ERR_MEMORY_ALLOC:
+            return "MFX_ERR_MEMORY_ALLOC";
+        case MFX_ERR_NOT_ENOUGH_BUFFER:
+            return "MFX_ERR_NOT_ENOUGH_BUFFER";
+        case MFX_ERR_INVALID_HANDLE:
+            return "MFX_ERR_INVALID_HANDLE";
+        case MFX_ERR_LOCK_MEMORY:
+            return "MFX_ERR_LOCK_MEMORY";
+        case MFX_ERR_NOT_INITIALIZED:
+            return "MFX_ERR_NOT_INITIALIZED";
+        case MFX_ERR_NOT_FOUND:
+            return "MFX_ERR_NOT_FOUND";
+        case MFX_ERR_MORE_DATA:
+            return "MFX_ERR_MORE_DATA";
+        case MFX_ERR_MORE_SURFACE:
+            return "MFX_ERR_MORE_SURFACE";
+        case MFX_ERR_ABORTED:
+            return "MFX_ERR_ABORTED";
+        case MFX_ERR_DEVICE_LOST:
+            return "MFX_ERR_DEVICE_LOST";
+        case MFX_ERR_INCOMPATIBLE_VIDEO_PARAM:
+            return "MFX_ERR_INCOMPATIBLE_VIDEO_PARAM";
+        case MFX_ERR_INVALID_VIDEO_PARAM:
+            return "MFX_ERR_INVALID_VIDEO_PARAM";
+        case MFX_ERR_UNDEFINED_BEHAVIOR:
+            return "MFX_ERR_UNDEFINED_BEHAVIOR";
+        case MFX_ERR_DEVICE_FAILED:
+            return "MFX_ERR_DEVICE_FAILED";
+        case MFX_ERR_MORE_BITSTREAM:
+            return "MFX_ERR_MORE_BITSTREAM";
+        case MFX_ERR_INCOMPATIBLE_AUDIO_PARAM:
+            return "MFX_ERR_INCOMPATIBLE_AUDIO_PARAM";
+        case MFX_ERR_INVALID_AUDIO_PARAM:
+            return "MFX_ERR_INVALID_AUDIO_PARAM";
+
+        case MFX_WRN_IN_EXECUTION:
+            return "MFX_WRN_IN_EXECUTION";
+        case MFX_WRN_DEVICE_BUSY:
+            return "MFX_WRN_DEVICE_BUSY";
+        case MFX_WRN_VIDEO_PARAM_CHANGED:
+            return "MFX_WRN_VIDEO_PARAM_CHANGED";
+        case MFX_WRN_PARTIAL_ACCELERATION:
+            return "MFX_WRN_PARTIAL_ACCELERATION";
+        case MFX_WRN_INCOMPATIBLE_VIDEO_PARAM:
+            return "MFX_WRN_INCOMPATIBLE_VIDEO_PARAM";
+        case MFX_WRN_VALUE_NOT_CHANGED:
+            return "MFX_WRN_VALUE_NOT_CHANGED";
+        case MFX_WRN_OUT_OF_RANGE:
+            return "MFX_WRN_OUT_OF_RANGE";
+        case MFX_WRN_FILTER_SKIPPED:
+            return "MFX_WRN_FILTER_SKIPPED";
+        case MFX_WRN_INCOMPATIBLE_AUDIO_PARAM:
+            return "MFX_WRN_INCOMPATIBLE_AUDIO_PARAM";
+
+        case MFX_TASK_WORKING:
+            return "MFX_TASK_WORKING";
+        case MFX_TASK_BUSY:
+            return "MFX_TASK_BUSY";
+
+        default:
+            return "unknown";
+    }
+}
+
 void hb_qsv_force_workarounds()
 {
     qsv_software_info_avc.capabilities  &= ~HB_QSV_CAP_MSDK_API_1_6;

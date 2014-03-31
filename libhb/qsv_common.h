@@ -176,6 +176,8 @@ uint8_t     hb_qsv_frametype_xlat(uint16_t qsv_frametype, uint16_t *out_flags);
 int         hb_qsv_impl_set_preferred(const char *name);
 const char* hb_qsv_impl_get_name(int impl);
 
+const char* hb_qsv_strerror(mfxStatus errnum);
+
 void hb_qsv_force_workarounds(); // for developers only
 
 #endif
