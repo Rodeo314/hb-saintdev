@@ -215,7 +215,8 @@ static int qsv_hevc_make_header(hb_work_object_t *w, mfxSession session)
 
     if (status < MFX_ERR_NONE && status != MFX_ERR_MORE_DATA)
     {
-        hb_log("qsv_hevc_make_header: MFXVideoENCODE_EncodeFrameAsync failed (%d)", status);
+        hb_log("qsv_hevc_make_header: MFXVideoENCODE_EncodeFrameAsync failed (%d, %s)",
+               status, hb_qsv_strerror(status));
         ret = -1;
         goto end;
     }
@@ -231,7 +232,8 @@ static int qsv_hevc_make_header(hb_work_object_t *w, mfxSession session)
 
         if (status != MFX_ERR_NONE)
         {
-            hb_log("qsv_hevc_make_header: MFXVideoCORE_SyncOperation failed (%d)", status);
+            hb_log("qsv_hevc_make_header: MFXVideoCORE_SyncOperation failed (%d, %s)",
+                   status, hb_qsv_strerror(status));
             ret = -1;
             goto end;
         }
@@ -255,7 +257,8 @@ static int qsv_hevc_make_header(hb_work_object_t *w, mfxSession session)
 
     if (status != MFX_ERR_MORE_DATA)
     {
-        hb_log("qsv_hevc_make_header: MFXVideoENCODE_EncodeFrameAsync failed (%d)", status);
+        hb_log("qsv_hevc_make_header: MFXVideoENCODE_EncodeFrameAsync failed (%d, %s)",
+               status, hb_qsv_strerror(status));
         ret = -1;
         goto end;
     }
@@ -271,7 +274,8 @@ static int qsv_hevc_make_header(hb_work_object_t *w, mfxSession session)
 
         if (status != MFX_ERR_NONE)
         {
-            hb_log("qsv_hevc_make_header: MFXVideoCORE_SyncOperation failed (%d)", status);
+            hb_log("qsv_hevc_make_header: MFXVideoCORE_SyncOperation failed (%d, %s)",
+                   status, hb_qsv_strerror(status));
             ret = -1;
             goto end;
         }
@@ -389,7 +393,8 @@ int qsv_enc_init(av_qsv_context *qsv, hb_work_private_t *pv)
         sts = hb_qsv_plugin_load(qsv->mfx_session, version, pv->qsv_info->codec_id);
         if (sts < MFX_ERR_NONE)
         {
-            hb_error("qsv_enc_init: hb_qsv_plugin_load failed (%d)", sts);
+            hb_error("qsv_enc_init: hb_qsv_plugin_load failed (%d, %s)",
+                     sts, hb_qsv_strerror(sts));
             *job->done_error = HB_ERROR_INIT;
             *job->die = 1;
             return -1;
@@ -470,7 +475,8 @@ int qsv_enc_init(av_qsv_context *qsv, hb_work_private_t *pv)
                                      &qsv_encode->request[0]);
     if (sts < MFX_ERR_NONE) // ignore warnings
     {
-        hb_error("qsv_enc_init: MFXVideoENCODE_QueryIOSurf failed (%d)", sts);
+        hb_error("qsv_enc_init: MFXVideoENCODE_QueryIOSurf failed (%d, %s)",
+                 sts, hb_qsv_strerror(sts));
         *job->done_error = HB_ERROR_INIT;
         *job->die = 1;
         return -1;
@@ -540,7 +546,8 @@ int qsv_enc_init(av_qsv_context *qsv, hb_work_private_t *pv)
     sts = MFXVideoENCODE_Init(qsv->mfx_session, &qsv_encode->m_mfxVideoParam);
     if (sts < MFX_ERR_NONE) // ignore warnings
     {
-        hb_error("qsv_enc_init: MFXVideoENCODE_Init failed (%d)", sts);
+        hb_error("qsv_enc_init: MFXVideoENCODE_Init failed (%d, %s)",
+                 sts, hb_qsv_strerror(sts));
         *job->done_error = HB_ERROR_INIT;
         *job->die = 1;
         return -1;
@@ -1054,7 +1061,8 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     err = MFXInit(pv->qsv_info->implementation, &version, &session);
     if (err != MFX_ERR_NONE)
     {
-        hb_error("encqsvInit: MFXInit failed (%d)", err);
+        hb_error("encqsvInit: MFXInit failed (%d, %s)",
+                 err, hb_qsv_strerror(err));
         return -1;
     }
 
@@ -1062,7 +1070,8 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     err = MFXQueryVersion(session, &version);
     if (err != MFX_ERR_NONE)
     {
-        hb_error("encqsvInit: MFXQueryVersion failed (%d)", err);
+        hb_error("encqsvInit: MFXQueryVersion failed (%d, %s)",
+                 err, hb_qsv_strerror(err));
         return -1;
     }
 
@@ -1070,7 +1079,8 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     err = hb_qsv_plugin_load(session, version, pv->qsv_info->codec_id);
     if (err < MFX_ERR_NONE)
     {
-        hb_error("encqsvInit: hb_qsv_plugin_load failed (%d)", err);
+        hb_error("encqsvInit: hb_qsv_plugin_load failed (%d, %s)",
+                 err, hb_qsv_strerror(err));
         return -1;
     }
 
@@ -1089,7 +1099,8 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
 #endif
     if (err < MFX_ERR_NONE) // ignore warnings
     {
-        hb_error("encqsvInit: MFXVideoENCODE_Init failed (%d)", err);
+        hb_error("encqsvInit: MFXVideoENCODE_Init failed (%d, %s)",
+                 err, hb_qsv_strerror(err));
         hb_qsv_plugin_unload(session, version, pv->qsv_info->codec_id);
         MFXClose(session);
         return -1;
@@ -1130,7 +1141,8 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     err = MFXVideoENCODE_GetVideoParam(session, &videoParam);
     if (err != MFX_ERR_NONE)
     {
-        hb_error("encqsvInit: MFXVideoENCODE_GetVideoParam failed (%d)", err);
+        hb_error("encqsvInit: MFXVideoENCODE_GetVideoParam failed (%d, %s)",
+                 err, hb_qsv_strerror(err));
         hb_qsv_plugin_unload(session, version, pv->qsv_info->codec_id);
         MFXVideoENCODE_Close(session);
         MFXClose(session);
@@ -2048,7 +2060,8 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
                                              pv->param.videoParam);
         if (sts < MFX_ERR_NONE)
         {
-            hb_error("encqsvWork: MFXVideoENCODE_Reset failed (%d)", sts);
+            hb_error("encqsvWork: MFXVideoENCODE_Reset failed (%d, %s)",
+                     sts, hb_qsv_strerror(sts));
             *pv->job->done_error = HB_ERROR_UNKNOWN;
             goto fail;
         }
