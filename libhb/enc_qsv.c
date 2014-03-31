@@ -329,6 +329,58 @@ end:
     return ret;
 }
 
+static void dump_qsv_space(av_qsv_space *qsv_space)
+{
+    int i, num_locked_surfaces = 0, num_used_syncpoints = 0;
+
+    for (i = 0; i < qsv_space->surface_num; i++)
+    {
+        if (qsv_space->p_surfaces[i]->Data.Locked)
+        {
+            if (qsv_space->p_surfaces[i]->Data.Locked > 1)
+            {
+                fprintf(stderr,
+                        "qsv_space->p_surfaces[%2d]->Data.Locked: %"PRIu16"\n",
+                        i, qsv_space->p_surfaces[i]->Data.Locked);
+            }
+            num_locked_surfaces++;
+        }
+    }
+
+    for (i = 0; i < qsv_space->sync_num; i++)
+    {
+        if (qsv_space->p_syncp[i]->in_use)
+        {
+            if (qsv_space->p_syncp[i]->in_use > 1 ||
+                qsv_space->p_syncp[i]->in_use < 0)
+            {
+                fprintf(stderr,
+                        "qsv_space->p_syncp[%2d]->in_use: %d\n",
+                        i, qsv_space->p_syncp[i]->in_use);
+            }
+            num_used_syncpoints++;
+        }
+    }
+
+    for (i = 0; i < av_qsv_list_count(qsv_space->tasks); i++)
+    {
+        av_qsv_task *task = av_qsv_list_item(qsv_space->tasks, i);
+        
+        if (task == NULL)
+        {
+            fprintf(stderr,
+                    "av_qsv_list_item(qsv_space->tasks, %2d) is NULL\n", i);
+        }
+    }
+
+    hb_log("[av_qsv_space @ %p]: surf_num: %2d (locked: %2d)",
+           qsv_space, qsv_space->surface_num, num_locked_surfaces);
+    hb_log("[av_qsv_space @ %p]: sync_num: %2d (in_use: %2d)",
+           qsv_space, qsv_space->sync_num,    num_used_syncpoints);
+    hb_log("[av_qsv_space @ %p]: task_num: %2d",
+           qsv_space, av_qsv_list_count(qsv_space->tasks));
+}
+
 int qsv_enc_init(av_qsv_context *qsv, hb_work_private_t *pv)
 {
     int i = 0;
