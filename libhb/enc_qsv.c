@@ -153,7 +153,7 @@ static int64_t hb_qsv_pop_next_dts(hb_list_t *list)
     return next_dts;
 }
 
-static void save_frame_info(hb_work_private_t *pv, hb_buffer_t *buf)
+static void set_frame_duration(hb_work_private_t *pv, hb_buffer_t *buf)
 {
     int i = (buf->s.start >> FRAME_INFO_MAX2) & FRAME_INFO_MASK;
     pv->frame_info[i].duration = buf->s.stop - buf->s.start;
@@ -2094,7 +2094,7 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
      */
     surface->Info.PicStruct = pv->param.videoParam->mfx.FrameInfo.PicStruct;
     surface->Data.TimeStamp = in->s.start;
-    save_frame_info(pv, in);
+    set_frame_duration(pv, in);
 
     /*
      * Now that the input surface is setup, we can encode it.
