@@ -331,7 +331,7 @@ end:
 
 static void dump_qsv_space(av_qsv_space *qsv_space)
 {
-    int i, num_locked_surfaces = 0, num_used_syncpoints = 0;
+    int i, num_locked_surfaces = 0, num_used_syncpoints = 0, num_tasks_with_stage = 0;
 
     for (i = 0; i < qsv_space->surface_num; i++)
     {
@@ -371,14 +371,18 @@ static void dump_qsv_space(av_qsv_space *qsv_space)
             fprintf(stderr,
                     "av_qsv_list_item(qsv_space->tasks, %2d) is NULL\n", i);
         }
+        else if (task->stage != NULL)
+        {
+            num_tasks_with_stage++;
+        }
     }
 
     hb_log("[av_qsv_space @ %p]: surf_num: %2d (locked: %2d)",
            qsv_space, qsv_space->surface_num, num_locked_surfaces);
     hb_log("[av_qsv_space @ %p]: sync_num: %2d (in_use: %2d)",
            qsv_space, qsv_space->sync_num,    num_used_syncpoints);
-    hb_log("[av_qsv_space @ %p]: task_num: %2d",
-           qsv_space, av_qsv_list_count(qsv_space->tasks));
+    hb_log("[av_qsv_space @ %p]: task_num: %2d (stages: %2d)",
+           qsv_space, av_qsv_list_count(qsv_space->tasks), num_tasks_with_stage);
 }
 
 int qsv_enc_init(av_qsv_context *qsv, hb_work_private_t *pv)
