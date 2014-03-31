@@ -2125,11 +2125,13 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
             *pv->job->done_error = HB_ERROR_UNKNOWN;
             goto fail;
         }
-        else if (sts != MFX_ERR_NONE)                                 //debug
-        {                                                             //debug
-            hb_log("encqsvWork: MFXVideoENCODE_Reset warned (%d, %s)",//debug
-                   sts, hb_qsv_strerror(sts));                        //debug
-        }                                                             //debug
+        else if (sts != MFX_ERR_NONE)                                        //debug
+        {                                                                    //debug
+            hb_log("encqsvWork: MFXVideoENCODE_Reset warned (%d, %s)",       //debug
+                   sts, hb_qsv_strerror(sts));                               //debug
+            MFXVideoENCODE_Close(qsv_ctx->mfx_session);                      //debug
+            MFXVideoENCODE_Init (qsv_ctx->mfx_session, pv->param.videoParam);//debug
+        }                                                                    //debug
 
         ctrl = &pv->force_keyframe;
         save_chapter(pv, in);
