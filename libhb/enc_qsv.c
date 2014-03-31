@@ -606,6 +606,7 @@ int qsv_enc_init(av_qsv_context *qsv, hb_work_private_t *pv)
     }
     qsv_encode->is_init_done = 1;
 
+    dump_qsv_space(qsv_encode);//debug
     pv->init_done = 1;
     return 0;
 }
@@ -2102,14 +2103,17 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
      */
     if (in->s.new_chap > 0 && job->chapter_markers)
     {
+        dump_qsv_space(qsv_enc_space);//debug
         if (encode_loop(pv, NULL, NULL, NULL) < 0)
         {
             *pv->job->done_error = HB_ERROR_UNKNOWN;
             goto fail;
         }
+        dump_qsv_space(qsv_enc_space);//debug
 
         mfxStatus sts = MFXVideoENCODE_Reset(qsv_ctx->mfx_session,
                                              pv->param.videoParam);
+        dump_qsv_space(qsv_enc_space);//debug
         if (sts < MFX_ERR_NONE)
         {
             hb_error("encqsvWork: MFXVideoENCODE_Reset failed (%d, %s)",
