@@ -2047,31 +2047,37 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
      * input frame surfaces. Resetting the encoder before resuming the encode
      * works around the issue, at the expense of a negligible speed hit while
      * the encoder fills the lookahead again.
+     *
+     * Note: use a hard reset (Close/Init) as we sometimes run out of unlocked
+     * surfaces after using Reset (happens for e.g. encode-only with B-pyramid).
      */
     if (in->s.new_chap > 0 && job->chapter_markers)
     {
+        mfxStatus sts;
+
         if (encode_loop(pv, NULL, NULL, NULL) < 0)
         {
             *pv->job->done_error = HB_ERROR_UNKNOWN;
             goto fail;
         }
 
-        mfxStatus sts = MFXVideoENCODE_Reset(qsv_ctx->mfx_session,
-                                             pv->param.videoParam);
-        if (sts < MFX_ERR_NONE)
+        sts = MFXVideoENCODE_Close(qsv_ctx->mfx_session);
+        if (sts != MFX_ERR_NONE)
         {
-            hb_error("encqsvWork: MFXVideoENCODE_Reset failed (%d, %s)",
+            hb_error("encqsvWork: MFXVideoENCODE_Close failed (%d, %s)",
                      sts, hb_qsv_strerror(sts));
             *pv->job->done_error = HB_ERROR_UNKNOWN;
             goto fail;
         }
-        else if (sts != MFX_ERR_NONE)                                        //debug
-        {                                                                    //debug
-            hb_log("encqsvWork: MFXVideoENCODE_Reset warned (%d, %s)",       //debug
-                   sts, hb_qsv_strerror(sts));                               //debug
-            MFXVideoENCODE_Close(qsv_ctx->mfx_session);                      //debug
-            MFXVideoENCODE_Init (qsv_ctx->mfx_session, pv->param.videoParam);//debug
-        }                                                                    //debug
+
+        sts = MFXVideoENCODE_Init(qsv_ctx->mfx_session, pv->param.videoParam);
+        if (sts < MFX_ERR_NONE)
+        {
+            hb_error("encqsvWork: MFXVideoENCODE_Init failed (%d, %s)",
+                     sts, hb_qsv_strerror(sts));
+            *pv->job->done_error = HB_ERROR_UNKNOWN;
+            goto fail;
+        }
 
         ctrl = &pv->force_keyframe;
         save_chapter(pv, in);
