@@ -2046,12 +2046,12 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
      *
      * - flush the encoder to encode and retrieve any buffered frames
      *
-     * - do a hard reset (MFXVideoENCODE_Close, then Init) of the
-     *   encoder so that the next sequence start with a keyframe
+     * - do a hard reset (MFXVideoENCODE_Close, then Init) of
+     *   the encoder to make sure the next frame is a keyframe
      *
      * The hard reset ensures encoding resumes with a clean state, avoiding
-     * miscellaneous hard-to-disagnose issues that may occur when resuming an
-     * encode after flushing the encoder and/or using MFXVideoENCODE_Reset.
+     * miscellaneous hard-to-disagnose issues that may occur when resuming
+     * an encode after flushing the encoder or using MFXVideoENCODE_Reset.
      */
     if (in->s.new_chap > 0 && job->chapter_markers)
     {
