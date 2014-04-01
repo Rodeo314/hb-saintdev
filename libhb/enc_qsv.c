@@ -2038,20 +2038,20 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
     pv->frames_in++;
 
     /*
-     * Chapters have to start with a keyframe so request that this
-     * frame be coded as IDR. Note: this may cause issues with
-     * frame reordering, so we have to flush the encoder first.
+     * Chapters have to start with a keyframe, so request one here.
      *
-     * Also, flushing the encoder doesn't seem to empty the lookahead. For some
-     * reason, resuming an encode-only session with  a full lookahead after
-     * flushing causes errors (specifically, MFX_ERR_UNDEFINED_BEHAVIOR), and
-     * ultimately results in a complete failure once we run out of unlocked
-     * input frame surfaces. Resetting the encoder before resuming the encode
-     * works around the issue, at the expense of a negligible speed hit while
-     * the encoder fills the lookahead again.
+     * Using an mfxEncodeCtrl structure to force key frame generation is not
+     * possible when using a lookahead and frame reordering, so instead do
+     * the following before encoding the frame attached to the chapter:
      *
-     * Note: use a hard reset (Close/Init) as we sometimes run out of unlocked
-     * surfaces after using Reset (happens for e.g. encode-only with B-pyramid).
+     * - flush the encoder to encode and retrieve any buffered frames
+     *
+     * - do a hard reset (MFXVideoENCODE_Close, then Init) of the
+     *   encoder so that the next sequence start with a keyframe
+     *
+     * The hard reset ensures encoding resumes with a clean state,
+     * avoiding miscellaneous hard-to-disagnose issues that may
+     * occur when resuming an encode after flushing the encoder.
      */
     if (in->s.new_chap > 0 && job->chapter_markers)
     {
