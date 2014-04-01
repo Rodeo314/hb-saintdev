@@ -1763,6 +1763,9 @@ static void bitstream_consume(hb_work_private_t *pv, mfxBitstream *bs)
     {
         restore_chapter(pv, buf);
     }
+    else if (pv->next_chapter_pts != AV_NOPTS_VALUE &&
+             pv->next_chapter_pts <= buf->s.start)
+        hb_log("bs->FrameType: 0x%"PRIx16"", bs->FrameType);//debug
 
     hb_list_add(pv->encoded_frames, buf);
     pv->frames_out++;
