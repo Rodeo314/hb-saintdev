@@ -1844,7 +1844,8 @@ static int encode_loop(hb_work_private_t *pv,
 
             if (sts < MFX_ERR_NONE)
             {
-                hb_error("encqsv: MFXVideoENCODE_EncodeFrameAsync failed (%s)", sts);
+                hb_error("encqsv: MFXVideoENCODE_EncodeFrameAsync failed (%d, %s)",
+                         sts, hb_qsv_strerror(sts));
                 return -1;
             }
 
