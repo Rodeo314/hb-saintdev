@@ -1611,6 +1611,16 @@ static void restore_chapter(hb_work_private_t *pv, hb_buffer_t *buf)
     }
 }
 
+static int qsv_frame_is_key(hb_work_private_t *pv, mfxU16 FrameType)
+{
+    if (!FrameType)
+    {
+        // work around a bug where the encoder may not set the frame type
+        return pv->qsv_info->codec_id == MFX_CODEC_HEVC;
+    }
+    return FrameType & MFX_FRAMETYPE_IDR;
+}
+
 static void compute_init_delay(hb_work_private_t *pv, mfxBitstream *bs)
 {
     /*
@@ -1758,8 +1768,8 @@ static void bitstream_consume(hb_work_private_t *pv, mfxBitstream *bs)
      * as the chapter start.
      */
     if (pv->next_chapter_pts != AV_NOPTS_VALUE &&
-        pv->next_chapter_pts <= buf->s.start   && (bs->FrameType &
-                                                   MFX_FRAMETYPE_IDR))
+        pv->next_chapter_pts <= buf->s.start   &&
+        qsv_frame_is_key(pv, bs->FrameType))
     {
         restore_chapter(pv, buf);
     }
