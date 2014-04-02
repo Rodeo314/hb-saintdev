@@ -287,10 +287,13 @@ int qsv_enc_init(hb_work_private_t *pv)
         }
         for (i = 0; i < qsv_encode->surface_num; i++)
         {
-            qsv_encode->p_surfaces[i] = av_mallocz(sizeof(mfxFrameSurface1));
-            AV_QSV_CHECK_POINTER(qsv_encode->p_surfaces[i], MFX_ERR_MEMORY_ALLOC);
-            memcpy(&(qsv_encode->p_surfaces[i]->Info),
-                   &(qsv_encode->request[0].Info), sizeof(mfxFrameInfo));
+            mfxFrameSurface1 *surface = av_mallocz(sizeof(mfxFrameSurface1));
+            mfxFrameInfo info         = pv->param.videoParam->mfx.FrameInfo;
+            surface->Info             = info;
+            surface->Data.Pitch       = info.Width;
+            surface->Data.Y           = av_mallocz(info.Width * info.Height);
+            surface->Data.VU          = av_mallocz(info.Width * info.Height / 2);
+            qsv_encode->p_surfaces[i] = surface;
         }
     }
     else
@@ -1216,10 +1219,8 @@ void encqsvClose(hb_work_object_t *w)
                 {
                     if (pv->is_sys_mem)
                     {
-                        free(qsv_enc_space->p_surfaces[i]->Data.Y);
-                        qsv_enc_space->p_surfaces[i]->Data.Y  = NULL;
-                        free(qsv_enc_space->p_surfaces[i]->Data.VU);
-                        qsv_enc_space->p_surfaces[i]->Data.VU = NULL;
+                        av_freep(&qsv_enc_space->p_surfaces[i]->Data.VU);
+                        av_freep(&qsv_enc_space->p_surfaces[i]->Data.Y);
                     }
                     av_freep(&qsv_enc_space->p_surfaces[i]);
                 }
@@ -1321,21 +1322,11 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
         {
             if (pv->is_sys_mem)
             {
-                int surface_idx = av_qsv_get_free_surface(qsv_encode, qsv,
-                                                          &qsv_encode->request[0].Info, QSV_PART_ANY);
-                work_surface = qsv_encode->p_surfaces[surface_idx];
+                mfxFrameInfo *info = &pv->param.videoParam->mfx.FrameInfo;
+                int surface_index  = av_qsv_get_free_surface(qsv_encode, qsv, info,
+                                                             QSV_PART_ANY);
 
-                if (work_surface->Data.Y == NULL)
-                {
-                    // if nv12 and 422 12bits per pixel
-                    work_surface->Data.Pitch = pv->enc_space.m_mfxVideoParam.mfx.FrameInfo.Width;
-                    work_surface->Data.Y     = calloc(1,
-                                                      pv->enc_space.m_mfxVideoParam.mfx.FrameInfo.Width *
-                                                      pv->enc_space.m_mfxVideoParam.mfx.FrameInfo.Height);
-                    work_surface->Data.VU    = calloc(1,
-                                                      pv->enc_space.m_mfxVideoParam.mfx.FrameInfo.Width *
-                                                      pv->enc_space.m_mfxVideoParam.mfx.FrameInfo.Height / 2);
-                }
+                work_surface = qsv_encode->p_surfaces[surface_index];
                 qsv_yuv420_to_nv12(pv->sws_context_to_nv12, work_surface, in);
             }
             else
