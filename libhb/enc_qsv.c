@@ -1522,9 +1522,9 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
             *buf_out = NULL;
             return HB_WORK_ERROR;
         }
-        hb_log("DEBUG: av_qsv_list_item");//debug
+        hb_log("DEBUG: av_qsv_list_item #1");//debug
         av_qsv_task *task = av_qsv_list_item(qsv_enc_space->tasks, pv->async_depth);
-        hb_log("DEBUG: av_qsv_list_item done");//debug
+        hb_log("DEBUG: av_qsv_list_item #1 done");//debug
 
         do
         {
@@ -1621,9 +1621,9 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
                 pv->async_depth--;
 
                 sts               = MFX_ERR_NONE;
-                hb_log("DEBUG: av_qsv_list_item");//debug
+                hb_log("DEBUG: av_qsv_list_item #2");//debug
                 av_qsv_task *task = av_qsv_list_item(qsv_enc_space->tasks, 0);
-                hb_log("DEBUG: av_qsv_list_item done");//debug
+                hb_log("DEBUG: av_qsv_list_item #2 done");//debug
 
                 /* perform a sync operation to get the output bitstream */
                 av_qsv_wait_on_sync(qsv_ctx, task->stage);
