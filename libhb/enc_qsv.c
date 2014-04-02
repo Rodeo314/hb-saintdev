@@ -329,7 +329,13 @@ int qsv_enc_init(hb_work_private_t *pv)
         qsv_enc_space->m_mfxVideoParam.ExtParam[qsv_enc_space->m_mfxVideoParam.NumExtParam++] = (mfxExtBuffer*)&qsv_enc_space->ext_opaque_alloc;
     }
 
-    qsv_enc_space->sync_num = FFMIN(qsv_enc_space->surface_num, AV_QSV_SYNC_NUM);
+    qsv_enc_space->sync_num = qsv_enc_space->surface_num;
+
+    if (qsv_enc_space->sync_num < 1 ||
+        qsv_enc_space->sync_num > AV_QSV_SURFACE_NUM)
+    {
+        qsv_enc_space->sync_num = AV_QSV_SURFACE_NUM;
+    }
 
     for (i = 0; i < qsv_enc_space->sync_num; i++)
     {
