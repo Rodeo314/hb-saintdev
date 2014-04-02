@@ -250,6 +250,13 @@ int qsv_enc_init(hb_work_private_t *pv)
     }
 
     qsv_enc_space->tasks = av_qsv_list_init(HAVE_THREADS);
+    hb_log("DEBUG: %p, %p, %p, %d (%d)", //debug
+           qsv_enc_space->tasks,
+           qsv_enc_space->tasks->mutex,
+           qsv_enc_space->tasks->items,
+           qsv_enc_space->tasks->items_count,
+           qsv_enc_space->tasks->items_alloc);
+    av_qsv_task *task = av_qsv_list_item(qsv_enc_space->tasks, pv->async_depth);
 
     for (i = 0; i < pv->max_async_depth; i++)
     {
