@@ -1288,8 +1288,6 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
     hb_buffer_t *last_buf = NULL;
     mfxStatus sts = MFX_ERR_NONE;
     int is_end = 0;
-    av_qsv_list *received_item = NULL;
-    av_qsv_stage *stage = NULL;
 
     while (qsv_enc_init(pv) >= 2)
     {
@@ -1302,121 +1300,121 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
         return HB_WORK_DONE; // unrecoverable error, don't attempt to encode
     }
 
-    av_qsv_context *qsv        = job->qsv.ctx;
-    av_qsv_space   *qsv_encode = job->qsv.ctx->enc_space;
+    av_qsv_list      *received_item = NULL;
+    mfxEncodeCtrl    *work_control  = NULL;
+    mfxFrameSurface1 *work_surface  = NULL;
+    av_qsv_context   *qsv           = job->qsv.ctx;
+    av_qsv_space     *qsv_encode    = job->qsv.ctx->enc_space;
 
+    /*
+     * EOF on input. Flush the decoder, then send the
+     * EOF downstream to let the muxer know we're done.
+     */
     if (in->size <= 0)
     {
-        // do delayed frames yet
-        *buf_in = NULL;
-        is_end = 1;
+        *buf_in = NULL; // don't let 'work_loop' close this buffer
+        is_end  = 1;
+    }
+    else
+    {
+        if (pv->is_sys_mem)
+        {
+            mfxFrameInfo *info = &pv->param.videoParam->mfx.FrameInfo;
+            int surface_index  = av_qsv_get_free_surface(qsv_encode, qsv, info,
+                                                         QSV_PART_ANY);
+
+            work_surface = qsv_encode->p_surfaces[surface_index];
+            qsv_yuv420_to_nv12(pv->sws_context_to_nv12, work_surface, in);
+        }
+        else
+        {
+            received_item = in->qsv_details.qsv_atom;
+            work_surface  = av_qsv_get_last_stage(received_item)->out.p_surface;
+
+            /*
+             * QSV decoding fills the QSV context's dts_seq list, we need to
+             * pop this surface's DTS so dts_seq doesn't grow unnecessarily.
+             */
+            av_qsv_dts_pop(qsv);
+        }
+
+        work_surface->Data.TimeStamp = in->s.start;
+
+        /*
+         * Debugging code to check that the upstream modules have generated
+         * a continuous, self-consistent frame stream.
+         */
+        int64_t start = work_surface->Data.TimeStamp;
+        if (pv->last_start > start)
+        {
+            hb_log("encqsvWork: input continuity error, last start %"PRId64" start %"PRId64"",
+                   pv->last_start, start);
+        }
+        pv->last_start = start;
+
+        // for DTS generation (when MSDK API < 1.6 or VFR)
+        if (pv->bfrm_delay && pv->bfrm_workaround)
+        {
+            if (pv->frames_in <= BFRM_DELAY_MAX)
+            {
+                pv->init_pts[pv->frames_in] = work_surface->Data.TimeStamp;
+            }
+            if (pv->frames_in)
+            {
+                hb_qsv_add_new_dts(pv->list_dts,
+                                   work_surface->Data.TimeStamp);
+            }
+        }
+
+        /*
+         * Chapters have to start with a keyframe so request that this
+         * frame be coded as IDR. Since there may be several frames
+         * buffered in the encoder, remember the timestamp so when this
+         * frame finally pops out of the encoder we'll mark its buffer
+         * as the start of a chapter.
+         */
+        if (in->s.new_chap > 0 && job->chapter_markers)
+        {
+            if (pv->next_chapter_pts == AV_NOPTS_VALUE)
+            {
+                pv->next_chapter_pts = work_surface->Data.TimeStamp;
+            }
+            /* insert an IDR */
+            work_control = &pv->force_keyframe;
+            /*
+             * Chapter markers are sometimes so close we can get a new
+             * one before the previous goes through the encoding queue.
+             *
+             * Dropping markers can cause weird side-effects downstream,
+             * including but not limited to missing chapters in the
+             * output, so we need to save it somehow.
+             */
+            struct chapter_s *item = malloc(sizeof(struct chapter_s));
+            if (item != NULL)
+            {
+                item->index = in->s.new_chap;
+                item->start = work_surface->Data.TimeStamp;
+                hb_list_add(pv->delayed_chapters, item);
+            }
+            /* don't let 'work_loop' put a chapter mark on the wrong buffer */
+            in->s.new_chap = 0;
+        }
+
+        /*
+         * If interlaced encoding is requested during encoder initialization,
+         * but the input mfxFrameSurface1 is flagged as progressive here,
+         * the output bitstream will be progressive (according to MediaInfo).
+         *
+         * Assume the user knows what he's doing (say he is e.g. encoding a
+         * progressive-flagged source using interlaced compression - he may
+         * well have a good reason to do so; mis-flagged sources do exist).
+         */
+        work_surface->Info.PicStruct = pv->enc_space.m_mfxVideoParam.mfx.FrameInfo.PicStruct;
     }
 
     // input from decode, as called - we always have some to proceed with
     while (1)
     {
-        mfxEncodeCtrl    *work_control = NULL;
-        mfxFrameSurface1 *work_surface = NULL;
-
-        if (!is_end)
-        {
-            if (pv->is_sys_mem)
-            {
-                mfxFrameInfo *info = &pv->param.videoParam->mfx.FrameInfo;
-                int surface_index  = av_qsv_get_free_surface(qsv_encode, qsv, info,
-                                                             QSV_PART_ANY);
-
-                work_surface = qsv_encode->p_surfaces[surface_index];
-                qsv_yuv420_to_nv12(pv->sws_context_to_nv12, work_surface, in);
-            }
-            else
-            {
-                received_item = in->qsv_details.qsv_atom;
-                stage = av_qsv_get_last_stage(received_item);
-                work_surface = stage->out.p_surface;
-
-                // don't let qsv->dts_seq grow needlessly
-                av_qsv_dts_pop(qsv);
-            }
-
-            work_surface->Data.TimeStamp = in->s.start;
-
-            /*
-             * Debugging code to check that the upstream modules have generated
-             * a continuous, self-consistent frame stream.
-             */
-            int64_t start = work_surface->Data.TimeStamp;
-            if (pv->last_start > start)
-            {
-                hb_log("encqsvWork: input continuity error, last start %"PRId64" start %"PRId64"",
-                       pv->last_start, start);
-            }
-            pv->last_start = start;
-
-            // for DTS generation (when MSDK API < 1.6 or VFR)
-            if (pv->bfrm_delay && pv->bfrm_workaround)
-            {
-                if (pv->frames_in <= BFRM_DELAY_MAX)
-                {
-                    pv->init_pts[pv->frames_in] = work_surface->Data.TimeStamp;
-                }
-                if (pv->frames_in)
-                {
-                    hb_qsv_add_new_dts(pv->list_dts,
-                                       work_surface->Data.TimeStamp);
-                }
-            }
-
-            /*
-             * Chapters have to start with a keyframe so request that this
-             * frame be coded as IDR. Since there may be several frames
-             * buffered in the encoder, remember the timestamp so when this
-             * frame finally pops out of the encoder we'll mark its buffer
-             * as the start of a chapter.
-             */
-            if (in->s.new_chap > 0 && job->chapter_markers)
-            {
-                if (pv->next_chapter_pts == AV_NOPTS_VALUE)
-                {
-                    pv->next_chapter_pts = work_surface->Data.TimeStamp;
-                }
-                /* insert an IDR */
-                work_control = &pv->force_keyframe;
-                /*
-                 * Chapter markers are sometimes so close we can get a new
-                 * one before the previous goes through the encoding queue.
-                 *
-                 * Dropping markers can cause weird side-effects downstream,
-                 * including but not limited to missing chapters in the
-                 * output, so we need to save it somehow.
-                 */
-                struct chapter_s *item = malloc(sizeof(struct chapter_s));
-                if (item != NULL)
-                {
-                    item->index = in->s.new_chap;
-                    item->start = work_surface->Data.TimeStamp;
-                    hb_list_add(pv->delayed_chapters, item);
-                }
-                /* don't let 'work_loop' put a chapter mark on the wrong buffer */
-                in->s.new_chap = 0;
-            }
-
-            /*
-             * If interlaced encoding is requested during encoder initialization,
-             * but the input mfxFrameSurface1 is flagged as progressive here,
-             * the output bitstream will be progressive (according to MediaInfo).
-             *
-             * Assume the user knows what he's doing (say he is e.g. encoding a
-             * progressive-flagged source using interlaced compression - he may
-             * well have a good reason to do so; mis-flagged sources do exist).
-             */
-            work_surface->Info.PicStruct = pv->enc_space.m_mfxVideoParam.mfx.FrameInfo.PicStruct;
-        }
-        else
-        {
-            work_surface = NULL;
-            received_item = NULL;
-        }
         int sync_idx = av_qsv_get_free_sync(qsv_encode, qsv);
         if (sync_idx == -1)
         {
