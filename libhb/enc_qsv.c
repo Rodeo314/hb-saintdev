@@ -259,6 +259,7 @@ int qsv_enc_init(hb_work_private_t *pv)
         task->bs->DataLength = task->bs->DataOffset = 0;
         task->bs->MaxLength  = AV_QSV_BUF_SIZE_DEFAULT;
 
+        hb_log("adding task #%d", i);//debug
         av_qsv_list_add(qsv_enc_space->tasks, task);
     }
     qsv_enc_space->p_buf_max_size = AV_QSV_BUF_SIZE_DEFAULT;
