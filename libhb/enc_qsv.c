@@ -1587,8 +1587,7 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
 
                 for (i = hb_list_count(pv->delayed_processing); i > 0; i--)
                 {
-//                    av_qsv_list *item = hb_list_item(pv->delayed_processing, i - 1);
-                    av_qsv_list *item = NULL;//debug
+                    av_qsv_list *item = hb_list_item(pv->delayed_processing, i - 1);
 
                     if (item != NULL)
                     {
