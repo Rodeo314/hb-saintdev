@@ -1622,9 +1622,9 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
 
                 if (task->bs->DataLength > 0)
                 {
-//                    av_qsv_list *pipe = av_qsv_pipe_by_stage(qsv_ctx->pipes,
-//                                                             task->stage);
-//                    av_qsv_flush_stages(qsv_ctx->pipes, &pipe);
+                    av_qsv_list *pipe = av_qsv_pipe_by_stage(qsv_ctx->pipes,
+                                                             task->stage);
+                    av_qsv_flush_stages(qsv_ctx->pipes, &pipe);
 
                     /* allocate additional data for parse_nalus */
                     buf = hb_buffer_init(task->bs->DataLength * 2);
