@@ -250,13 +250,6 @@ int qsv_enc_init(hb_work_private_t *pv)
     }
 
     qsv_enc_space->tasks = av_qsv_list_init(HAVE_THREADS);
-    hb_log("DEBUG: %p, %p, %p, %d (%d)", //debug
-           qsv_enc_space->tasks,
-           qsv_enc_space->tasks->mutex,
-           qsv_enc_space->tasks->items,
-           qsv_enc_space->tasks->items_count,
-           qsv_enc_space->tasks->items_alloc);
-    av_qsv_task *task = av_qsv_list_item(qsv_enc_space->tasks, pv->async_depth);
 
     for (i = 0; i < pv->max_async_depth; i++)
     {
@@ -266,7 +259,6 @@ int qsv_enc_init(hb_work_private_t *pv)
         task->bs->DataLength = task->bs->DataOffset = 0;
         task->bs->MaxLength  = AV_QSV_BUF_SIZE_DEFAULT;
 
-        hb_log("adding task #%d", i);//debug
         av_qsv_list_add(qsv_enc_space->tasks, task);
     }
     qsv_enc_space->p_buf_max_size = AV_QSV_BUF_SIZE_DEFAULT;
@@ -1530,15 +1522,7 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
             *buf_out = NULL;
             return HB_WORK_ERROR;
         }
-        hb_log("DEBUG: av_qsv_list_item #1");//debug
-        hb_log("DEBUG: %p, %p, %p, %d (%d)", //debug
-               qsv_enc_space->tasks,
-               qsv_enc_space->tasks->mutex,
-               qsv_enc_space->tasks->items,
-               qsv_enc_space->tasks->items_count,
-               qsv_enc_space->tasks->items_alloc);
         av_qsv_task *task = av_qsv_list_item(qsv_enc_space->tasks, pv->async_depth);
-        hb_log("DEBUG: av_qsv_list_item #1 done");//debug
 
         do
         {
@@ -1591,9 +1575,7 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
 
                 if (qsv_atom != NULL)
                 {
-                    hb_log("DEBUG: av_qsv_add_stagee");//debug
                     av_qsv_add_stagee(&qsv_atom, new_stage, HAVE_THREADS);
-                    hb_log("DEBUG: av_qsv_add_stagee done");//debug
                 }
                 else
                 {
@@ -1610,9 +1592,7 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
                     if (item != NULL)
                     {
                         hb_list_rem(pv->delayed_processing,  item);
-                        hb_log("DEBUG: av_qsv_flush_stages");//debug
                         av_qsv_flush_stages(qsv_ctx->pipes, &item);
-                        hb_log("DEBUG: av_qsv_flush_stages done");//debug
                     }
                 }
                 break;
@@ -1635,9 +1615,7 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
                 pv->async_depth--;
 
                 sts               = MFX_ERR_NONE;
-                hb_log("DEBUG: av_qsv_list_item #2");//debug
                 av_qsv_task *task = av_qsv_list_item(qsv_enc_space->tasks, 0);
-                hb_log("DEBUG: av_qsv_list_item #2 done");//debug
 
                 /* perform a sync operation to get the output bitstream */
                 av_qsv_wait_on_sync(qsv_ctx, task->stage);
@@ -1791,10 +1769,8 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
                     /* shift for fifo */
                     if (pv->async_depth)
                     {
-                        hb_log("DEBUG: av_qsv_list_rem/av_qsv_list_add");//debug
                         av_qsv_list_rem(qsv_enc_space->tasks, task);
                         av_qsv_list_add(qsv_enc_space->tasks, task);
-                        hb_log("DEBUG: av_qsv_list_rem/av_qsv_list_add done");//debug
                     }
 
                     task->bs->MaxLength = qsv_enc_space->p_buf_max_size;
