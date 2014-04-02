@@ -1287,7 +1287,6 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
     hb_buffer_t *in = *buf_in, *buf;
     hb_buffer_t *last_buf = NULL;
     mfxStatus sts = MFX_ERR_NONE;
-    int is_end = 0;
 
     while (qsv_enc_init(pv) >= 2)
     {
@@ -1313,7 +1312,6 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
     if (in->size <= 0)
     {
         *buf_in = NULL; // don't let 'work_loop' close this buffer
-        is_end  = 1;
     }
     else
     {
@@ -1412,8 +1410,7 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
         work_surface->Info.PicStruct = pv->enc_space.m_mfxVideoParam.mfx.FrameInfo.PicStruct;
     }
 
-    // input from decode, as called - we always have some to proceed with
-    while (1)
+    do
     {
         int sync_idx = av_qsv_get_free_sync(qsv_encode, qsv);
         if (sync_idx == -1)
@@ -1513,8 +1510,8 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
         {
             if (pv->async_depth == 0) break;
 
-            // working properly with sync depth approach of MediaSDK OR flushing, if at the end
-            if (pv->async_depth >= pv->max_async_depth || is_end)
+            /* we've done enough asynchronous operations or we're flushing */
+            if (pv->async_depth >= pv->max_async_depth || work_surface == NULL)
             {
                 pv->async_depth--;
 
@@ -1696,31 +1693,12 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
                 }
             }
         }
-        while (is_end);
-
-
-        if (is_end)
-        {
-            if (buf == NULL && sts == MFX_ERR_MORE_DATA)
-            {
-                break;
-            }
-        }
-        else
-        {
-            break;
-        }
-
+        while (work_surface == NULL);
     }
+    while (work_surface == NULL && sts != MFX_ERR_MORE_DATA);
 
-    if (!is_end)
+    if (work_surface == NULL)
     {
-        ++pv->frames_in;
-    }
-
-    if (is_end)
-    {
-        *buf_in = NULL;
         if (last_buf != NULL)
         {
             last_buf->next = in;
@@ -1733,6 +1711,7 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
     }
     else
     {
+        pv->frames_in++;
         return HB_WORK_OK;
     }
 }
