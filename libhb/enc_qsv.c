@@ -1517,7 +1517,7 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
 
                 av_qsv_task *task = av_qsv_list_item(qsv_encode->tasks, 0);
                 av_qsv_stage *stage = task->stage;
-                av_qsv_list*  this_pipe = av_qsv_pipe_by_stage(qsv->pipes, stage);
+                av_qsv_list *this_pipe = av_qsv_pipe_by_stage(qsv->pipes, stage);
                 sts = MFX_ERR_NONE;
 
                 // only here we need to wait on operation been completed, therefore SyncOperation is used,
