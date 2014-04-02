@@ -1645,17 +1645,6 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
                                 task->bs->DataLength, buf);
                     task->bs->DataLength = task->bs->DataOffset = 0;
 
-                    if (last_buf == NULL)
-                    {
-                        *buf_out = last_buf = buf;
-                    }
-                    else
-                    {
-                        last_buf->next = buf;
-                        last_buf       = buf;
-                    }
-                    pv->frames_out++;
-
                     /* frame duration (based on average frame rate) */
                     int64_t duration  = ((double)job->vrate_base /
                                          (double)job->vrate * 90000.);
@@ -1794,6 +1783,17 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
 
                     task->bs->MaxLength = qsv_enc_space->p_buf_max_size;
                     task->stage         = NULL;
+
+                    if (last_buf == NULL)
+                    {
+                        *buf_out = last_buf = buf;
+                    }
+                    else
+                    {
+                        last_buf->next = buf;
+                        last_buf       = buf;
+                    }
+                    pv->frames_out++;
                 }
             }
         }
