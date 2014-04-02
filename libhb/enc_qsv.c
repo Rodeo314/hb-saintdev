@@ -1299,7 +1299,8 @@ void encqsvClose(hb_work_object_t *w)
         }
     }
 
-    av_freep(&w->private_data);
+    free(pv);
+    w->private_data = NULL;
 }
 
 static int nal_find_start_code(uint8_t **pb, size_t *size)
