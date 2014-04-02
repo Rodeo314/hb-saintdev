@@ -1199,6 +1199,8 @@ void encqsvClose(hb_work_object_t *w)
     hb_work_private_t *pv = w->private_data;
     int i;
 
+    return; //debug
+
     if (pv != NULL && pv->job != NULL && pv->job->qsv.ctx != NULL &&
         pv->job->qsv.ctx->is_context_active)
     {
