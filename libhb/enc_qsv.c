@@ -271,7 +271,7 @@ int qsv_enc_init(hb_work_private_t *pv)
 
     sts = MFXVideoENCODE_QueryIOSurf(qsv_ctx->mfx_session,
                                      pv->param.videoParam,
-                                     &qsv_enc_space->request);
+                                     &qsv_enc_space->request[0]);
     if (sts < MFX_ERR_NONE)
     {
         hb_error("qsv_enc_init: MFXVideoENCODE_QueryIOSurf failed (%d)", sts);
@@ -1580,7 +1580,7 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
 
                 for (i = hb_list_count(pv->delayed_processing); i > 0; i--)
                 {
-                    hb_list_t *item = hb_list_item(pv->delayed_processing, i - 1);
+                    av_qsv_list *item = hb_list_item(pv->delayed_processing, i - 1);
 
                     if (item != NULL)
                     {
