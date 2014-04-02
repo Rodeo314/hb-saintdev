@@ -34,9 +34,9 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "qsv_memory.h"
 #include "h264_common.h"
 
-int  encqsvInit( hb_work_object_t *, hb_job_t * );
-int  encqsvWork( hb_work_object_t *, hb_buffer_t **, hb_buffer_t ** );
-void encqsvClose( hb_work_object_t * );
+int  encqsvInit (hb_work_object_t*, hb_job_t*);
+int  encqsvWork (hb_work_object_t*, hb_buffer_t**, hb_buffer_t**);
+void encqsvClose(hb_work_object_t*);
 
 hb_work_object_t hb_encqsv =
 {
@@ -824,7 +824,7 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
             pv->param.videoParam->mfx.GopPicSize = (pv->param.videoParam->mfx.GopPicSize /
                                                     pv->param.videoParam->mfx.GopRefDist *
                                                     pv->param.videoParam->mfx.GopRefDist);
-            if (pv->param.videoParam->mfx.NumRefFrame != 0)
+            if (pv->param.videoParam->mfx.NumRefFrame)
             {
                 pv->param.videoParam->mfx.NumRefFrame = FFMAX(pv->param.videoParam->mfx.NumRefFrame,
                                                               pv->param.videoParam->mfx.GopRefDist / 2);
@@ -886,7 +886,7 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     mfxStatus err;
     mfxVersion version;
     mfxVideoParam videoParam;
-    mfxExtBuffer* ExtParamArray[3];
+    mfxExtBuffer *extParamArray[3];
     mfxSession session = (mfxSession)0;
     mfxExtCodingOption  option1_buf, *option1 = &option1_buf;
     mfxExtCodingOption2 option2_buf, *option2 = &option2_buf;
@@ -919,7 +919,7 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
         return -1;
     }
     memset(&videoParam, 0, sizeof(mfxVideoParam));
-    videoParam.ExtParam = ExtParamArray;
+    videoParam.ExtParam = extParamArray;
     videoParam.NumExtParam = 0;
     // introduced in API 1.3
     memset(sps_pps, 0, sizeof(mfxExtCodingOptionSPSPPS));
@@ -1176,12 +1176,12 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     return 0;
 }
 
-void encqsvClose( hb_work_object_t * w )
+void encqsvClose(hb_work_object_t *w)
 {
     int i = 0;
-    hb_work_private_t * pv = w->private_data;
+    hb_work_private_t *pv = w->private_data;
 
-    hb_log( "enc_qsv done: frames: %u in, %u out", pv->frames_in, pv->frames_out );
+    hb_log("enc_qsv done: frames: %u in, %u out", pv->frames_in, pv->frames_out);
 
     // if using system memory (encode-only), free allocated surfaces too
     if (pv != NULL && pv->job != NULL && pv->job->qsv.ctx != NULL &&
@@ -1190,44 +1190,58 @@ void encqsvClose( hb_work_object_t * w )
 
         av_qsv_context *qsv = pv->job->qsv.ctx;
 
-        if(qsv && qsv->enc_space){
-        av_qsv_space* qsv_encode = qsv->enc_space;
-        if(qsv_encode->is_init_done){
-            if(pv->is_sys_mem){
-                if( qsv_encode && qsv_encode->surface_num > 0)
-                    for (i = 0; i < qsv_encode->surface_num; i++){
-                        if( qsv_encode->p_surfaces[i]->Data.Y){
+        if (qsv != NULL && qsv->enc_space != NULL)
+        {
+        av_qsv_space *qsv_encode = qsv->enc_space;
+        if (qsv_encode->is_init_done)
+        {
+            if (pv->is_sys_mem)
+            {
+                if (qsv_encode != NULL && qsv_encode->surface_num > 0)
+                {
+                    for (i = 0; i < qsv_encode->surface_num; i++)
+                    {
+                        if (qsv_encode->p_surfaces[i]->Data.Y != NULL)
+                        {
                             free(qsv_encode->p_surfaces[i]->Data.Y);
                             qsv_encode->p_surfaces[i]->Data.Y = 0;
                         }
-                        if( qsv_encode->p_surfaces[i]->Data.VU){
+                        if (qsv_encode->p_surfaces[i]->Data.VU != NULL)
+                        {
                             free(qsv_encode->p_surfaces[i]->Data.VU);
                             qsv_encode->p_surfaces[i]->Data.VU = 0;
                         }
-                        if(qsv_encode->p_surfaces[i])
+                        if (qsv_encode->p_surfaces[i] != NULL)
+                        {
                             av_freep(qsv_encode->p_surfaces[i]);
+                        }
                     }
+                }
                 qsv_encode->surface_num = 0;
 
                 sws_freeContext(pv->sws_context_to_nv12);
             }
 
-            for (i = av_qsv_list_count(qsv_encode->tasks); i > 1; i--){
-                av_qsv_task* task = av_qsv_list_item(qsv_encode->tasks,i-1);
-                if(task && task->bs){
+            for (i = av_qsv_list_count(qsv_encode->tasks); i > 1; i--)
+            {
+                av_qsv_task *task = av_qsv_list_item(qsv_encode->tasks, i - 1);
+                if (task != NULL && task->bs != NULL)
+                {
                     av_freep(&task->bs->Data);
                     av_freep(&task->bs);
-                    av_qsv_list_rem(qsv_encode->tasks,task);
+                    av_qsv_list_rem(qsv_encode->tasks, task);
                 }
             }
             av_qsv_list_close(&qsv_encode->tasks);
 
-            for (i = 0; i < qsv_encode->surface_num; i++){
+            for (i = 0; i < qsv_encode->surface_num; i++)
+            {
                 av_freep(&qsv_encode->p_surfaces[i]);
             }
             qsv_encode->surface_num = 0;
 
-            for (i = 0; i < qsv_encode->sync_num; i++){
+            for (i = 0; i < qsv_encode->sync_num; i++)
+            {
                     av_freep(&qsv_encode->p_syncp[i]->p_sync);
                     av_freep(&qsv_encode->p_syncp[i]);
             }
@@ -1237,11 +1251,13 @@ void encqsvClose( hb_work_object_t * w )
         }
         }
 
-        if(qsv){
+        if (qsv != NULL)
+        {
         // closing the commong stuff
         av_qsv_context_clean(qsv);
 
-        if(pv->is_sys_mem){
+        if (pv->is_sys_mem)
+        {
             av_freep(&qsv);
         }
         }
@@ -1271,32 +1287,36 @@ void encqsvClose( hb_work_object_t * w )
         }
     }
 
-    free( pv );
+    free(pv);
     w->private_data = NULL;
 }
 
-int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
-                  hb_buffer_t ** buf_out )
+int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
 {
-    hb_work_private_t * pv = w->private_data;
-    hb_job_t * job = pv->job;
-    hb_buffer_t * in = *buf_in, *buf;
+    hb_work_private_t *pv = w->private_data;
+    hb_job_t *job = pv->job;
+    hb_buffer_t *in = *buf_in, *buf;
     av_qsv_context *qsv = job->qsv.ctx;
-    av_qsv_space* qsv_encode;
+    av_qsv_space *qsv_encode;
     hb_buffer_t *last_buf = NULL;
     mfxStatus sts = MFX_ERR_NONE;
     int is_end = 0;
-    av_qsv_list* received_item = 0;
-    av_qsv_stage* stage = 0;
+    av_qsv_list *received_item = NULL;
+    av_qsv_stage *stage = NULL;
 
-    while(1){
+    while (1)
+    {
         int ret = qsv_enc_init(qsv, pv);
         qsv = job->qsv.ctx;
         qsv_encode = qsv->enc_space;
-        if(ret >= 2)
+        if (ret >= 2)
+        {
             av_qsv_sleep(1);
+        }
         else
+        {
             break;
+        }
     }
     *buf_out = NULL;
 
@@ -1306,7 +1326,7 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
         return HB_WORK_DONE;
     }
 
-    if( in->size <= 0 )
+    if (in->size <= 0)
     {
         // do delayed frames yet
         *buf_in = NULL;
@@ -1424,17 +1444,18 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
              */
             work_surface->Info.PicStruct = pv->enc_space.m_mfxVideoParam.mfx.FrameInfo.PicStruct;
         }
-        else{
+        else
+        {
             work_surface = NULL;
             received_item = NULL;
         }
-        int sync_idx = av_qsv_get_free_sync( qsv_encode, qsv );
+        int sync_idx = av_qsv_get_free_sync(qsv_encode, qsv);
         if (sync_idx == -1)
         {
             hb_error("qsv: Not enough resources allocated for QSV encode");
             return 0;
         }
-        av_qsv_task *task = av_qsv_list_item( qsv_encode->tasks, pv->async_depth );
+        av_qsv_task *task = av_qsv_list_item(qsv_encode->tasks, pv->async_depth);
 
         for (;;)
         {
@@ -1443,27 +1464,36 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
                                                   work_control, work_surface, task->bs,
                                                   qsv_encode->p_syncp[sync_idx]->p_sync);
 
-            if (MFX_ERR_MORE_DATA == sts || (MFX_ERR_NONE <= sts && MFX_WRN_DEVICE_BUSY != sts))
-                if (work_surface && !pv->is_sys_mem)
+            if (sts == MFX_ERR_MORE_DATA || (sts >= MFX_ERR_NONE &&
+                                             sts != MFX_WRN_DEVICE_BUSY))
+            {
+                if (work_surface != NULL && !pv->is_sys_mem)
+                {
                     ff_qsv_atomic_dec(&work_surface->Data.Locked);
+                }
+            }
 
-            if( MFX_ERR_MORE_DATA == sts ){
+            if (sts == MFX_ERR_MORE_DATA)
+            {
                 ff_qsv_atomic_dec(&qsv_encode->p_syncp[sync_idx]->in_use);
-                if(work_surface && received_item)
+                if (work_surface != NULL && received_item != NULL)
+                {
                     hb_list_add(pv->delayed_processing, received_item);
+                }
                 break;
             }
 
             AV_QSV_CHECK_RESULT(sts, MFX_ERR_NONE, sts);
 
-            if (MFX_ERR_NONE <= sts /*&& !syncpE*/) // repeat the call if warning and no output
+            if (sts >= MFX_ERR_NONE /*&& !syncpE*/) // repeat the call if warning and no output
             {
-                if (MFX_WRN_DEVICE_BUSY == sts){
+                if (sts == MFX_WRN_DEVICE_BUSY)
+                {
                     av_qsv_sleep(10); // wait if device is busy
                     continue;
                 }
 
-                av_qsv_stage* new_stage = av_qsv_stage_init();
+                av_qsv_stage *new_stage = av_qsv_stage_init();
                 new_stage->type = AV_QSV_ENCODE;
                 new_stage->in.p_surface = work_surface;
                 new_stage->out.sync = qsv_encode->p_syncp[sync_idx];
@@ -1473,21 +1503,25 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
 
                 pv->async_depth++;
 
-                if(received_item){
-                    av_qsv_add_stagee( &received_item, new_stage,HAVE_THREADS );
+                if (received_item != NULL)
+                {
+                    av_qsv_add_stagee(&received_item, new_stage, HAVE_THREADS);
                 }
-                else{
+                else
+                {
                    // flushing the end
-                    int pipe_idx = av_qsv_list_add( qsv->pipes, av_qsv_list_init(HAVE_THREADS) );
-                    av_qsv_list* list_item = av_qsv_list_item( qsv->pipes, pipe_idx );
-                    av_qsv_add_stagee( &list_item, new_stage,HAVE_THREADS );
+                    int pipe_idx = av_qsv_list_add(qsv->pipes, av_qsv_list_init(HAVE_THREADS));
+                    av_qsv_list *list_item = av_qsv_list_item(qsv->pipes, pipe_idx);
+                    av_qsv_add_stagee(&list_item, new_stage, HAVE_THREADS);
                 }
 
                 int i = 0;
-                for(i=hb_list_count(pv->delayed_processing); i > 0;i--){
-                    hb_list_t *item = hb_list_item(pv->delayed_processing,i-1);
-                    if(item){
-                        hb_list_rem(pv->delayed_processing,item);
+                for (i = hb_list_count(pv->delayed_processing); i > 0; i--)
+                {
+                    hb_list_t *item = hb_list_item(pv->delayed_processing, i - 1);
+                    if (item != NULL)
+                    {
+                        hb_list_rem(pv->delayed_processing, item);
                         av_qsv_flush_stages(qsv->pipes, &item);
                     }
                 }
@@ -1497,8 +1531,10 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
 
             ff_qsv_atomic_dec(&qsv_encode->p_syncp[sync_idx]->in_use);
 
-            if (MFX_ERR_NOT_ENOUGH_BUFFER == sts)
+            if (sts == MFX_ERR_NOT_ENOUGH_BUFFER)
+            {
                 HB_DEBUG_ASSERT(1, "The bitstream buffer size is insufficient.");
+            }
 
             break;
         }
@@ -1506,41 +1542,46 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
 
     buf = NULL;
 
-    do{
-
-    if(pv->async_depth==0) break;
+    do
+    {
+    if (pv->async_depth == 0) break;
 
     // working properly with sync depth approach of MediaSDK OR flushing, if at the end
-    if( (pv->async_depth >= pv->max_async_depth) || is_end ){
-
+    if (pv->async_depth >= pv->max_async_depth || is_end)
+    {
         pv->async_depth--;
 
-        av_qsv_task *task = av_qsv_list_item( qsv_encode->tasks, 0 );
-        av_qsv_stage* stage = task->stage;
-        av_qsv_list*  this_pipe = av_qsv_pipe_by_stage(qsv->pipes,stage);
+        av_qsv_task *task = av_qsv_list_item(qsv_encode->tasks, 0);
+        av_qsv_stage *stage = task->stage;
+        av_qsv_list*  this_pipe = av_qsv_pipe_by_stage(qsv->pipes, stage);
         sts = MFX_ERR_NONE;
 
         // only here we need to wait on operation been completed, therefore SyncOperation is used,
         // after this step - we continue to work with bitstream, muxing ...
-        av_qsv_wait_on_sync( qsv,stage );
+        av_qsv_wait_on_sync(qsv, stage);
 
-        if(task->bs->DataLength>0){
-                av_qsv_flush_stages( qsv->pipes, &this_pipe );
+        if (task->bs->DataLength > 0)
+        {
+                av_qsv_flush_stages(qsv->pipes, &this_pipe);
 
                 // see nal_encode
-                buf = hb_video_buffer_init( job->width, job->height );
+                buf = hb_video_buffer_init(job->width, job->height);
                 buf->size = 0;
 
                 // map Media SDK's FrameType to our internal representation
                 buf->s.frametype = hb_qsv_frametype_xlat(task->bs->FrameType,
                                                          &buf->s.flags);
 
-                parse_nalus(task->bs->Data + task->bs->DataOffset,task->bs->DataLength, buf, pv->frames_out);
+                parse_nalus(task->bs->Data + task->bs->DataOffset, task->bs->DataLength, buf, pv->frames_out);
 
-                if ( last_buf == NULL )
+                if (last_buf == NULL)
+                {
                     *buf_out = buf;
+                }
                 else
+                {
                     last_buf->next = buf;
+                }
                 last_buf = buf;
 
             // simple for now but check on TimeStampCalc from MSDK
@@ -1669,105 +1710,131 @@ int encqsvWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
             }
 
                 // shift for fifo
-                if(pv->async_depth){
-                    av_qsv_list_rem(qsv_encode->tasks,task);
-                    av_qsv_list_add(qsv_encode->tasks,task);
+                if (pv->async_depth)
+                {
+                    av_qsv_list_rem(qsv_encode->tasks, task);
+                    av_qsv_list_add(qsv_encode->tasks, task);
                 }
 
-                task->bs->DataLength    = 0;
-                task->bs->DataOffset    = 0;
-                task->bs->MaxLength = qsv_encode->p_buf_max_size;
-                task->stage        = 0;
+                task->bs->DataLength = 0;
+                task->bs->DataOffset = 0;
+                task->bs->MaxLength  = qsv_encode->p_buf_max_size;
+                task->stage          = NULL;
                 pv->frames_out++;
             }
         }
-    }while(is_end);
+    }
+    while (is_end);
 
 
-    if(is_end){
-        if( !buf && MFX_ERR_MORE_DATA == sts )
+    if (is_end)
+    {
+        if (buf == NULL && sts == MFX_ERR_MORE_DATA)
+        {
             break;
-
+        }
     }
     else
+    {
         break;
+    }
 
     }
 
-    if(!is_end)
+    if (!is_end)
+    {
         ++pv->frames_in;
+    }
 
-    if(is_end){
+    if (is_end)
+    {
         *buf_in = NULL;
-        if(last_buf){
+        if (last_buf != NULL)
+        {
             last_buf->next = in;
         }
         else
+        {
             *buf_out = in;
+        }
         return HB_WORK_DONE;
     }
-    else{
+    else
+    {
         return HB_WORK_OK;
     }
 }
 
-int nal_find_start_code(uint8_t** pb, size_t* size){
-    if ((int) *size < 4 )
+int nal_find_start_code(uint8_t **pb, size_t *size)
+{
+    if ((int)*size < 4)
+    {
         return 0;
+    }
 
-    // find start code by MSDK , see ff_prefix_code[]
-    while ((4 <= *size) &&
-        ((0 != (*pb)[0]) ||
-         (0 != (*pb)[1]) ||
-         (1 != (*pb)[2]) ))
+    // find start code by MSDK, see ff_prefix_code[]
+    while ((4 <= *size) && ((*pb)[0] || (*pb)[1] || (*pb)[2] != 1))
     {
         *pb += 1;
         *size -= 1;
     }
 
     if (4 <= *size)
-        return (((*pb)[0] << 24) | ((*pb)[1] << 16) | ((*pb)[2] << 8) | ((*pb)[3]));
+    {
+        return (((*pb)[0] << 24) |
+                ((*pb)[1] << 16) |
+                ((*pb)[2] <<  8) |
+                ((*pb)[3]));
+    }
 
     return 0;
 }
 
-void parse_nalus(uint8_t *nal_inits, size_t length, hb_buffer_t *buf, uint32_t frame_num){
+void parse_nalus(uint8_t *nal_inits, size_t length, hb_buffer_t *buf, uint32_t frame_num)
+{
     uint8_t *offset = nal_inits;
     size_t size     = length;
 
-    if( nal_find_start_code(&offset,&size) == 0 )
+    if (nal_find_start_code(&offset, &size) == 0)
+    {
         size = 0;
+    }
 
-    while( size > 0 ){
-
-            uint8_t* current_nal = offset + sizeof(ff_prefix_code)-1;
+    while (size > 0)
+    {
+            uint8_t *current_nal = offset + sizeof(ff_prefix_code) - 1;
             uint8_t *next_offset = offset + sizeof(ff_prefix_code);
             size_t next_size     = size - sizeof(ff_prefix_code);
             size_t current_size  = next_size;
-            if( nal_find_start_code(&next_offset,&next_size) == 0 ){
+            if (nal_find_start_code(&next_offset, &next_size) == 0)
+            {
                 size = 0;
                 current_size += 1;
             }
-            else{
+            else
+            {
                 current_size -= next_size;
-                if( next_offset > 0 && *(next_offset-1) != 0  )
+                if (next_offset > 0 && *(next_offset - 1))
+                {
                     current_size += 1;
+                }
             }
             {
-                char size_position[4] = {0,0,0,0};
+                char size_position[4];
                 size_position[1] = (current_size >> 24) & 0xFF;
                 size_position[1] = (current_size >> 16) & 0xFF;
-                size_position[2] = (current_size >> 8)  & 0xFF;
+                size_position[2] = (current_size >>  8) & 0xFF;
                 size_position[3] =  current_size        & 0xFF;
 
-                memcpy(buf->data + buf->size,&size_position ,sizeof(size_position));
+                memcpy(buf->data + buf->size, &size_position, sizeof(size_position));
                 buf->size += sizeof(size_position);
 
-                memcpy(buf->data + buf->size,current_nal ,current_size);
+                memcpy(buf->data + buf->size, current_nal, current_size);
                 buf->size += current_size;
             }
 
-            if(size){
+            if (size)
+            {
                 size   = next_size;
                 offset = next_offset;
             }
