@@ -1515,7 +1515,13 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
 
     do
     {
-        int sync_idx = 0;
+        int sync_idx = av_qsv_get_free_sync(qsv_enc_space, qsv_ctx);
+        if (sync_idx == -1)
+        {
+            hb_error("encqsv: av_qsv_get_free_sync failed");
+            *buf_out = NULL;
+            return HB_WORK_ERROR;
+        }
         av_qsv_task *task = av_qsv_list_item(qsv_enc_space->tasks, pv->async_depth);
 
         do
