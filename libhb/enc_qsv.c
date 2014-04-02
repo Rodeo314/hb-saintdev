@@ -1802,7 +1802,7 @@ void parse_nalus(uint8_t *nal_inits, size_t length, hb_buffer_t *buf)
     uint8_t *offset = nal_inits;
     size_t size     = length;
 
-    if (nal_find_start_code(&offset, &size) == 0)
+    if (!nal_find_start_code(&offset, &size))
     {
         size = 0;
     }
@@ -1813,7 +1813,7 @@ void parse_nalus(uint8_t *nal_inits, size_t length, hb_buffer_t *buf)
         uint8_t *next_offset = offset + sizeof(ff_prefix_code);
         size_t next_size     = size - sizeof(ff_prefix_code);
         size_t current_size  = next_size;
-        if (nal_find_start_code(&next_offset, &next_size) == 0)
+        if (!nal_find_start_code(&next_offset, &next_size))
         {
             size = 0;
             current_size += 1;
