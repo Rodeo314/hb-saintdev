@@ -1213,6 +1213,7 @@ void encqsvClose(hb_work_object_t *w)
             {
                 if (pv->is_sys_mem)
                 {
+                    hb_log("DEBUG: FREE #1");//debug
                     for (i = 0; i < qsv_enc_space->surface_num; i++)
                     {
                         av_freep(&qsv_enc_space->p_surfaces[i]->Data.VU);
@@ -1220,6 +1221,7 @@ void encqsvClose(hb_work_object_t *w)
                     }
                 }
 
+                hb_log("DEBUG: FREE #2");//debug
                 for (i = av_qsv_list_count(qsv_enc_space->tasks); i > 1; i--)
                 {
                     av_qsv_task *task = av_qsv_list_item(qsv_enc_space->tasks,
@@ -1238,12 +1240,14 @@ void encqsvClose(hb_work_object_t *w)
                 }
                 av_qsv_list_close(&qsv_enc_space->tasks);
 
+                hb_log("DEBUG: FREE #3");//debug
                 for (i = 0; i < qsv_enc_space->surface_num; i++)
                 {
                     av_freep(&qsv_enc_space->p_surfaces[i]);
                 }
                 qsv_enc_space->surface_num = 0;
 
+                hb_log("DEBUG: FREE #4");//debug
                 for (i = 0; i < qsv_enc_space->sync_num; i++)
                 {
                     av_freep(&qsv_enc_space->p_syncp[i]->p_sync);
@@ -1260,6 +1264,7 @@ void encqsvClose(hb_work_object_t *w)
             av_qsv_context_clean(qsv_ctx);
 
             /* FIXME: do we leak memory here? */
+            hb_log("DEBUG: FREE #5");//debug
             if (pv->is_sys_mem)
             {
                 av_freep(&qsv_ctx);
@@ -1271,11 +1276,13 @@ void encqsvClose(hb_work_object_t *w)
     {
         if (pv->sws_context_to_nv12 != NULL)
         {
+            hb_log("DEBUG: FREE #6");//debug
             sws_freeContext(pv->sws_context_to_nv12);
         }
 
         if (pv->list_dts != NULL)
         {
+            hb_log("DEBUG: FREE #7");//debug
             int64_t *item;
 
             while ((item = hb_list_item(pv->list_dts, 0)) != NULL)
@@ -1288,6 +1295,7 @@ void encqsvClose(hb_work_object_t *w)
 
         if (pv->delayed_chapters != NULL)
         {
+            hb_log("DEBUG: FREE #8");//debug
             struct chapter_s *item;
 
             while ((item = hb_list_item(pv->delayed_chapters, 0)) != NULL)
@@ -1299,6 +1307,7 @@ void encqsvClose(hb_work_object_t *w)
         }
     }
 
+    hb_log("DEBUG: FREE #9");//debug
     av_freep(&w->private_data);
 }
 
