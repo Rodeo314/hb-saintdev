@@ -1614,8 +1614,8 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
             {
                 pv->async_depth--;
 
-                sts                = MFX_ERR_NONE;
-                av_qsv_task *task  = av_qsv_list_item(qsv_enc_space->tasks, 0);
+                sts               = MFX_ERR_NONE;
+                av_qsv_task *task = av_qsv_list_item(qsv_enc_space->tasks, 0);
 
                 /* perform a sync operation to get the output bitstream */
                 av_qsv_wait_on_sync(qsv_ctx, task->stage);
