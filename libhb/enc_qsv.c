@@ -29,10 +29,12 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef USE_QSV
 
 #include "hb.h"
-#include "enc_qsv.h"
 #include "qsv_common.h"
 #include "qsv_memory.h"
 #include "h264_common.h"
+
+int  nal_find_start_code(uint8_t**, size_t*);
+void parse_nalus        (uint8_t*,  size_t, hb_buffer_t*);
 
 int  encqsvInit (hb_work_object_t*, hb_job_t*);
 int  encqsvWork (hb_work_object_t*, hb_buffer_t**, hb_buffer_t**);
@@ -1572,7 +1574,12 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
                     buf->s.frametype = hb_qsv_frametype_xlat(task->bs->FrameType,
                                                              &buf->s.flags);
 
-                    parse_nalus(task->bs->Data + task->bs->DataOffset, task->bs->DataLength, buf, pv->frames_out);
+                    /*
+                     * we need to convert the encoder's Annex B output
+                     * to an MP4-compatible format (ISO/IEC 14496-15).
+                     */
+                    parse_nalus(task->bs->Data + task->bs->DataOffset,
+                                task->bs->DataLength, buf);
 
                     if (last_buf == NULL)
                     {
@@ -1790,7 +1797,7 @@ int nal_find_start_code(uint8_t **pb, size_t *size)
     return 0;
 }
 
-void parse_nalus(uint8_t *nal_inits, size_t length, hb_buffer_t *buf, uint32_t frame_num)
+void parse_nalus(uint8_t *nal_inits, size_t length, hb_buffer_t *buf)
 {
     uint8_t *offset = nal_inits;
     size_t size     = length;
