@@ -1524,6 +1524,12 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
             return HB_WORK_ERROR;
         }
         hb_log("DEBUG: av_qsv_list_item #1");//debug
+        hb_log("DEBUG: %p, %p, %p, %d (%d)", //debug
+               qsv_enc_space->tasks,
+               qsv_enc_space->tasks->mutex,
+               qsv_enc_space->tasks->items,
+               qsv_enc_space->tasks->items_count,
+               qsv_enc_space->tasks->items_alloc);
         av_qsv_task *task = av_qsv_list_item(qsv_enc_space->tasks, pv->async_depth);
         hb_log("DEBUG: av_qsv_list_item #1 done");//debug
 
