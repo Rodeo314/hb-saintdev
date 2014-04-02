@@ -1281,7 +1281,7 @@ void encqsvClose(hb_work_object_t *w)
             while ((item = hb_list_item(pv->list_dts, 0)) != NULL)
             {
                 hb_list_rem(pv->list_dts, item);
-                av_free(item);
+                free(item);
             }
             hb_list_close(&pv->list_dts);
         }
@@ -1293,7 +1293,7 @@ void encqsvClose(hb_work_object_t *w)
             while ((item = hb_list_item(pv->delayed_chapters, 0)) != NULL)
             {
                 hb_list_rem(pv->delayed_chapters, item);
-                av_free(item);
+                free(item);
             }
             hb_list_close(&pv->delayed_chapters);
         }
