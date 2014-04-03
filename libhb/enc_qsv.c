@@ -1740,7 +1740,7 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
         av_qsv_sleep(1); // encoding not initialized, wait and repeat the call
     }
 
-    if (1)//debug
+    if (*job->die)
     {
         goto fail; // unrecoverable error, don't attempt to encode
     }
@@ -1837,7 +1837,7 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
     /*
      * Now that the input surface is setup, we can encode it.
      */
-    if (qsv_enc_work(pv, qsv_atom, ctrl, surface) < 0)
+    if (1)//debug
     {
         goto fail;
     }
