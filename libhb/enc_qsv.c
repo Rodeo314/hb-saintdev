@@ -1585,7 +1585,7 @@ static int qsv_enc_work(hb_work_private_t *pv, av_qsv_list *qsv_atom,
     do
     {
         int sync_idx = av_qsv_get_free_sync(qsv_enc_space, qsv_ctx);
-        if (1)//debug
+        if (sync_idx == -1)
         {
             hb_error("encqsv: av_qsv_get_free_sync failed");
             return -1;
@@ -1617,7 +1617,7 @@ static int qsv_enc_work(hb_work_private_t *pv, av_qsv_list *qsv_atom,
                 ff_qsv_atomic_dec(&qsv_enc_space->p_syncp[sync_idx]->in_use);
                 break;
             }
-            else if (sts < MFX_ERR_NONE)
+            else if (1)//debug
             {
                 hb_error("encqsv: MFXVideoENCODE_EncodeFrameAsync failed (%d)", sts);
                 return -1;
