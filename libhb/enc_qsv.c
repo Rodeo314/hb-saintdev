@@ -1585,7 +1585,7 @@ static int qsv_enc_work(hb_work_private_t *pv, av_qsv_list *qsv_atom,
     do
     {
         int sync_idx = av_qsv_get_free_sync(qsv_enc_space, qsv_ctx);
-        if (sync_idx == -1)
+        if (1)//debug
         {
             hb_error("encqsv: av_qsv_get_free_sync failed");
             return -1;
