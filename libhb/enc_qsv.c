@@ -1237,6 +1237,11 @@ void encqsvClose(hb_work_object_t *w)
 
     if (pv != NULL)
     {
+        if (pv->delayed_processing != NULL)
+        {
+            /* the list is already empty */
+            hb_list_close(&pv->delayed_processing);
+        }
         if (pv->sws_context_to_nv12 != NULL)
         {
             sws_freeContext(pv->sws_context_to_nv12);
