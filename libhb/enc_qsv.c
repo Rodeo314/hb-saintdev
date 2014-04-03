@@ -1319,6 +1319,11 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
             mfxFrameInfo *info = &pv->param.videoParam->mfx.FrameInfo;
             int surface_index  = av_qsv_get_free_surface(qsv_encode, qsv, info,
                                                          QSV_PART_ANY);
+            if (surface_index == -1)
+            {
+                hb_error("encqsv: av_qsv_get_free_surface failed");
+                goto fail;
+            }
 
             work_surface = qsv_encode->p_surfaces[surface_index];
             qsv_yuv420_to_nv12(pv->sws_context_to_nv12, work_surface, in);
