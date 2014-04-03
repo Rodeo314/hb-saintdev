@@ -33,6 +33,23 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "qsv_memory.h"
 #include "h264_common.h"
 
+/*
+ * The frame info struct remembers information about each frame across calls to
+ * the encoder. Since frames are uniquely identified by their timestamp, we use
+ * some bits of the timestamp as an index. The LSB is chosen so that two
+ * successive frames will have different values in the bits over any plausible
+ * range of frame rates (starting with bit 8 allows any frame rate slower than
+ * 352fps). The MSB determines the size of the array. It is chosen so that two
+ * frames can't use the same slot during the encoder's max frame delay so that,
+ * up to some minimum frame rate, frames are guaranteed to map to different
+ * slots (an MSB of 17 which is 2^(17-8+1) = 1024 slots guarantees no collisions
+ * down to a rate of 0.7 fps).
+ */
+#define FRAME_INFO_MAX2 (8)  // 2^8  = 256;  90000/256    = 352 frames/sec
+#define FRAME_INFO_MIN2 (17) // 2^17 = 128K; 90000/131072 = 0.7 frames/sec
+#define FRAME_INFO_SIZE (1 << (FRAME_INFO_MIN2 - FRAME_INFO_MAX2 + 1))
+#define FRAME_INFO_MASK (FRAME_INFO_SIZE - 1)
+
 int  nal_find_start_code(uint8_t**, size_t*);
 void parse_nalus        (uint8_t*,  size_t, hb_buffer_t*);
 
@@ -71,6 +88,8 @@ struct hb_work_private_s
     int            bfrm_workaround;
     int64_t        init_pts[BFRM_DELAY_MAX + 1];
     hb_list_t     *list_dts;
+
+    int64_t frame_duration[FRAME_INFO_SIZE];
 
     int async_depth;
     int max_async_depth;
@@ -124,6 +143,18 @@ static int64_t hb_qsv_pop_next_dts(hb_list_t *list)
         }
     }
     return next_dts;
+}
+
+static void save_frame_duration(hb_work_private_t *pv, hb_buffer_t *buf)
+{
+    int i = (buf->s.start >> FRAME_INFO_MAX2) & FRAME_INFO_MASK;
+    pv->frame_duration[i] = buf->s.stop - buf->s.start;
+}
+
+static int64_t get_frame_duration(hb_work_private_t *pv, hb_buffer_t *buf)
+{
+    int i = (buf->s.start >> FRAME_INFO_MAX2) & FRAME_INFO_MASK;
+    return pv->frame_duration[i];
 }
 
 static const char* qsv_h264_profile_xlat(int profile)
@@ -1569,6 +1600,7 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
          */
         work_surface->Info.PicStruct = pv->param.videoParam->mfx.FrameInfo.PicStruct;
         work_surface->Data.TimeStamp = in->s.start;
+        save_frame_duration(pv, in);
     }
 
     mfxStatus sts;
@@ -1689,14 +1721,10 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
                     task->bs->DataLength = task->bs->DataOffset = 0;
                     task->bs->MaxLength  = qsv_encode->p_buf_max_size;
 
-                    /* frame duration (based on average frame rate) */
-                    int64_t duration  = ((double)job->vrate_base /
-                                         (double)job->vrate * 90000.);
-
                     buf->s.frametype = hb_qsv_frametype_xlat(task->bs->FrameType, &buf->s.flags);
                     buf->s.start     = buf->s.renderOffset = task->bs->TimeStamp;
-                    buf->s.stop      = buf->s.start + duration;
-                    buf->s.duration  = duration;
+                    buf->s.stop      = buf->s.start + get_frame_duration(pv, buf);
+                    buf->s.duration  = buf->s.stop  - buf->s.start;
 
                     /* compute the init_delay before setting the DTS */
                     compute_init_delay(pv, task->bs);
