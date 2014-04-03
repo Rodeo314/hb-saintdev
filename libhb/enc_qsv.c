@@ -1292,11 +1292,10 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
     {
         av_qsv_sleep(1); // encoding not initialized, wait and repeat the call
     }
-    *buf_out = NULL;
 
     if (*job->die)
     {
-        return HB_WORK_DONE; // unrecoverable error, don't attempt to encode
+        goto fail; // unrecoverable error, don't attempt to encode
     }
 
     av_qsv_list      *received_item = NULL;
@@ -1417,7 +1416,7 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
         if (sync_idx == -1)
         {
             hb_error("encqsv: av_qsv_get_free_sync failed");
-            return HB_WORK_ERROR;
+            goto fail;
         }
         av_qsv_task *task = av_qsv_list_item(qsv_encode->tasks, pv->async_depth);
 
@@ -1448,7 +1447,7 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
             else if (sts < MFX_ERR_NONE)
             {
                 hb_error("encqsv: MFXVideoENCODE_EncodeFrameAsync failed (%d)", sts);
-                return HB_WORK_ERROR;
+                goto fail;
             }
             else if (sts == MFX_WRN_DEVICE_BUSY)
             {
@@ -1695,6 +1694,15 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
     {
         return HB_WORK_OK;
     }
+
+fail:
+    if (*job->done_error == HB_ERROR_NONE)
+    {
+        *job->done_error  = HB_ERROR_UNKNOWN;
+    }
+    *job->die = 1;
+    *buf_out  = NULL;
+    return HB_WORK_ERROR;
 }
 
 int nal_find_start_code(uint8_t **pb, size_t *size)
