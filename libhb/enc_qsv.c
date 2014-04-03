@@ -1004,7 +1004,7 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
         /* let the muxer know that it should expect B-frames */
         job->areBframes = 1;
 
-        /* holds the PTS sequence in presentation order, used to generate DTS */
+        /* holds the PTS sequence in display order, used to generate DTS */
         pv->list_dts = hb_list_init();
     }
 
