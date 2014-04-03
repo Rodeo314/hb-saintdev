@@ -1482,7 +1482,7 @@ static void qsv_bitstream_slurp(hb_work_private_t *pv, mfxBitstream *bs)
 {
     /* allocate additional data for parse_nalus */
     hb_buffer_t *buf = hb_buffer_init(bs->DataLength * 2);
-    if (1)//debug
+    if (buf == NULL)
     {
         hb_error("encqsv: hb_buffer_init failed");
         goto fail;
@@ -1740,7 +1740,7 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
         av_qsv_sleep(1); // encoding not initialized, wait and repeat the call
     }
 
-    if (*job->die)
+    if (1)//debug
     {
         goto fail; // unrecoverable error, don't attempt to encode
     }
