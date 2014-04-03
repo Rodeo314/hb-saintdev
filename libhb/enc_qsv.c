@@ -1575,6 +1575,138 @@ fail:
     *pv->job->die        = 1;
 }
 
+static int qsv_enc_work(hb_work_private_t *pv, av_qsv_list *qsv_atom,
+                        mfxEncodeCtrl *ctrl, mfxFrameSurface1 *surface)
+{
+    mfxStatus sts;
+    av_qsv_context *qsv_ctx       = pv->job->qsv.ctx;
+    av_qsv_space   *qsv_enc_space = pv->job->qsv.ctx->enc_space;
+
+    do
+    {
+        int sync_idx = av_qsv_get_free_sync(qsv_enc_space, qsv_ctx);
+        if (sync_idx == -1)
+        {
+            hb_error("encqsv: av_qsv_get_free_sync failed");
+            return -1;
+        }
+        av_qsv_task *task = av_qsv_list_item(qsv_enc_space->tasks,
+                                             pv->async_depth);
+
+        do
+        {
+            sts = MFXVideoENCODE_EncodeFrameAsync(qsv_ctx->mfx_session,
+                                                  ctrl, surface, task->bs,
+                                                  qsv_enc_space->p_syncp[sync_idx]->p_sync);
+
+            if (sts == MFX_ERR_MORE_DATA || (sts >= MFX_ERR_NONE &&
+                                             sts != MFX_WRN_DEVICE_BUSY))
+            {
+                if (surface != NULL && !pv->is_sys_mem)
+                {
+                    ff_qsv_atomic_dec(&surface->Data.Locked);
+                }
+            }
+
+            if (sts == MFX_ERR_MORE_DATA)
+            {
+                if (qsv_atom != NULL)
+                {
+                    hb_list_add(pv->delayed_processing, qsv_atom);
+                }
+                ff_qsv_atomic_dec(&qsv_enc_space->p_syncp[sync_idx]->in_use);
+                break;
+            }
+            else if (sts < MFX_ERR_NONE)
+            {
+                hb_error("encqsv: MFXVideoENCODE_EncodeFrameAsync failed (%d)", sts);
+                return -1;
+            }
+            else if (sts == MFX_WRN_DEVICE_BUSY)
+            {
+                av_qsv_sleep(10); // device is busy, wait then repeat the call
+                continue;
+            }
+            else
+            {
+                av_qsv_stage *new_stage = av_qsv_stage_init();
+                new_stage->type         = AV_QSV_ENCODE;
+                new_stage->in.p_surface = surface;
+                new_stage->out.sync     = qsv_enc_space->p_syncp[sync_idx];
+                new_stage->out.p_bs     = task->bs;
+                task->stage             = new_stage;
+                pv->async_depth++;
+
+                if (qsv_atom != NULL)
+                {
+                    av_qsv_add_stagee(&qsv_atom, new_stage, HAVE_THREADS);
+                }
+                else
+                {
+                    /* encode-only or flushing */
+                    av_qsv_list *new_qsv_atom = av_qsv_list_init(HAVE_THREADS);
+                    av_qsv_add_stagee(&new_qsv_atom,  new_stage, HAVE_THREADS);
+                    av_qsv_list_add  (qsv_ctx->pipes, new_qsv_atom);
+                }
+
+                int i = hb_list_count(pv->delayed_processing);
+                while (--i >= 0)
+                {
+                    av_qsv_list *item = hb_list_item(pv->delayed_processing, i);
+
+                    if (item != NULL)
+                    {
+                        hb_list_rem(pv->delayed_processing,  item);
+                        av_qsv_flush_stages(qsv_ctx->pipes, &item);
+                    }
+                }
+                break;
+            }
+
+            ff_qsv_atomic_dec(&qsv_enc_space->p_syncp[sync_idx]->in_use);
+            break;
+        }
+        while (sts >= MFX_ERR_NONE);
+
+        do
+        {
+            if (pv->async_depth == 0) break;
+
+            /* we've done enough asynchronous operations or we're flushing */
+            if (pv->async_depth >= pv->max_async_depth || surface == NULL)
+            {
+                av_qsv_task *task = av_qsv_list_item(qsv_enc_space->tasks, 0);
+                pv->async_depth--;
+
+                /* perform a sync operation to get the output bitstream */
+                av_qsv_wait_on_sync(qsv_ctx, task->stage);
+
+                if (task->bs->DataLength > 0)
+                {
+                    av_qsv_list *pipe = av_qsv_pipe_by_stage(qsv_ctx->pipes,
+                                                             task->stage);
+                    av_qsv_flush_stages(qsv_ctx->pipes, &pipe);
+
+                    /* get the encoded frame from the bitstream */
+                    qsv_bitstream_slurp(pv, task->bs);
+
+                    /* shift for fifo */
+                    if (pv->async_depth)
+                    {
+                        av_qsv_list_rem(qsv_enc_space->tasks, task);
+                        av_qsv_list_add(qsv_enc_space->tasks, task);
+                    }
+                    task->stage = NULL;
+                }
+            }
+        }
+        while (surface == NULL);
+    }
+    while (surface == NULL && sts != MFX_ERR_MORE_DATA);
+
+    return 0;
+}
+
 static hb_buffer_t* link_buffer_list(hb_list_t *list)
 {
     hb_buffer_t *buf, *prev = NULL, *out = NULL;
@@ -1700,127 +1832,10 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
         save_frame_duration(pv, in);
     }
 
-    mfxStatus sts;
-
-    do
+    if (qsv_enc_work(pv, received_item, work_control, work_surface) < 0)
     {
-        int sync_idx = av_qsv_get_free_sync(qsv_encode, qsv);
-        if (sync_idx == -1)
-        {
-            hb_error("encqsv: av_qsv_get_free_sync failed");
-            goto fail;
-        }
-        av_qsv_task *task = av_qsv_list_item(qsv_encode->tasks, pv->async_depth);
-
-        do
-        {
-            sts = MFXVideoENCODE_EncodeFrameAsync(qsv->mfx_session,
-                                                  work_control, work_surface, task->bs,
-                                                  qsv_encode->p_syncp[sync_idx]->p_sync);
-
-            if (sts == MFX_ERR_MORE_DATA || (sts >= MFX_ERR_NONE &&
-                                             sts != MFX_WRN_DEVICE_BUSY))
-            {
-                if (work_surface != NULL && !pv->is_sys_mem)
-                {
-                    ff_qsv_atomic_dec(&work_surface->Data.Locked);
-                }
-            }
-
-            if (sts == MFX_ERR_MORE_DATA)
-            {
-                if (work_surface != NULL && received_item != NULL)
-                {
-                    hb_list_add(pv->delayed_processing, received_item);
-                }
-                ff_qsv_atomic_dec(&qsv_encode->p_syncp[sync_idx]->in_use);
-                break;
-            }
-            else if (sts < MFX_ERR_NONE)
-            {
-                hb_error("encqsv: MFXVideoENCODE_EncodeFrameAsync failed (%d)", sts);
-                goto fail;
-            }
-            else if (sts == MFX_WRN_DEVICE_BUSY)
-            {
-                av_qsv_sleep(10); // device is busy, wait then repeat the call
-                continue;
-            }
-            else
-            {
-                av_qsv_stage *new_stage = av_qsv_stage_init();
-                new_stage->type         = AV_QSV_ENCODE;
-                new_stage->in.p_surface = work_surface;
-                new_stage->out.sync     = qsv_encode->p_syncp[sync_idx];
-                new_stage->out.p_bs     = task->bs;
-                task->stage             = new_stage;
-                pv->async_depth++;
-
-                if (received_item != NULL)
-                {
-                    av_qsv_add_stagee(&received_item, new_stage, HAVE_THREADS);
-                }
-                else
-                {
-                    /* encode-only or flushing */
-                    av_qsv_list *new_atom = av_qsv_list_init(HAVE_THREADS);
-                    av_qsv_add_stagee(&new_atom,  new_stage, HAVE_THREADS);
-                    av_qsv_list_add  (qsv->pipes, new_atom);
-                }
-
-                int i = hb_list_count(pv->delayed_processing);
-                while (--i >= 0)
-                {
-                    av_qsv_list *item = hb_list_item(pv->delayed_processing, i);
-
-                    if (item != NULL)
-                    {
-                        hb_list_rem(pv->delayed_processing, item);
-                        av_qsv_flush_stages(qsv->pipes,    &item);
-                    }
-                }
-                break;
-            }
-
-            ff_qsv_atomic_dec(&qsv_encode->p_syncp[sync_idx]->in_use);
-            break;
-        }
-        while (sts >= MFX_ERR_NONE);
-
-        do
-        {
-            if (pv->async_depth == 0) break;
-
-            /* we've done enough asynchronous operations or we're flushing */
-            if (pv->async_depth >= pv->max_async_depth || work_surface == NULL)
-            {
-                av_qsv_task *task = av_qsv_list_item(qsv_encode->tasks, 0);
-                pv->async_depth--;
-
-                /* perform a sync operation to get the output bitstream */
-                av_qsv_wait_on_sync(qsv, task->stage);
-
-                if (task->bs->DataLength > 0)
-                {
-                    av_qsv_list *pipe = av_qsv_pipe_by_stage(qsv->pipes, task->stage);
-                    av_qsv_flush_stages(qsv->pipes, &pipe);
-
-                    /* get the encoded frame from the bitstream */
-                    qsv_bitstream_slurp(pv, task->bs);
-
-                    /* shift for fifo */
-                    if (pv->async_depth)
-                    {
-                        av_qsv_list_rem(qsv_encode->tasks, task);
-                        av_qsv_list_add(qsv_encode->tasks, task);
-                    }
-                    task->stage = NULL;
-                }
-            }
-        }
-        while (work_surface == NULL);
+        goto fail;
     }
-    while (work_surface == NULL && sts != MFX_ERR_MORE_DATA);
 
     if (work_surface == NULL)
     {
