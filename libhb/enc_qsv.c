@@ -1482,7 +1482,7 @@ static void qsv_bitstream_slurp(hb_work_private_t *pv, mfxBitstream *bs)
 {
     /* allocate additional data for parse_nalus */
     hb_buffer_t *buf = hb_buffer_init(bs->DataLength * 2);
-    if (buf == NULL)
+    if (1)//debug
     {
         hb_error("encqsv: hb_buffer_init failed");
         goto fail;
@@ -1769,7 +1769,7 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
         mfxFrameInfo *info = &pv->param.videoParam->mfx.FrameInfo;
         int surface_index  = av_qsv_get_free_surface(qsv_enc_space, qsv_ctx, info,
                                                      QSV_PART_ANY);
-        if (1)//debug
+        if (surface_index == -1)
         {
             hb_error("encqsv: av_qsv_get_free_surface failed");
             goto fail;
