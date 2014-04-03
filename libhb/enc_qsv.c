@@ -294,12 +294,12 @@ int qsv_enc_init(hb_work_private_t *pv)
     }
 
     // setup surface allocation
-    qsv_encode->m_mfxVideoParam.IOPattern = (pv->is_sys_mem                 ?
-                                             MFX_IOPATTERN_IN_SYSTEM_MEMORY :
-                                             MFX_IOPATTERN_IN_OPAQUE_MEMORY);
+    pv->param.videoParam->IOPattern = (pv->is_sys_mem                 ?
+                                       MFX_IOPATTERN_IN_SYSTEM_MEMORY :
+                                       MFX_IOPATTERN_IN_OPAQUE_MEMORY);
     memset(&qsv_encode->request, 0, sizeof(mfxFrameAllocRequest) * 2);
     sts = MFXVideoENCODE_QueryIOSurf(qsv->mfx_session,
-                                     &qsv_encode->m_mfxVideoParam,
+                                     pv->param.videoParam,
                                      &qsv_encode->request[0]);
     if (sts < MFX_ERR_NONE) // ignore warnings
     {
@@ -345,7 +345,7 @@ int qsv_enc_init(hb_work_private_t *pv)
         qsv_encode->ext_opaque_alloc.In.Surfaces     = in_space->p_surfaces;
         qsv_encode->ext_opaque_alloc.In.NumSurface   = in_space->surface_num;
         qsv_encode->ext_opaque_alloc.In.Type         = qsv_encode->request[0].Type;
-        qsv_encode->m_mfxVideoParam.ExtParam[qsv_encode->m_mfxVideoParam.NumExtParam++] = (mfxExtBuffer*)&qsv_encode->ext_opaque_alloc;
+        pv->param.videoParam->ExtParam[pv->param.videoParam->NumExtParam++] = (mfxExtBuffer*)&qsv_encode->ext_opaque_alloc;
     }
 
     // allocate sync points
@@ -361,7 +361,7 @@ int qsv_enc_init(hb_work_private_t *pv)
     }
 
     // initialize the encoder
-    sts = MFXVideoENCODE_Init(qsv->mfx_session, &qsv_encode->m_mfxVideoParam);
+    sts = MFXVideoENCODE_Init(qsv->mfx_session, pv->param.videoParam);
     if (sts < MFX_ERR_NONE) // ignore warnings
     {
         hb_error("qsv_enc_init: MFXVideoENCODE_Init failed (%d)", sts);
