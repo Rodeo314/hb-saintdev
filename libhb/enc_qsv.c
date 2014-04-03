@@ -1745,109 +1745,105 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
         goto fail; // unrecoverable error, don't attempt to encode
     }
 
-    av_qsv_list      *received_item = NULL;
-    mfxEncodeCtrl    *work_control  = NULL;
-    mfxFrameSurface1 *work_surface  = NULL;
-    av_qsv_context   *qsv           = job->qsv.ctx;
-    av_qsv_space     *qsv_encode    = job->qsv.ctx->enc_space;
-
     /*
      * EOF on input. Flush the decoder, then send the
      * EOF downstream to let the muxer know we're done.
      */
     if (in->size <= 0)
     {
+        qsv_enc_work(pv, NULL, NULL, NULL);
+        hb_list_add(pv->encoded_frames, in);
+        *buf_out = link_buffer_list(pv->encoded_frames);
         *buf_in = NULL; // don't let 'work_loop' close this buffer
+        return HB_WORK_DONE;
+    }
+
+    av_qsv_list      *received_item = NULL;
+    mfxEncodeCtrl    *work_control  = NULL;
+    mfxFrameSurface1 *work_surface  = NULL;
+    av_qsv_context   *qsv           = job->qsv.ctx;
+    av_qsv_space     *qsv_encode    = job->qsv.ctx->enc_space;
+
+    if (pv->is_sys_mem)
+    {
+        mfxFrameInfo *info = &pv->param.videoParam->mfx.FrameInfo;
+        int surface_index  = av_qsv_get_free_surface(qsv_encode, qsv, info,
+                                                     QSV_PART_ANY);
+        if (surface_index == -1)
+        {
+            hb_error("encqsv: av_qsv_get_free_surface failed");
+            goto fail;
+        }
+
+        work_surface = qsv_encode->p_surfaces[surface_index];
+        qsv_yuv420_to_nv12(pv->sws_context_to_nv12, work_surface, in);
     }
     else
     {
-        if (pv->is_sys_mem)
-        {
-            mfxFrameInfo *info = &pv->param.videoParam->mfx.FrameInfo;
-            int surface_index  = av_qsv_get_free_surface(qsv_encode, qsv, info,
-                                                         QSV_PART_ANY);
-            if (surface_index == -1)
-            {
-                hb_error("encqsv: av_qsv_get_free_surface failed");
-                goto fail;
-            }
-
-            work_surface = qsv_encode->p_surfaces[surface_index];
-            qsv_yuv420_to_nv12(pv->sws_context_to_nv12, work_surface, in);
-        }
-        else
-        {
-            received_item = in->qsv_details.qsv_atom;
-            work_surface  = av_qsv_get_last_stage(received_item)->out.p_surface;
-
-            /*
-             * QSV decoding fills the QSV context's dts_seq list, we need to
-             * pop this surface's DTS so dts_seq doesn't grow unnecessarily.
-             */
-            av_qsv_dts_pop(qsv);
-        }
+        received_item = in->qsv_details.qsv_atom;
+        work_surface  = av_qsv_get_last_stage(received_item)->out.p_surface;
 
         /*
-         * Debugging code to check that the upstream modules have generated
-         * a continuous, self-consistent frame stream.
+         * QSV decoding fills the QSV context's dts_seq list, we need to
+         * pop this surface's DTS so dts_seq doesn't grow unnecessarily.
          */
-        if (pv->last_start > in->s.start)
-        {
-            hb_log("encqsvWork: input continuity error, "
-                   "last start %"PRId64" start %"PRId64"",
-                   pv->last_start, in->s.start);
-        }
-        pv->last_start = in->s.start;
-
-        /* for DTS generation (when MSDK API < 1.6 or VFR) */
-        if (pv->frames_in <= BFRM_DELAY_MAX)
-        {
-            pv->init_pts[pv->frames_in] = in->s.start;
-        }
-        if (pv->frames_in)
-        {
-            hb_qsv_add_new_dts(pv->list_dts, in->s.start);
-        }
-        pv->frames_in++;
-
-        if (in->s.new_chap > 0 && job->chapter_markers)
-        {
-            save_chapter(pv, in);
-
-            /* Chapters have to start with a keyframe, so request an IDR */
-            work_control = &pv->force_keyframe;
-        }
-
-        /*
-         * If interlaced encoding is requested during encoder initialization,
-         * but the input mfxFrameSurface1 is flagged as progressive here,
-         * the output bitstream will be progressive (according to MediaInfo).
-         *
-         * Assume the user knows what he's doing (say he is e.g. encoding a
-         * progressive-flagged source using interlaced compression - he may
-         * well have a good reason to do so; mis-flagged sources do exist).
-         */
-        work_surface->Info.PicStruct = pv->param.videoParam->mfx.FrameInfo.PicStruct;
-        work_surface->Data.TimeStamp = in->s.start;
-        save_frame_duration(pv, in);
+        av_qsv_dts_pop(qsv);
     }
 
+    /*
+     * Debugging code to check that the upstream modules have generated
+     * a continuous, self-consistent frame stream.
+     */
+    if (pv->last_start > in->s.start)
+    {
+        hb_log("encqsvWork: input continuity error, "
+               "last start %"PRId64" start %"PRId64"",
+               pv->last_start, in->s.start);
+    }
+    pv->last_start = in->s.start;
+
+    /* for DTS generation (when MSDK API < 1.6 or VFR) */
+    if (pv->frames_in <= BFRM_DELAY_MAX)
+    {
+        pv->init_pts[pv->frames_in] = in->s.start;
+    }
+    if (pv->frames_in)
+    {
+        hb_qsv_add_new_dts(pv->list_dts, in->s.start);
+    }
+    pv->frames_in++;
+
+    if (in->s.new_chap > 0 && job->chapter_markers)
+    {
+        save_chapter(pv, in);
+
+        /* Chapters have to start with a keyframe, so request an IDR */
+        work_control = &pv->force_keyframe;
+    }
+
+    /*
+     * If interlaced encoding is requested during encoder initialization,
+     * but the input mfxFrameSurface1 is flagged as progressive here,
+     * the output bitstream will be progressive (according to MediaInfo).
+     *
+     * Assume the user knows what he's doing (say he is e.g. encoding a
+     * progressive-flagged source using interlaced compression - he may
+     * well have a good reason to do so; mis-flagged sources do exist).
+     */
+    work_surface->Info.PicStruct = pv->param.videoParam->mfx.FrameInfo.PicStruct;
+    work_surface->Data.TimeStamp = in->s.start;
+    save_frame_duration(pv, in);
+
+    /*
+     * Now that the input surface is setup, we can encode it.
+     */
     if (qsv_enc_work(pv, received_item, work_control, work_surface) < 0)
     {
         goto fail;
     }
 
-    if (work_surface == NULL)
-    {
-        hb_list_add(pv->encoded_frames, in);
-        *buf_out = link_buffer_list(pv->encoded_frames);
-        return HB_WORK_DONE;
-    }
-    else
-    {
-        *buf_out = link_buffer_list(pv->encoded_frames);
-        return HB_WORK_OK;
-    }
+    *buf_out = link_buffer_list(pv->encoded_frames);
+    return HB_WORK_OK;
 
 fail:
     if (*job->done_error == HB_ERROR_NONE)
