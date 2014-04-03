@@ -1369,21 +1369,16 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
         }
         pv->frames_in++;
 
-        /*
-         * Chapters have to start with a keyframe so request that this
-         * frame be coded as IDR. Since there may be several frames
-         * buffered in the encoder, remember the timestamp so when this
-         * frame finally pops out of the encoder we'll mark its buffer
-         * as the start of a chapter.
-         */
         if (in->s.new_chap > 0 && job->chapter_markers)
         {
             if (pv->next_chapter_pts == AV_NOPTS_VALUE)
             {
                 pv->next_chapter_pts = work_surface->Data.TimeStamp;
             }
-            /* insert an IDR */
+
+            /* Chapters have to start with a keyframe, so request an IDR */
             work_control = &pv->force_keyframe;
+
             /*
              * Chapter markers are sometimes so close we can get a new
              * one before the previous goes through the encoding queue.
