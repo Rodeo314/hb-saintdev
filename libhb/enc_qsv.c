@@ -1290,7 +1290,7 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
 
     while (qsv_enc_init(pv) >= 2)
     {
-        av_qsv_sleep(1); // encoding not yet done initializing, wait
+        av_qsv_sleep(1); // encoding not initialized, wait and repeat the call
     }
     *buf_out = NULL;
 
