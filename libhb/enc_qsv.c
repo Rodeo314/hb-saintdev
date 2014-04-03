@@ -1758,16 +1758,16 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
         return HB_WORK_DONE;
     }
 
-    av_qsv_list      *received_item = NULL;
-    mfxEncodeCtrl    *work_control  = NULL;
-    mfxFrameSurface1 *work_surface  = NULL;
-    av_qsv_context   *qsv           = job->qsv.ctx;
-    av_qsv_space     *qsv_encode    = job->qsv.ctx->enc_space;
+    mfxEncodeCtrl    *ctrl          = NULL;
+    mfxFrameSurface1 *surface       = NULL;
+    av_qsv_list      *qsv_atom      = NULL;
+    av_qsv_context   *qsv_ctx       = job->qsv.ctx;
+    av_qsv_space     *qsv_enc_space = job->qsv.ctx->enc_space;
 
     if (pv->is_sys_mem)
     {
         mfxFrameInfo *info = &pv->param.videoParam->mfx.FrameInfo;
-        int surface_index  = av_qsv_get_free_surface(qsv_encode, qsv, info,
+        int surface_index  = av_qsv_get_free_surface(qsv_enc_space, qsv_ctx, info,
                                                      QSV_PART_ANY);
         if (surface_index == -1)
         {
@@ -1775,19 +1775,19 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
             goto fail;
         }
 
-        work_surface = qsv_encode->p_surfaces[surface_index];
-        qsv_yuv420_to_nv12(pv->sws_context_to_nv12, work_surface, in);
+        surface = qsv_enc_space->p_surfaces[surface_index];
+        qsv_yuv420_to_nv12(pv->sws_context_to_nv12, surface, in);
     }
     else
     {
-        received_item = in->qsv_details.qsv_atom;
-        work_surface  = av_qsv_get_last_stage(received_item)->out.p_surface;
+        qsv_atom = in->qsv_details.qsv_atom;
+        surface  = av_qsv_get_last_stage(qsv_atom)->out.p_surface;
 
         /*
          * QSV decoding fills the QSV context's dts_seq list, we need to
          * pop this surface's DTS so dts_seq doesn't grow unnecessarily.
          */
-        av_qsv_dts_pop(qsv);
+        av_qsv_dts_pop(qsv_ctx);
     }
 
     /*
@@ -1818,7 +1818,7 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
         save_chapter(pv, in);
 
         /* Chapters have to start with a keyframe, so request an IDR */
-        work_control = &pv->force_keyframe;
+        ctrl = &pv->force_keyframe;
     }
 
     /*
@@ -1830,14 +1830,14 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
      * progressive-flagged source using interlaced compression - he may
      * well have a good reason to do so; mis-flagged sources do exist).
      */
-    work_surface->Info.PicStruct = pv->param.videoParam->mfx.FrameInfo.PicStruct;
-    work_surface->Data.TimeStamp = in->s.start;
+    surface->Info.PicStruct = pv->param.videoParam->mfx.FrameInfo.PicStruct;
+    surface->Data.TimeStamp = in->s.start;
     save_frame_duration(pv, in);
 
     /*
      * Now that the input surface is setup, we can encode it.
      */
-    if (qsv_enc_work(pv, received_item, work_control, work_surface) < 0)
+    if (qsv_enc_work(pv, qsv_atom, ctrl, surface) < 0)
     {
         goto fail;
     }
