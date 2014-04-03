@@ -1350,7 +1350,7 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
         }
         pv->last_start = start;
 
-        // for DTS generation (when MSDK API < 1.6 or VFR)
+        /* for DTS generation (when MSDK API < 1.6 or VFR) */
         if (pv->bfrm_delay && pv->bfrm_workaround)
         {
             if (pv->frames_in <= BFRM_DELAY_MAX)
@@ -1363,6 +1363,7 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
                                    work_surface->Data.TimeStamp);
             }
         }
+        pv->frames_in++;
 
         /*
          * Chapters have to start with a keyframe so request that this
@@ -1692,7 +1693,6 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
     }
     else
     {
-        pv->frames_in++;
         return HB_WORK_OK;
     }
 }
