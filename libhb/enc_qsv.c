@@ -87,6 +87,7 @@ struct hb_work_private_s
     int init_done;
 
     hb_list_t *delayed_processing;
+    hb_list_t *encoded_frames;
 };
 
 // used in delayed_chapters list
@@ -371,6 +372,7 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     pv->is_sys_mem         = hb_qsv_decode_is_enabled(job) == 0;
     pv->qsv_info           = hb_qsv_info_get(job->vcodec);
     pv->delayed_processing = hb_list_init();
+    pv->encoded_frames     = hb_list_init();
     pv->last_start         = INT64_MIN;
 
     // set up a re-usable mfxEncodeCtrl to force keyframes (e.g. for chapters)
@@ -1259,6 +1261,16 @@ void encqsvClose(hb_work_object_t *w)
             }
             hb_list_close(&pv->delayed_chapters);
         }
+        if (pv->encoded_frames != NULL)
+        {
+            hb_buffer_t *item;
+            while ((item = hb_list_item(pv->encoded_frames, 0)) != NULL)
+            {
+                hb_list_rem(pv->encoded_frames, item);
+                hb_buffer_close(&item);
+            }
+            hb_list_close(&pv->encoded_frames);
+        }
     }
 
     free(pv);
@@ -1430,13 +1442,33 @@ static void compute_init_delay(hb_work_private_t *pv, mfxBitstream *bs)
     pv->init_delay = NULL;
 }
 
+static hb_buffer_t* link_buffer_list(hb_list_t *list)
+{
+    hb_buffer_t *buf, *prev = NULL, *out = NULL;
+
+    while ((buf = hb_list_item(list, 0)) != NULL)
+    {
+        hb_list_rem(list, buf);
+
+        if (prev == NULL)
+        {
+            prev = out = buf;
+        }
+        else
+        {
+            prev->next = buf;
+            prev       = buf;
+        }
+    }
+
+    return out;
+}
+
 int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
 {
     hb_work_private_t *pv = w->private_data;
-    hb_job_t *job = pv->job;
-    hb_buffer_t *in = *buf_in;
-    hb_buffer_t *buf, *last_buf = NULL;
-    mfxStatus sts = MFX_ERR_NONE;
+    hb_buffer_t *in       = *buf_in;
+    hb_job_t *job         = pv->job;
 
     while (qsv_enc_init(pv) >= 2)
     {
@@ -1534,6 +1566,8 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
         work_surface->Data.TimeStamp = in->s.start;
     }
 
+    mfxStatus sts;
+
     do
     {
         int sync_idx = av_qsv_get_free_sync(qsv_encode, qsv);
@@ -1619,8 +1653,6 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
         }
         while (sts >= MFX_ERR_NONE);
 
-        buf = NULL;
-
         do
         {
             if (pv->async_depth == 0) break;
@@ -1640,8 +1672,8 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
                     av_qsv_flush_stages(qsv->pipes, &pipe);
 
                     /* allocate additional data for parse_nalus */
-                    buf = hb_buffer_init(task->bs->DataLength * 2);
-                    buf->size = 0;
+                    hb_buffer_t *buf = hb_buffer_init(task->bs->DataLength * 2);
+                    buf->size        = 0;
 
                     /*
                      * we need to convert the encoder's Annex B output
@@ -1734,15 +1766,7 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
                     }
                     task->stage = NULL;
 
-                    if (last_buf == NULL)
-                    {
-                        *buf_out = last_buf = buf;
-                    }
-                    else
-                    {
-                        last_buf->next = buf;
-                        last_buf       = buf;
-                    }
+                    hb_list_add(pv->encoded_frames, buf);
                     pv->frames_out++;
                 }
             }
@@ -1753,18 +1777,13 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
 
     if (work_surface == NULL)
     {
-        if (last_buf != NULL)
-        {
-            last_buf->next = in;
-        }
-        else
-        {
-            *buf_out = in;
-        }
+        hb_list_add(pv->encoded_frames, in);
+        *buf_out = link_buffer_list(pv->encoded_frames);
         return HB_WORK_DONE;
     }
     else
     {
+        *buf_out = link_buffer_list(pv->encoded_frames);
         return HB_WORK_OK;
     }
 
