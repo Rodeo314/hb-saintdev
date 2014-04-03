@@ -368,14 +368,10 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     w->private_data       = pv;
 
     pv->job                = job;
-    pv->is_sys_mem         = !hb_qsv_decode_is_enabled(job);
+    pv->is_sys_mem         = hb_qsv_decode_is_enabled(job) == 0;
     pv->qsv_info           = hb_qsv_info_get(job->vcodec);
     pv->delayed_processing = hb_list_init();
     pv->last_start         = INT64_MIN;
-    pv->frames_in          = 0;
-    pv->frames_out         = 0;
-    pv->init_done          = 0;
-    pv->is_vpp_present     = 0;
 
     // set up a re-usable mfxEncodeCtrl to force keyframes (e.g. for chapters)
     pv->force_keyframe.QP          = 0;
