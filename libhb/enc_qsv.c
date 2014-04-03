@@ -1007,6 +1007,9 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
 
         /* let the muxer know that it should expect B-frames */
         job->areBframes = 1;
+
+        /* holds the PTS sequence in presentation order, used to generate DTS */
+        pv->list_dts = hb_list_init();
     }
 
     // log code path and main output settings
@@ -1297,7 +1300,6 @@ static void compute_init_delay(hb_work_private_t *pv, mfxBitstream *bs)
         {
             /* variable frame rate video, so we need to generate our own DTS */
             pv->bfrm_workaround = 1;
-            pv->list_dts        = hb_list_init();
 
             /*
              * we also need to know the delay in frames to generate DTS.
@@ -1356,7 +1358,6 @@ static void compute_init_delay(hb_work_private_t *pv, mfxBitstream *bs)
          *
          * B-pyramid not possible here, so the delay in frames is always 1.
          */
-        pv->list_dts      = hb_list_init();
         pv->bfrm_delay    = pv->bfrm_workaround = 1;
         pv->init_delay[0] = pv->init_pts[1] - pv->init_pts[0];
     }
@@ -1440,17 +1441,13 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
         pv->last_start = start;
 
         /* for DTS generation (when MSDK API < 1.6 or VFR) */
-        if (pv->bfrm_delay && pv->bfrm_workaround)
+        if (pv->frames_in <= BFRM_DELAY_MAX)
         {
-            if (pv->frames_in <= BFRM_DELAY_MAX)
-            {
-                pv->init_pts[pv->frames_in] = work_surface->Data.TimeStamp;
-            }
-            if (pv->frames_in)
-            {
-                hb_qsv_add_new_dts(pv->list_dts,
-                                   work_surface->Data.TimeStamp);
-            }
+            pv->init_pts[pv->frames_in] = work_surface->Data.TimeStamp;
+        }
+        if (pv->frames_in)
+        {
+            hb_qsv_add_new_dts(pv->list_dts, work_surface->Data.TimeStamp);
         }
         pv->frames_in++;
 
@@ -1625,45 +1622,45 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
                     /* compute the init_delay before setting the DTS */
                     compute_init_delay(pv, task->bs);
 
+                    /*
+                     * Generate VFR-compatible output DTS based on input PTS.
+                     *
+                     * Depends on the B-frame delay:
+                     *
+                     * 0: ipts0,  ipts1, ipts2...
+                     * 1: ipts0 - ipts1, ipts1 - ipts1, ipts1,  ipts2...
+                     * 2: ipts0 - ipts2, ipts1 - ipts2, ipts2 - ipts2, ipts1...
+                     * ...and so on.
+                     */
                     if (pv->bfrm_delay)
                     {
+                        if (pv->frames_out <= pv->bfrm_delay)
+                        {
+                            buf->s.renderOffset = (pv->init_pts[pv->frames_out] -
+                                                   pv->init_pts[pv->bfrm_delay]);
+                        }
+                        else
+                        {
+                            buf->s.renderOffset = hb_qsv_pop_next_dts(pv->list_dts);
+                        }
+
+                        /* if the DTS provided by MSDK is trustworthy, use it */
                         if (!pv->bfrm_workaround)
                         {
                             buf->s.renderOffset = task->bs->DecodeTimeStamp;
                         }
-                        else
-                        {
-                            /*
-                             * MSDK API < 1.6 or VFR
-                             *
-                             * Generate VFR-compatible output DTS based on input PTS.
-                             *
-                             * Depends on the B-frame delay:
-                             *
-                             * 0: ipts0,  ipts1, ipts2...
-                             * 1: ipts0 - ipts1, ipts1 - ipts1, ipts1,  ipts2...
-                             * 2: ipts0 - ipts2, ipts1 - ipts2, ipts2 - ipts2, ipts1...
-                             * ...and so on.
-                             */
-                            if (pv->frames_out <= pv->bfrm_delay)
-                            {
-                                buf->s.renderOffset = (pv->init_pts[pv->frames_out] -
-                                                       pv->init_pts[pv->bfrm_delay]);
-                            }
-                            else
-                            {
-                                buf->s.renderOffset = hb_qsv_pop_next_dts(pv->list_dts);
-                            }
-                        }
                     }
 
-                    /* check whether B-pyramid is used even though it's disabled */
+                    /* check if B-pyramid is used even though it's disabled */
                     if ((pv->param.gop.b_pyramid == 0)          &&
                         (task->bs->FrameType & MFX_FRAMETYPE_B) &&
                         (task->bs->FrameType & MFX_FRAMETYPE_REF))
                     {
                         hb_log("encqsv: BPyramid off not respected (delay: %d)",
                                pv->bfrm_delay);
+
+                        /* don't pollute the log unnecessarily */
+                        pv->param.gop.b_pyramid = 1;
                     }
 
                     /* check for PTS < DTS */
