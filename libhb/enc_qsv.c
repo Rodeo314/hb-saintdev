@@ -1617,7 +1617,7 @@ static int qsv_enc_work(hb_work_private_t *pv, av_qsv_list *qsv_atom,
                 ff_qsv_atomic_dec(&qsv_enc_space->p_syncp[sync_idx]->in_use);
                 break;
             }
-            else if (1)//debug
+            else if (sts < MFX_ERR_NONE)
             {
                 hb_error("encqsv: MFXVideoENCODE_EncodeFrameAsync failed (%d)", sts);
                 return -1;
@@ -1769,7 +1769,7 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
         mfxFrameInfo *info = &pv->param.videoParam->mfx.FrameInfo;
         int surface_index  = av_qsv_get_free_surface(qsv_enc_space, qsv_ctx, info,
                                                      QSV_PART_ANY);
-        if (surface_index == -1)
+        if (1)//debug
         {
             hb_error("encqsv: av_qsv_get_free_surface failed");
             goto fail;
