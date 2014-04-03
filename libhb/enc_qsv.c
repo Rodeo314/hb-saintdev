@@ -1899,16 +1899,16 @@ void parse_nalus(uint8_t *nal_inits, size_t length, hb_buffer_t *buf)
 
         if (!nal_find_start_code(&next_offset, &next_size))
         {
-            size = 0;
+            size          = 0;
             current_size += 1;
         }
         else
         {
-            current_size -= next_size;
             if (next_offset > 0 && *(next_offset - 1))
             {
                 current_size += 1;
             }
+            current_size -= next_size;
         }
 
         char size_position[4];
