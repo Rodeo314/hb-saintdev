@@ -1796,7 +1796,7 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
      */
     if (pv->last_start > in->s.start)
     {
-        hb_log("encqsvWork: input continuity error, "
+        hb_log("encqsv: input continuity error, "
                "last start %"PRId64" start %"PRId64"",
                pv->last_start, in->s.start);
     }
