@@ -66,6 +66,7 @@ struct hb_work_private_s
 
 #define BFRM_DELAY_MAX 16
     // for DTS generation (when MSDK API < 1.6 or VFR)
+    uint32_t      *init_delay;
     int            bfrm_delay;
     int            bfrm_workaround;
     int64_t        init_pts[BFRM_DELAY_MAX + 1];
@@ -991,36 +992,21 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
         MFXClose(session);
     }
 
-    // check whether B-frames are used
-    switch (videoParam.mfx.CodecProfile)
+    /* check whether B-frames are used */
+    if (videoParam.mfx.GopRefDist > 1 && videoParam.mfx.GopPicSize > 2)
     {
-        case MFX_PROFILE_AVC_BASELINE:
-        case MFX_PROFILE_AVC_CONSTRAINED_HIGH:
-        case MFX_PROFILE_AVC_CONSTRAINED_BASELINE:
-            pv->bfrm_delay = 0;
-            break;
-        default:
-            pv->bfrm_delay = 1;
-            break;
-    }
-    // sanitize
-    pv->bfrm_delay = FFMIN(pv->bfrm_delay, videoParam.mfx.GopRefDist - 1);
-    pv->bfrm_delay = FFMIN(pv->bfrm_delay, videoParam.mfx.GopPicSize - 2);
-    pv->bfrm_delay = FFMAX(pv->bfrm_delay, 0);
-    // let the muxer know whether to expect B-frames or not
-    job->areBframes = !!pv->bfrm_delay;
-    // check whether we need to generate DTS ourselves (MSDK API < 1.6 or VFR)
-    pv->bfrm_workaround = job->cfr != 1 || !(pv->qsv_info->capabilities &
-                                             HB_QSV_CAP_MSDK_API_1_6);
-    if (pv->bfrm_delay && pv->bfrm_workaround)
-    {
-        pv->bfrm_workaround = 1;
-        pv->list_dts        = hb_list_init();
-    }
-    else
-    {
-        pv->bfrm_workaround = 0;
-        pv->list_dts        = NULL;
+        /* the muxer needs to know to the init_delay */
+        switch (pv->qsv_info->codec_id)
+        {
+            case MFX_CODEC_AVC:
+                pv->init_delay = &w->config->h264.init_delay;
+                break;
+            default: // unreachable
+                break;
+        }
+
+        /* let the muxer know that it should expect B-frames */
+        job->areBframes = 1;
     }
 
     // log code path and main output settings
@@ -1280,6 +1266,105 @@ void encqsvClose(hb_work_object_t *w)
     w->private_data = NULL;
 }
 
+static void compute_init_delay(hb_work_private_t *pv, mfxBitstream *bs)
+{
+    if (pv->init_delay == NULL)
+    {
+        return; // not needed or already set
+    }
+
+    /*
+     * In the MP4 container, DT(0) = STTS(0) = 0.
+     *
+     * Which gives us:
+     * CT(0) = CTTS(0) + STTS(0) = CTTS(0) = PTS(0) - DTS(0)
+     * When DTS(0) < PTS(0), we then have:
+     * CT(0) > 0 for video, but not audio (breaks A/V sync).
+     *
+     * This is typically solved by writing an edit list shifting
+     * video samples by the initial delay, PTS(0) - DTS(0).
+     *
+     * See:
+     * ISO/IEC 14496-12:2008(E), ISO base media file format
+     *  - 8.6.1.2 Decoding Time to Sample Box
+     */
+    if (pv->qsv_info->capabilities & HB_QSV_CAP_MSDK_API_1_6)
+    {
+        /* compute init_delay (in ticks) based on the DTS provided by MSDK. */
+        int64_t init_delay = bs->TimeStamp - bs->DecodeTimeStamp;
+
+        if (pv->job->cfr != 1)
+        {
+            /* variable frame rate video, so we need to generate our own DTS */
+            pv->bfrm_workaround = 1;
+            pv->list_dts        = hb_list_init();
+
+            /*
+             * we also need to know the delay in frames to generate DTS.
+             *
+             * compute it based on the init_delay and average frame duration,
+             * and account for potential rounding errors due to the timebase.
+             */
+            double avg_frame_dur = ((double)pv->job->vrate_base /
+                                    (double)pv->job->vrate * 90000.);
+
+            pv->bfrm_delay = (init_delay + (avg_frame_dur / 2)) / avg_frame_dur;
+
+            if (pv->bfrm_delay < 1 || pv->bfrm_delay > BFRM_DELAY_MAX)
+            {
+                hb_log("compute_init_delay: "
+                       "invalid delay %d (PTS: %"PRIu64", DTS: %"PRId64")",
+                       pv->bfrm_delay, bs->TimeStamp, bs->DecodeTimeStamp);
+
+                /* we have B-frames, the frame delay should be at least 1 */
+                if (pv->bfrm_delay < 1)
+                {
+                    mfxStatus sts;
+                    mfxVideoParam videoParam;
+                    mfxSession session = pv->job->qsv.ctx->mfx_session;
+
+                    memset(&videoParam, 0, sizeof(mfxVideoParam));
+
+                    sts = MFXVideoENCODE_GetVideoParam(session, &videoParam);
+                    if (sts != MFX_ERR_NONE)
+                    {
+                        hb_log("compute_init_delay: "
+                               "MFXVideoENCODE_GetVideoParam failed (%d)", sts);
+                        pv->bfrm_delay = 1;
+                    }
+                    else
+                    {
+                        /* usually too large, but should cover all cases */
+                        pv->bfrm_delay = videoParam.mfx.GopRefDist - 1;
+                    }
+                }
+
+                pv->bfrm_delay = FFMIN(BFRM_DELAY_MAX, pv->bfrm_delay);
+            }
+
+            pv->init_delay[0] = pv->init_pts[pv->bfrm_delay] - pv->init_pts[0];
+        }
+        else
+        {
+            pv->init_delay[0] = init_delay;
+        }
+    }
+    else
+    {
+        /*
+         * we can't get the DTS from MSDK, so we need to generate our own.
+         *
+         * B-pyramid not possible here, so the delay in frames is always 1.
+         */
+        pv->list_dts      = hb_list_init();
+        pv->bfrm_delay    = pv->bfrm_workaround = 1;
+        pv->init_delay[0] = pv->init_pts[1] - pv->init_pts[0];
+    }
+
+    /* The delay only needs to be set once. */
+    pv->init_delay = NULL;
+}
+
 int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
 {
     hb_work_private_t *pv = w->private_data;
@@ -1537,22 +1622,11 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
                     buf->s.stop      = buf->s.start + duration;
                     buf->s.duration  = duration;
 
+                    /* compute the init_delay before setting the DTS */
+                    compute_init_delay(pv, task->bs);
+
                     if (pv->bfrm_delay)
                     {
-                        if ((pv->frames_out == 0)                                  &&
-                            (pv->qsv_info->capabilities & HB_QSV_CAP_MSDK_API_1_6) &&
-                            (pv->qsv_info->capabilities & HB_QSV_CAP_B_REF_PYRAMID))
-                        {
-                            // with B-pyramid, the delay may be more than 1 frame,
-                            // so compute the actual delay based on the initial DTS
-                            // provided by MSDK; also, account for rounding errors
-                            // (e.g. 24000/1001 fps @ 90kHz -> 3753.75 ticks/frame)
-                            pv->bfrm_delay = HB_QSV_CLIP3(1, BFRM_DELAY_MAX,
-                                                          ((task->bs->TimeStamp -
-                                                            task->bs->DecodeTimeStamp +
-                                                            (duration / 2)) / duration));
-                        }
-
                         if (!pv->bfrm_workaround)
                         {
                             buf->s.renderOffset = task->bs->DecodeTimeStamp;
@@ -1581,44 +1655,25 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
                                 buf->s.renderOffset = hb_qsv_pop_next_dts(pv->list_dts);
                             }
                         }
+                    }
 
-                        // check whether B-pyramid is used even though it's disabled
-                        if ((pv->param.gop.b_pyramid == 0)          &&
-                            (task->bs->FrameType & MFX_FRAMETYPE_B) &&
-                            (task->bs->FrameType & MFX_FRAMETYPE_REF))
-                        {
-                            hb_log("encqsvWork: BPyramid off not respected (delay: %d)",
-                                   pv->bfrm_delay);
-                        }
+                    /* check whether B-pyramid is used even though it's disabled */
+                    if ((pv->param.gop.b_pyramid == 0)          &&
+                        (task->bs->FrameType & MFX_FRAMETYPE_B) &&
+                        (task->bs->FrameType & MFX_FRAMETYPE_REF))
+                    {
+                        hb_log("encqsv: BPyramid off not respected (delay: %d)",
+                               pv->bfrm_delay);
+                    }
 
-                        // check for PTS < DTS
-                        if (buf->s.start < buf->s.renderOffset)
-                        {
-                            hb_log("encqsvWork: PTS %"PRId64" < DTS %"PRId64" for frame %d with type '%s' (bfrm_workaround: %d)",
-                                   buf->s.start, buf->s.renderOffset, pv->frames_out + 1,
-                                   hb_qsv_frametype_name(task->bs->FrameType),
-                                   pv->bfrm_workaround);
-                        }
-
-                        /*
-                         * In the MP4 container, DT(0) = STTS(0) = 0.
-                         *
-                         * Which gives us:
-                         * CT(0) = CTTS(0) + STTS(0) = CTTS(0) = PTS(0) - DTS(0)
-                         * When DTS(0) < PTS(0), we then have:
-                         * CT(0) > 0 for video, but not audio (breaks A/V sync).
-                         *
-                         * This is typically solved by writing an edit list shifting
-                         * video samples by the initial delay, PTS(0) - DTS(0).
-                         *
-                         * See:
-                         * ISO/IEC 14496-12:2008(E), ISO base media file format
-                         *  - 8.6.1.2 Decoding Time to Sample Box
-                         */
-                        if (w->config->h264.init_delay == 0 && buf->s.renderOffset < 0)
-                        {
-                            w->config->h264.init_delay = -buf->s.renderOffset;
-                        }
+                    /* check for PTS < DTS */
+                    if (buf->s.start < buf->s.renderOffset)
+                    {
+                        hb_log("encqsv: PTS %"PRId64" < DTS %"PRId64" for "
+                               "frame %d with type '%s' (bfrm_workaround: %d)",
+                               buf->s.start, buf->s.renderOffset, pv->frames_out + 1,
+                               hb_qsv_frametype_name(task->bs->FrameType),
+                               pv->bfrm_workaround);
                     }
 
                     /*
