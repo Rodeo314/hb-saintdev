@@ -1439,7 +1439,7 @@ static void compute_init_delay(hb_work_private_t *pv, mfxBitstream *bs)
 
     /* The delay only needs to be set once. */
     pv->init_delay = NULL;
-    hb_log("compute_init_delay: pv->bfrm_delay %d");//debug
+    hb_log("compute_init_delay: pv->bfrm_delay %d", pv->bfrm_delay);//debug
 }
 
 static int qsv_frame_is_key(mfxU16 FrameType)
@@ -1493,8 +1493,7 @@ static void qsv_bitstream_slurp(hb_work_private_t *pv, mfxBitstream *bs)
         {
             buf->s.renderOffset = hb_qsv_pop_next_dts(pv->list_dts);
         }
-        if (pv->job->cfr == 1 &&
-            buf->s.renderOffset != bs->DecodeTimeStamp)
+        if (buf->s.renderOffset != bs->DecodeTimeStamp)
         {
             hb_log("DTS difference: %"PRId64", %"PRId64"",
                    buf->s.renderOffset, bs->DecodeTimeStamp);//debug
