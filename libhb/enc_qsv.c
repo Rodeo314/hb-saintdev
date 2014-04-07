@@ -1020,13 +1020,13 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     }
 
     // log code path and main output settings
+    int bframes = videoParam.mfx.GopRefDist > 1 && videoParam.mfx.GopPicSize > 2;
     hb_log("encqsvInit: using %s path",
            pv->is_sys_mem ? "encode-only" : "full QSV");
     hb_log("encqsvInit: TargetUsage %"PRIu16" AsyncDepth %"PRIu16"",
            videoParam.mfx.TargetUsage, videoParam.AsyncDepth);
     hb_log("encqsvInit: GopRefDist %"PRIu16" GopPicSize %"PRIu16" NumRefFrame %"PRIu16"",
            videoParam.mfx.GopRefDist, videoParam.mfx.GopPicSize, videoParam.mfx.NumRefFrame);
-    int bframes = videoParam.mfx.GopRefDist > 1 && videoParam.mfx.GopPicSize > 2;
     if (pv->qsv_info->capabilities & HB_QSV_CAP_B_REF_PYRAMID)
     {
         hb_log("encqsvInit: BFrames %s BPyramid %s",
@@ -1039,7 +1039,7 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     }
     if (pv->qsv_info->capabilities & HB_QSV_CAP_OPTION2_IB_ADAPT)
     {
-        if (pv->bfrm_delay > 0)
+        if (bframes)
         {
             hb_log("encqsvInit: AdaptiveI %s AdaptiveB %s",
                    hb_qsv_codingoption_get_name(option2->AdaptiveI),
@@ -1499,8 +1499,7 @@ static void qsv_bitstream_slurp(hb_work_private_t *pv, mfxBitstream *bs)
         (bs->FrameType & MFX_FRAMETYPE_B) &&
         (bs->FrameType & MFX_FRAMETYPE_REF))
     {
-        hb_log("encqsv: BPyramid off not respected (delay: %d)",
-               pv->bfrm_delay);
+        hb_log("encqsv: BPyramid off not respected (delay: %d)", pv->bfrm_delay);
 
         /* don't pollute the log unnecessarily */
         pv->param.gop.b_pyramid = 1;
