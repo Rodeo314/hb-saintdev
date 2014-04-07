@@ -1870,28 +1870,23 @@ fail:
     return HB_WORK_ERROR;
 }
 
-int nal_find_start_code(uint8_t **pb, size_t *size)
-{
-    if ((int)*size < 4)
-    {
+int nal_find_start_code(uint8_t** pb, size_t* size){
+    if ((int) *size < 4 )
         return 0;
-    }
-
-    // find start code by MSDK, see ff_prefix_code[]
-    while ((4 <= *size) && ((*pb)[0] || (*pb)[1] || (*pb)[2] != 1))
+    
+    // find start code by MSDK , see ff_prefix_code[]
+    while ((4 <= *size) &&
+           ((0 != (*pb)[0]) ||
+            (0 != (*pb)[1]) ||
+            (1 != (*pb)[2]) ))
     {
-        *pb   += 1;
+        *pb += 1;
         *size -= 1;
     }
-
+    
     if (4 <= *size)
-    {
-        return (((*pb)[0] << 24) |
-                ((*pb)[1] << 16) |
-                ((*pb)[2] <<  8) |
-                ((*pb)[3]));
-    }
-
+        return (((*pb)[0] << 24) | ((*pb)[1] << 16) | ((*pb)[2] << 8) | ((*pb)[3]));
+    
     return 0;
 }
 
