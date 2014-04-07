@@ -1459,21 +1459,17 @@ static int qsv_frame_is_key(mfxU16 FrameType)
 
 static void qsv_bitstream_slurp(hb_work_private_t *pv, mfxBitstream *bs)
 {
-    /* allocate additional data for parse_nalus */
-    hb_buffer_t *buf = hb_buffer_init(bs->DataLength * 2);
-    if (buf == NULL)
-    {
-        hb_error("encqsv: hb_buffer_init failed");
-        goto fail;
-    }
-    buf->size = 0;
-
     /*
      * we need to convert the encoder's Annex B output
      * to an MP4-compatible format (ISO/IEC 14496-15).
      */
-    buf = hb_nal_bitstream_annexb_to_mp4(bs->Data + bs->DataOffset,
-                                         bs->DataLength);
+    hb_buffer_t *buf = hb_nal_bitstream_annexb_to_mp4(bs->Data + bs->DataOffset,
+                                                      bs->DataLength);
+    if (buf == NULL)
+    {
+        hb_error("encqsv: hb_nal_bitstream_annexb_to_mp4 failed");
+        goto fail;
+    }
     bs->DataLength = bs->DataOffset = 0;
     bs->MaxLength  = pv->job->qsv.ctx->enc_space->p_buf_max_size;
 
