@@ -1890,51 +1890,43 @@ int nal_find_start_code(uint8_t** pb, size_t* size){
     return 0;
 }
 
-void parse_nalus(uint8_t *nal_inits, size_t length, hb_buffer_t *buf)
-{
+void parse_nalus(uint8_t *nal_inits, size_t length, hb_buffer_t *buf){
     uint8_t *offset = nal_inits;
-    size_t   size   = length;
-
-    if (!nal_find_start_code(&offset, &size))
-    {
+    size_t size     = length;
+    
+    if( nal_find_start_code(&offset,&size) == 0 )
         size = 0;
-    }
-
-    while (size > 0)
-    {
-        uint8_t *current_nal  = offset + sizeof(ff_prefix_code) - 1;
-        size_t   current_size = size   - sizeof(ff_prefix_code);
-        uint8_t *next_offset  = current_nal + 1;
-        size_t   next_size    = current_size;
-
-        if (!nal_find_start_code(&next_offset, &next_size))
-        {
-            size          = 0;
+    
+    while( size > 0 ){
+        
+        uint8_t* current_nal = offset + sizeof(ff_prefix_code)-1;
+        uint8_t *next_offset = offset + sizeof(ff_prefix_code);
+        size_t next_size     = size - sizeof(ff_prefix_code);
+        size_t current_size  = next_size;
+        if( nal_find_start_code(&next_offset,&next_size) == 0 ){
+            size = 0;
             current_size += 1;
         }
-        else
-        {
-            if (next_offset > 0 && *(next_offset - 1))
-            {
-                current_size += 1;
-            }
+        else{
             current_size -= next_size;
+            if( next_offset > 0 && *(next_offset-1) != 0  )
+                current_size += 1;
         }
-
-        char size_position[4];
-        size_position[1] = (current_size >> 24) & 0xFF;
-        size_position[1] = (current_size >> 16) & 0xFF;
-        size_position[2] = (current_size >>  8) & 0xFF;
-        size_position[3] = (current_size      ) & 0xFF;
-
-        memcpy(buf->data + buf->size, &size_position, sizeof(size_position));
-        buf->size += sizeof(size_position);
-
-        memcpy(buf->data + buf->size, current_nal, current_size);
-        buf->size += current_size;
-
-        if (size)
         {
+            char size_position[4] = {0,0,0,0};
+            size_position[1] = (current_size >> 24) & 0xFF;
+            size_position[1] = (current_size >> 16) & 0xFF;
+            size_position[2] = (current_size >> 8)  & 0xFF;
+            size_position[3] =  current_size        & 0xFF;
+            
+            memcpy(buf->data + buf->size,&size_position ,sizeof(size_position));
+            buf->size += sizeof(size_position);
+            
+            memcpy(buf->data + buf->size,current_nal ,current_size);
+            buf->size += current_size;
+        }
+        
+        if(size){
             size   = next_size;
             offset = next_offset;
         }
