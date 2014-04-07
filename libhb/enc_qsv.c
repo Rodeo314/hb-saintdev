@@ -1264,7 +1264,7 @@ void encqsvClose(hb_work_object_t *w)
                 hb_list_rem(pv->list_dts, item);
                 free(item);
             }
-            hb_list_close(&pv->list_dts);
+//            hb_list_close(&pv->list_dts);
         }
         if (pv->delayed_chapters != NULL)
         {
