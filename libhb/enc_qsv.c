@@ -51,9 +51,6 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define FRAME_INFO_SIZE (1 << (FRAME_INFO_MIN2 - FRAME_INFO_MAX2 + 1))
 #define FRAME_INFO_MASK (FRAME_INFO_SIZE - 1)
 
-int  nal_find_start_code(uint8_t**, size_t*);
-void parse_nalus        (uint8_t*,  size_t, hb_buffer_t*);
-
 int  encqsvInit (hb_work_object_t*, hb_job_t*);
 int  encqsvWork (hb_work_object_t*, hb_buffer_t**, hb_buffer_t**);
 void encqsvClose(hb_work_object_t*);
@@ -1870,69 +1867,6 @@ fail:
     *job->die = 1;
     *buf_out  = NULL;
     return HB_WORK_ERROR;
-}
-
-int nal_find_start_code(uint8_t** pb, size_t* size){
-    if ((int) *size < 4 )
-        return 0;
-    
-    // find start code by MSDK , see ff_prefix_code[]
-    while ((4 <= *size) &&
-           ((0 != (*pb)[0]) ||
-            (0 != (*pb)[1]) ||
-            (1 != (*pb)[2]) ))
-    {
-        *pb += 1;
-        *size -= 1;
-    }
-    
-    if (4 <= *size)
-        return (((*pb)[0] << 24) | ((*pb)[1] << 16) | ((*pb)[2] << 8) | ((*pb)[3]));
-    
-    return 0;
-}
-
-void parse_nalus(uint8_t *nal_inits, size_t length, hb_buffer_t *buf){
-    uint8_t *offset = nal_inits;
-    size_t size     = length;
-    
-    if( nal_find_start_code(&offset,&size) == 0 )
-        size = 0;
-    
-    while( size > 0 ){
-        
-        uint8_t* current_nal = offset + sizeof(ff_prefix_code)-1;
-        uint8_t *next_offset = offset + sizeof(ff_prefix_code);
-        size_t next_size     = size - sizeof(ff_prefix_code);
-        size_t current_size  = next_size;
-        if( nal_find_start_code(&next_offset,&next_size) == 0 ){
-            size = 0;
-            current_size += 1;
-        }
-        else{
-            current_size -= next_size;
-            if( next_offset > 0 && *(next_offset-1) != 0  )
-                current_size += 1;
-        }
-        {
-            char size_position[4] = {0,0,0,0};
-            size_position[1] = (current_size >> 24) & 0xFF;
-            size_position[1] = (current_size >> 16) & 0xFF;
-            size_position[2] = (current_size >> 8)  & 0xFF;
-            size_position[3] =  current_size        & 0xFF;
-            
-            memcpy(buf->data + buf->size,&size_position ,sizeof(size_position));
-            buf->size += sizeof(size_position);
-            
-            memcpy(buf->data + buf->size,current_nal ,current_size);
-            buf->size += current_size;
-        }
-        
-        if(size){
-            size   = next_size;
-            offset = next_offset;
-        }
-    }
 }
 
 #endif // USE_QSV

@@ -7,8 +7,6 @@
  * For full terms see the file COPYING file or visit http://www.gnu.org/licenses/gpl-2.0.html
  */
 
-#ifdef USE_QSV
-
 #include <stdint.h>
 #include <string.h>
 
@@ -195,5 +193,3 @@ hb_buffer_t* hb_nal_bitstream_mp4_to_annexb(const uint8_t *data,
 
     return out;
 }
-
-#endif // USE_QSV
