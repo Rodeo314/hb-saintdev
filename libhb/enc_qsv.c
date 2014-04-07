@@ -1000,7 +1000,8 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     }
 
     /* check whether B-frames are used */
-    if (videoParam.mfx.GopRefDist > 1 && videoParam.mfx.GopPicSize > 2)
+    int bframes = videoParam.mfx.GopRefDist > 1 && videoParam.mfx.GopPicSize > 2;
+    if (bframes)
     {
         /* the muxer needs to know to the init_delay */
         switch (pv->qsv_info->codec_id)
@@ -1020,7 +1021,6 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     }
 
     // log code path and main output settings
-    int bframes = videoParam.mfx.GopRefDist > 1 && videoParam.mfx.GopPicSize > 2;
     hb_log("encqsvInit: using %s path",
            pv->is_sys_mem ? "encode-only" : "full QSV");
     hb_log("encqsvInit: TargetUsage %"PRIu16" AsyncDepth %"PRIu16"",
