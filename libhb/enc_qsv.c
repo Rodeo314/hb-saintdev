@@ -1256,16 +1256,6 @@ void encqsvClose(hb_work_object_t *w)
         {
             sws_freeContext(pv->sws_context_to_nv12);
         }
-        if (pv->list_dts != NULL)
-        {
-            int64_t *item;
-            while ((item = hb_list_item(pv->list_dts, 0)) != NULL)
-            {
-                hb_list_rem(pv->list_dts, item);
-                free(item);
-            }
-            hb_list_close(&pv->list_dts);
-        }
         if (pv->delayed_chapters != NULL)
         {
             struct chapter_s *item;
