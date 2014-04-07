@@ -29,6 +29,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef USE_QSV
 
 #include "hb.h"
+#include "nal_units.h"
 #include "qsv_common.h"
 #include "qsv_memory.h"
 #include "h264_common.h"
@@ -1474,7 +1475,8 @@ static void qsv_bitstream_slurp(hb_work_private_t *pv, mfxBitstream *bs)
      * we need to convert the encoder's Annex B output
      * to an MP4-compatible format (ISO/IEC 14496-15).
      */
-    parse_nalus(bs->Data + bs->DataOffset, bs->DataLength, buf);
+    buf = hb_nal_bitstream_annexb_to_mp4(bs->Data + bs->DataOffset,
+                                         bs->DataLength);
     bs->DataLength = bs->DataOffset = 0;
     bs->MaxLength  = pv->job->qsv.ctx->enc_space->p_buf_max_size;
 
