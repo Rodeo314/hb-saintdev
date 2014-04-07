@@ -1026,15 +1026,16 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
            videoParam.mfx.TargetUsage, videoParam.AsyncDepth);
     hb_log("encqsvInit: GopRefDist %"PRIu16" GopPicSize %"PRIu16" NumRefFrame %"PRIu16"",
            videoParam.mfx.GopRefDist, videoParam.mfx.GopPicSize, videoParam.mfx.NumRefFrame);
+    int bframes = videoParam.mfx.GopRefDist > 1 && videoParam.mfx.GopPicSize > 2;
     if (pv->qsv_info->capabilities & HB_QSV_CAP_B_REF_PYRAMID)
     {
         hb_log("encqsvInit: BFrames %s BPyramid %s",
-               pv->bfrm_delay                            ? "on" : "off",
-               pv->bfrm_delay && pv->param.gop.b_pyramid ? "on" : "off");
+               bframes                            ? "on" : "off",
+               bframes && pv->param.gop.b_pyramid ? "on" : "off");
     }
     else
     {
-        hb_log("encqsvInit: BFrames %s", pv->bfrm_delay ? "on" : "off");
+        hb_log("encqsvInit: BFrames %s", bframes ? "on" : "off");
     }
     if (pv->qsv_info->capabilities & HB_QSV_CAP_OPTION2_IB_ADAPT)
     {
