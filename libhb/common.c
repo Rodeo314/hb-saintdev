@@ -2657,7 +2657,7 @@ void hb_list_close( hb_list_t ** _l )
     hb_log("hb_list_close: 0x%p with items 0x%p", l, l->items);//debug
 
     free( l->items );
-    free( l );
+//    free( l );
 
     *_l = NULL;
 }
