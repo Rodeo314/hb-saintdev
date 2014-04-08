@@ -1433,9 +1433,10 @@ static void compute_init_delay(hb_work_private_t *pv, mfxBitstream *bs)
                 {
                     /* usually too large, but should cover all cases */
                     pv->bfrm_delay = videoParam.mfx.GopRefDist - 1;
+                    pv->bfrm_delay = 5;//debug
                 }
             }
-            hb_log("debug: pv->frrm_delay %d, pv->frames_in %d", pv->bfrm_delay, pv->frames_in);//debug
+            hb_log("debug: pv->bfrm_delay %d, pv->frames_in %d", pv->bfrm_delay, pv->frames_in);//debug
 
             pv->bfrm_delay = FFMIN(BFRM_DELAY_MAX, pv->bfrm_delay);
         }
