@@ -2659,7 +2659,7 @@ void hb_list_close( hb_list_t ** _l )
     free( l->items );
     free( l );
 
-//    *_l = NULL;
+    *_l = NULL;
 }
 
 int global_verbosity_level; //Necessary for hb_deep_log
