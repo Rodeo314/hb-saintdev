@@ -1417,10 +1417,8 @@ static void compute_init_delay(hb_work_private_t *pv, mfxBitstream *bs)
                 {
                     /* usually too large, but should cover all cases */
                     pv->bfrm_delay = videoParam.mfx.GopRefDist - 1;
-//                    pv->bfrm_delay = 5;//debug
                 }
             }
-            hb_log("debug: pv->bfrm_delay %d, pv->frames_in %d", pv->bfrm_delay, pv->frames_in);//debug
 
             pv->bfrm_delay = FFMIN(BFRM_DELAY_MAX, pv->bfrm_delay);
         }
@@ -1440,7 +1438,6 @@ static void compute_init_delay(hb_work_private_t *pv, mfxBitstream *bs)
 
     /* The delay only needs to be set once. */
     pv->init_delay = NULL;
-    hb_log("compute_init_delay: pv->bfrm_delay %d", pv->bfrm_delay);//debug
 }
 
 static int qsv_frame_is_key(mfxU16 FrameType)
@@ -1493,13 +1490,6 @@ static void qsv_bitstream_slurp(hb_work_private_t *pv, mfxBitstream *bs)
         else
         {
             buf->s.renderOffset = hb_qsv_pop_next_dts(pv->list_dts);
-        }
-        if (pv->job->cfr == 1 && buf->s.renderOffset != bs->DecodeTimeStamp &&
-            MFX_IMPL_BASETYPE(pv->qsv_info->implementation) != MFX_IMPL_SOFTWARE)
-        {
-            hb_log("DTS difference: %"PRId64", %"PRId64"",
-                   buf->s.renderOffset, bs->DecodeTimeStamp);//debug
-            abort();
         }
     }
 
