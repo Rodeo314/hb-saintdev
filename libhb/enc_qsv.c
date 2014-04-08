@@ -64,18 +64,6 @@ hb_work_object_t hb_encqsv =
     encqsvClose
 };
 
-typedef struct
-{
-    /* Pointers to items in the list */
-    void **items;
-
-    /* How many (void *) allocated in 'items' */
-    int items_alloc;
-
-    /* How many valid pointers in 'items' */
-    int items_count;
-} debug_list;
-
 struct hb_work_private_s
 {
     hb_job_t *job;
@@ -1270,16 +1258,12 @@ void encqsvClose(hb_work_object_t *w)
         }
         if (pv->list_dts != NULL)
         {
-            hb_log("hb_list_count(0x%p): %d", pv->list_dts, hb_list_count(pv->list_dts));//debug
             int64_t *item;
             while ((item = hb_list_item(pv->list_dts, 0)) != NULL)
             {
-                static int tmpvar = 0;//debug
-                hb_log("0x%p: item %2d at 0x%p", pv->list_dts, ++tmpvar, item);//debug
                 hb_list_rem(pv->list_dts, item);
                 free(item);
             }
-            hb_log("Closing        0x%p with items 0x%p", pv->list_dts, ((debug_list*)pv->list_dts)->items);//debug
             hb_list_close(&pv->list_dts);
         }
         if (pv->delayed_chapters != NULL)
