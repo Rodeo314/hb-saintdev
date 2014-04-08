@@ -1416,7 +1416,8 @@ static void compute_init_delay(hb_work_private_t *pv, mfxBitstream *bs)
                 else
                 {
                     /* usually too large, but should cover all cases */
-                    pv->bfrm_delay = videoParam.mfx.GopRefDist - 1;
+                    pv->bfrm_delay = FFMIN(pv->frames_in             - 1,
+                                           videoParam.mfx.GopRefDist - 1);
                 }
             }
 
