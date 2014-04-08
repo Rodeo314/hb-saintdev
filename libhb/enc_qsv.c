@@ -1509,10 +1509,12 @@ static void qsv_bitstream_slurp(hb_work_private_t *pv, mfxBitstream *bs)
         {
             buf->s.renderOffset = hb_qsv_pop_next_dts(pv->list_dts);
         }
-        if (buf->s.renderOffset != bs->DecodeTimeStamp)
+        if (pv->job->cfr == 1 && buf->s.renderOffset != bs->DecodeTimeStamp &&
+            MFX_IMPL_BASETYPE(pv->qsv_info->implementation) != MFX_IMPL_SOFTWARE)
         {
             hb_log("DTS difference: %"PRId64", %"PRId64"",
                    buf->s.renderOffset, bs->DecodeTimeStamp);//debug
+            abort();
         }
     }
 
