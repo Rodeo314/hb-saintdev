@@ -1279,7 +1279,7 @@ void encqsvClose(hb_work_object_t *w)
                 hb_list_rem(pv->list_dts, item);
                 free(item);
             }
-            hb_log("Closing 0x%p with items 0x%p", pv->list_dts, ((debug_list*)pv->list_dts)->items);//debug
+            hb_log("Closing        0x%p with items 0x%p", pv->list_dts, ((debug_list*)pv->list_dts)->items);//debug
             hb_list_close(&pv->list_dts);
         }
         if (pv->delayed_chapters != NULL)
