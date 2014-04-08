@@ -79,7 +79,6 @@ struct hb_work_private_s
     int64_t next_chapter_pts;
 
 #define BFRM_DELAY_MAX 16
-    // for DTS generation (when MSDK API < 1.6 or VFR)
     uint32_t      *init_delay;
     int            bfrm_delay;
     int64_t        init_pts[BFRM_DELAY_MAX + 1];
@@ -112,7 +111,6 @@ struct chapter_s
     int64_t start;
 };
 
-// for DTS generation (when MSDK API < 1.6 or VFR)
 static void hb_qsv_add_new_dts(hb_list_t *list, int64_t new_dts)
 {
     if (list != NULL)
@@ -125,6 +123,7 @@ static void hb_qsv_add_new_dts(hb_list_t *list, int64_t new_dts)
         }
     }
 }
+
 static int64_t hb_qsv_pop_next_dts(hb_list_t *list)
 {
     int64_t next_dts = INT64_MIN;
@@ -1768,7 +1767,7 @@ int encqsvWork(hb_work_object_t *w, hb_buffer_t **buf_in, hb_buffer_t **buf_out)
     }
     pv->last_start = in->s.start;
 
-    /* for DTS generation (when MSDK API < 1.6 or VFR) */
+    /* for DTS generation */
     if (pv->frames_in <= BFRM_DELAY_MAX)
     {
         pv->init_pts[pv->frames_in] = in->s.start;
