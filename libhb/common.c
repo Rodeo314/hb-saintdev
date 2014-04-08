@@ -17,6 +17,8 @@
 #include "lang.h"
 #include "common.h"
 #include "h264_common.h"
+#include "hevc_common.h"
+
 #ifdef USE_QSV
 #include "qsv_common.h"
 #endif
@@ -39,7 +41,7 @@ enum
 {
     HB_GID_NONE = -1, // encoders must NEVER use it
     HB_GID_VCODEC_H264,
-    HB_GID_VCODEC_H265,
+    HB_GID_VCODEC_HEVC,
     HB_GID_VCODEC_MPEG2,
     HB_GID_VCODEC_MPEG4,
     HB_GID_VCODEC_THEORA,
@@ -206,7 +208,8 @@ hb_encoder_internal_t hb_video_encoders[]  =
     // actual encoders
     { { "H.264 (x264)",      "x264",      "H.264 (libx264)",         HB_VCODEC_X264,         HB_MUX_MASK_MP4|HB_MUX_MASK_MKV, }, NULL, 1, HB_GID_VCODEC_H264,   },
     { { "H.264 (Intel QSV)", "qsv_h264",  "H.264 (Intel Media SDK)", HB_VCODEC_QSV_H264,     HB_MUX_MASK_MP4|HB_MUX_MASK_MKV, }, NULL, 1, HB_GID_VCODEC_H264,   },
-    { { "H.265 (x265)",      "x265",      "H.265 (libx265)",         HB_VCODEC_X265,           HB_MUX_AV_MP4|HB_MUX_AV_MKV,   }, NULL, 1, HB_GID_VCODEC_H265,   },
+    { { "HEVC (x265)",       "x265",      "HEVC (libx265)",          HB_VCODEC_X265,           HB_MUX_AV_MP4|HB_MUX_AV_MKV,   }, NULL, 1, HB_GID_VCODEC_HEVC,   },
+    { { "HEVC (Intel QSV)",  "qsv_hevc",  "HEVC (Intel Media SDK)",  HB_VCODEC_QSV_HEVC,       HB_MUX_AV_MP4|HB_MUX_AV_MKV,   }, NULL, 1, HB_GID_VCODEC_HEVC,   },
     { { "MPEG-4",            "mpeg4",     "MPEG-4 (libavcodec)",     HB_VCODEC_FFMPEG_MPEG4, HB_MUX_MASK_MP4|HB_MUX_MASK_MKV, }, NULL, 1, HB_GID_VCODEC_MPEG4,  },
     { { "MPEG-2",            "mpeg2",     "MPEG-2 (libavcodec)",     HB_VCODEC_FFMPEG_MPEG2, HB_MUX_MASK_MP4|HB_MUX_MASK_MKV, }, NULL, 1, HB_GID_VCODEC_MPEG2,  },
     { { "Theora",            "theora",    "Theora (libtheora)",      HB_VCODEC_THEORA,                       HB_MUX_MASK_MKV, }, NULL, 1, HB_GID_VCODEC_THEORA, },
@@ -1207,7 +1210,7 @@ const char* const* hb_video_encoder_get_profiles(int encoder)
 
 #ifdef USE_X265
         case HB_VCODEC_X265:
-            return x265_profile_names;
+            return hb_hevc_profile_names;
 #endif
         default:
             return NULL;
