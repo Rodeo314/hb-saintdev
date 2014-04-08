@@ -1284,6 +1284,13 @@ void encqsvClose(hb_work_object_t *w)
             {
                 hb_list_close(&pv->list_dts);
             }
+            else
+            {
+                hb_list_close(&pv->list_dts);
+                pv->delayed_chapters  = NULL;
+                pv->encoded_frames    = NULL;
+                pv                    = NULL;
+            }
         }
         if (pv->delayed_chapters != NULL)
         {
