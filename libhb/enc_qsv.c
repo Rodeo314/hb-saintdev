@@ -191,7 +191,7 @@ static const char* qsv_h264_level_xlat(int level)
 
 static void qsv_set_breftype(hb_work_private_t *pv)
 {
-    // set B-pyramid
+    /* set B-pyramid */
     if (pv->param.gop.b_pyramid < 0)
     {
         if (pv->param.videoParam->mfx.RateControlMethod == MFX_RATECONTROL_CQP)
@@ -211,9 +211,21 @@ static void qsv_set_breftype(hb_work_private_t *pv)
      * Set gop_ref_dist to a power of two, >= 4 and <= GopRefDist to ensure
      * Media SDK will not disable B-pyramid if we end up using it below.
      */
-    int gop_ref_dist = FFALIGN(pv->param.videoParam->mfx.GopRefDist, 4);
-    hb_log("GopRefDist %"PRIu16", gop_ref_dist %d",
-           pv->param.videoParam->mfx.GopRefDist, gop_ref_dist);//debug
+    int gop_ref_dist = 4;
+    while (pv->param.videoParam->mfx.GopRefDist >= gop_ref_dist * 2)
+    {
+        gop_ref_dist *= 2;
+    }
+    for (int i = 0; i <= 16; i++)
+    {
+        int gop_ref_dist2 = 4;
+        while (i >= gop_ref_dist2 * 2)
+        {
+            gop_ref_dist2 *= 2;
+        }
+        hb_log("old: GopRefDist %"PRIu16", gop_ref_dist %d", i, gop_ref_dist2);//debug
+        hb_log("new: GopRefDist %"PRIu16", gop_ref_dist %d", i, FFALIGN(i, 4));//debug
+    }
 
     if (pv->qsv_info->capabilities & HB_QSV_CAP_OPTION2_BREFTYPE)
     {
