@@ -801,7 +801,7 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
                                                        pv->param.rc.lookahead ? 60 : 0);
     }
 
-    if (pv->qsv_info->capabilities & HB_QSV_CAP_BREFTYPE)
+    if (pv->qsv_info->capabilities & HB_QSV_CAP_OPTION2_BREFTYPE)
     {
         pv->param.codingOption2.BRefType = pv->param.gop.b_pyramid ? MFX_B_REF_PYRAMID : MFX_B_REF_OFF;
     }
