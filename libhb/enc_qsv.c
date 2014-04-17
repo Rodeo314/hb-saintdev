@@ -216,15 +216,16 @@ static void qsv_set_breftype(hb_work_private_t *pv)
         return;
     }
     else if (pv->param.videoParam->mfx.GopPicSize &&
-             pv->param.videoParam->mfx.GopPicSize < 4)
+             pv->param.videoParam->mfx.GopPicSize <= 3)
     {
-        /* GOP too short for B-pyramid */
+        /* GOP size must be at least 4 for B-pyramid */
         pv->param.gop.b_pyramid = 0;
         return;
     }
-    else if (pv->param.videoParam->mfx.GopRefDist == 1)
+    else if (pv->param.videoParam->mfx.GopRefDist &&
+             pv->param.videoParam->mfx.GopRefDist <= 2)
     {
-        /* B-frames explicitly disabled */
+        /* We need 2 consecutive B-frames for B-pyramid (GopRefDist >= 3) */
         pv->param.gop.b_pyramid = 0;
         return;
     }
@@ -242,6 +243,7 @@ static void qsv_set_breftype(hb_work_private_t *pv)
                 break;
         }
     }
+    hb_log("FFALIGN(7, 8): %d", FFALIGN(7, 8));//debug
 
     if (pv->qsv_info->capabilities & HB_QSV_CAP_OPTION2_BREFTYPE)
     {
@@ -287,7 +289,6 @@ static void qsv_set_breftype(hb_work_private_t *pv)
                                                                pv->param.videoParam->mfx.GopRefDist);
                 pv->param.videoParam->mfx.GopPicSize = FFMAX  (pv->param.videoParam->mfx.GopPicSize,
                                                                pv->param.videoParam->mfx.GopRefDist);
-                hb_log("FFALIGN(7, 8): %d", FFALIGN(7, 8));//debug
             }
 
             /*
