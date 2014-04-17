@@ -257,11 +257,14 @@ static void qsv_breftype_set(hb_work_private_t *pv)
     }
     else
     {
-        int pyramid_ref_dist;
         /*
          * We can't control B-pyramid directly, so do it indirectly by
          * adjusting GopRefDist, GopPicSize and NumRefFrame instead.
-         *
+         */
+        int pyramid_ref_dist;
+        pv->param.codingOption2.BRefType = MFX_B_REF_UNKNOWN;
+
+        /*
          * pyramid_ref_dist is the closest B-pyramid compatible
          * value (multiple of 2, >= 4) to the requested GopRefDist.
          */
@@ -914,10 +917,8 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     }
 
     /*
-     * We now have enough information to enable/disable B-pyramid, specifically:
-     * - the codec profile
-     * - the rate control method
-     * - the GOP settings (GopRefDist, GopPicSize)
+     * We may need to adjust GopRefDist, GopPicSize and
+     * NumRefFrame to enable or disable B-pyramid, so do it last.
      */
     qsv_breftype_set(pv);
 
