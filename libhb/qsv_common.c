@@ -506,18 +506,16 @@ static void log_capabilities(int log_level, uint64_t caps, const char *prefix)
     }
     else
     {
-        hb_deep_log(log_level, "%s%s%s%s%s%s%s%s%s%s%s%s%s", prefix,
+        hb_deep_log(log_level, "%s%s%s%s%s%s%s%s%s%s%s", prefix,
                     !(caps & HB_QSV_CAP_MSDK_API_1_6)     ? "" : " api1.6",
                     !(caps & HB_QSV_CAP_B_REF_PYRAMID)    ? "" : " bpyramid",
                     !(caps & HB_QSV_CAP_OPTION2_BREFTYPE) ? "" : " breftype",
                     !(caps & HB_QSV_CAP_RATECONTROL_LA)   ? "" : " lookahead",
                     !(caps & HB_QSV_CAP_RATECONTROL_LAi)  ? "" : " lookaheadi",
-                    !(caps & HB_QSV_CAP_OPTION2_LA_DOWNS) ? "" : " lookaheadds",
                     !(caps & HB_QSV_CAP_RATECONTROL_ICQ)  ? "" : " icq",
                     !(caps & HB_QSV_CAP_OPTION2_MBBRC)    ? "" : " mbbrc",
                     !(caps & HB_QSV_CAP_OPTION2_EXTBRC)   ? "" : " extbrc",
                     !(caps & HB_QSV_CAP_OPTION2_TRELLIS)  ? "" : " trellis",
-                    !(caps & HB_QSV_CAP_OPTION2_IB_ADAPT) ? "" : " adaptivei adaptiveb",
                     !(caps & HB_QSV_CAP_OPTION2_NMBSLICE) ? "" : " nummbperslice");
     }
 }
