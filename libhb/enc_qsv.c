@@ -285,6 +285,9 @@ static void qsv_set_breftype(hb_work_private_t *pv)
             {
                 pv->param.videoParam->mfx.GopPicSize = FFALIGN(pv->param.videoParam->mfx.GopPicSize,
                                                                pv->param.videoParam->mfx.GopRefDist);
+                pv->param.videoParam->mfx.GopPicSize = FFMAX  (pv->param.videoParam->mfx.GopPicSize,
+                                                               pv->param.videoParam->mfx.GopRefDist);
+                hb_log("FFALIGN(7, 8): %d", FFALIGN(7, 8));//debug
             }
 
             /*
@@ -335,11 +338,6 @@ static void qsv_set_breftype(hb_work_private_t *pv)
                 }
             }
         }
-    }
-    else
-    {
-        /* B-pyramid not supported. */
-        pv->param.gop.b_pyramid = 0;
     }
 }
 
