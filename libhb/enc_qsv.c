@@ -1075,30 +1075,6 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
                 return -1;
         }
     }
-    if ((pv->qsv_info->capabilities & HB_QSV_CAP_OPTION2_LA_DOWNS) &&
-        (videoParam.mfx.RateControlMethod == MFX_RATECONTROL_LA ||
-         videoParam.mfx.RateControlMethod == MFX_RATECONTROL_LA_ICQ))
-    {
-        switch (option2->LookAheadDS)
-        {
-            case MFX_LOOKAHEAD_DS_UNKNOWN:
-                hb_log("encqsvInit: LookAheadDS unknown (auto)");
-                break;
-            case MFX_LOOKAHEAD_DS_OFF:
-                hb_log("encqsvInit: LookAheadDS off");
-                break;
-            case MFX_LOOKAHEAD_DS_2x:
-                hb_log("encqsvInit: LookAheadDS 2x");
-                break;
-            case MFX_LOOKAHEAD_DS_4x:
-                hb_log("encqsvInit: LookAheadDS 4x");
-                break;
-            default:
-                hb_log("encqsvInit: invalid LookAheadDS value 0x%"PRIx16"",
-                       option2->LookAheadDS);
-                break;
-        }
-    }
     switch (videoParam.mfx.FrameInfo.PicStruct)
     {
         // quiet, most people don't care
