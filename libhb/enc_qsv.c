@@ -243,6 +243,7 @@ static void qsv_set_breftype(hb_work_private_t *pv)
                 break;
         }
     }
+    hb_log("FFALIGN(0, 8): %d", FFALIGN(0, 8));//debug
     hb_log("FFALIGN(7, 8): %d", FFALIGN(7, 8));//debug
 
     if (pv->qsv_info->capabilities & HB_QSV_CAP_OPTION2_BREFTYPE)
