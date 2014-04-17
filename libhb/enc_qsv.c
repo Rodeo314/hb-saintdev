@@ -1032,7 +1032,7 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
         MFXClose(session);
     }
 
-    /* check whether B-frames are used and fixme */
+    /* B-frame related setup */
     if (videoParam.mfx.GopRefDist > 1)
     {
         /* the muxer needs to know to the init_delay */
