@@ -1036,20 +1036,6 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     {
         hb_log("encqsvInit: BFrames %s", bframes ? "on" : "off");
     }
-    if (pv->qsv_info->capabilities & HB_QSV_CAP_OPTION2_IB_ADAPT)
-    {
-        if (bframes)
-        {
-            hb_log("encqsvInit: AdaptiveI %s AdaptiveB %s",
-                   hb_qsv_codingoption_get_name(option2->AdaptiveI),
-                   hb_qsv_codingoption_get_name(option2->AdaptiveB));
-        }
-        else
-        {
-            hb_log("encqsvInit: AdaptiveI %s",
-                   hb_qsv_codingoption_get_name(option2->AdaptiveI));
-        }
-    }
     if (videoParam.mfx.RateControlMethod == MFX_RATECONTROL_CQP)
     {
         char qpi[7], qpp[9], qpb[9];
