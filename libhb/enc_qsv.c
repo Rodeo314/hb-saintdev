@@ -211,6 +211,20 @@ static void qsv_set_breftype(hb_work_private_t *pv)
      */
     if (!(pv->qsv_info->capabilities & HB_QSV_CAP_B_REF_PYRAMID))
     {
+        /* B-pyramid support not implemented */
+        pv->param.gop.b_pyramid = 0;
+        return;
+    }
+    else if (pv->param.videoParam->mfx.GopPicSize &&
+             pv->param.videoParam->mfx.GopPicSize < 4)
+    {
+        /* GOP too short for B-pyramid */
+        pv->param.gop.b_pyramid = 0;
+        return;
+    }
+    else if (pv->param.videoParam->mfx.GopRefDist == 1)
+    {
+        /* B-frames explicitly disabled */
         pv->param.gop.b_pyramid = 0;
         return;
     }
@@ -221,6 +235,7 @@ static void qsv_set_breftype(hb_work_private_t *pv)
             case MFX_PROFILE_AVC_BASELINE:
             case MFX_PROFILE_AVC_CONSTRAINED_HIGH:
             case MFX_PROFILE_AVC_CONSTRAINED_BASELINE:
+                // profile disables B-frames altogether
                 pv->param.gop.b_pyramid = 0;
                 return;
             default:
@@ -256,24 +271,29 @@ static void qsv_set_breftype(hb_work_private_t *pv)
             /*
              * B-pyramid enabled.
              *
-             * GopRefDist:  must be a power of 2 and >= 4.
-             * GopPicSize:  must be a multiple of GopRefDist.
-             * NumRefFrame: must be >= MAX(3, GopRefDist / 2).
-             * Otherwise, MSDK may sometimes decide to disable B-pyramid too
-             * (whereas sometimes it will just sanitize NumRefFrame instead).
-             *
-             * Notes: Media SDK handles the NumRefFrame == 0 case for us.
-             *        Also, GopPicSize == 0 should always result in a value that
-             *        does NOT cause Media SDK to disable B-pyramid, so it's OK.
+             * GopRefDist must be a power of 2 and >= 4.
              */
             pv->param.videoParam->mfx.GopRefDist = gop_ref_dist;
 
+            /*
+             * GopPicSize must be a multiple of GopRefDist.
+             *
+             * Note: GopPicSize == 0 should always result in a value
+             *       that doesn't cause Media SDK to disable B-pyramid.
+             */
             if (pv->param.videoParam->mfx.GopPicSize)
             {
                 pv->param.videoParam->mfx.GopPicSize = FFALIGN(pv->param.videoParam->mfx.GopPicSize,
                                                                pv->param.videoParam->mfx.GopRefDist);
             }
 
+            /*
+             * NumRefFrame must be greater than 3 and than half of GopRefDist.
+             * Otherwise, Media SDK may sometimes decide to disable B-pyramid
+             * (whereas sometimes it will simply sanitize NumRefFrame instead).
+             *
+             * Note: Media SDK handles the NumRefFrame == 0 case for us.
+             */
             if (pv->param.videoParam->mfx.NumRefFrame)
             {
                 pv->param.videoParam->mfx.NumRefFrame = FFMAX(pv->param.videoParam->mfx.NumRefFrame,
