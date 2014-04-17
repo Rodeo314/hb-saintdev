@@ -1126,10 +1126,11 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     }
     hb_log("encqsvInit: CAVLC %s",
            hb_qsv_codingoption_get_name(option1->CAVLC));
-    if (pv->param.rc.lookahead           == 0 &&
+    if (pv->param.rc.icq                 == 0 &&
+        pv->param.rc.lookahead           == 0 &&
         videoParam.mfx.RateControlMethod != MFX_RATECONTROL_CQP)
     {
-        // LA/CQP and ExtBRC/MBBRC are mutually exclusive
+        /* LA/CQP/ICQ and ExtBRC/MBBRC are mutually exclusive */
         if (pv->qsv_info->capabilities & HB_QSV_CAP_OPTION2_EXTBRC)
         {
             hb_log("encqsvInit: ExtBRC %s",
