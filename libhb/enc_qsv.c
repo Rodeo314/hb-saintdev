@@ -261,20 +261,21 @@ static void qsv_set_breftype(hb_work_private_t *pv)
         /*
          * We can't control B-pyramid directly, so do it indirectly by
          * adjusting GopRefDist, GopPicSize and NumRefFrame instead.
+         *
+         * pyramid_ref_dist is the closest B-pyramid compatible
+         * value (multiple of 2, >= 4) to the requested GopRefDist.
          */
-        int gop_ref_dist = 4;
-        while (pv->param.videoParam->mfx.GopRefDist >= gop_ref_dist * 2)
+        int  pyramid_ref_dist;
+        for (pyramid_ref_dist  = 4;
+             pyramid_ref_dist <= pv->param.videoParam->mfx.GopRefDist;
+             pyramid_ref_dist *= 2)
         {
-            gop_ref_dist *= 2;//fixme
+            continue;
         }
         if (pv->param.gop.b_pyramid)
         {
-            /*
-             * B-pyramid enabled.
-             *
-             * GopRefDist must be a power of 2 and >= 4.
-             */
-            pv->param.videoParam->mfx.GopRefDist = gop_ref_dist;
+            /* GopRefDist must be B-pyramid compatible */
+            pv->param.videoParam->mfx.GopRefDist = pyramid_ref_dist;
 
             /*
              * GopPicSize must be a multiple of GopRefDist.
@@ -302,39 +303,11 @@ static void qsv_set_breftype(hb_work_private_t *pv)
                 pv->param.videoParam->mfx.NumRefFrame = FFMAX(pv->param.videoParam->mfx.NumRefFrame, 3);
             }
         }
-        else
+        else if (pv->param.videoParam->mfx.GopRefDist == 0 ||
+                 pv->param.videoParam->mfx.GopRefDist == pyramid_ref_dist)
         {
-            /* B-pyramid disabled. Adjust settings to actually disable it. */
-            if (pv->param.videoParam->mfx.GopRefDist == 0)
-            {
-                /*
-                 * GopRefDist == 0 means the value will be set by Media SDK.
-                 * Since we can't be sure what the actual value would be, we
-                 * have to make sure that GopRefDist is set explicitly.
-                 */
-                pv->param.videoParam->mfx.GopRefDist = gop_ref_dist - 1;
-            }
-            else if (pv->param.videoParam->mfx.GopRefDist == gop_ref_dist)
-            {
-                /* GopRefDist is compatible with Media SDK's B-pyramid. */
-                if (pv->param.videoParam->mfx.GopPicSize == 0)
-                {
-                    /*
-                     * GopPicSize is unknown and could be a multiple of
-                     * GopRefDist. Decrement the latter to disable B-pyramid.
-                     */
-                    pv->param.videoParam->mfx.GopRefDist--;
-                }
-                else if (pv->param.videoParam->mfx.GopPicSize %
-                         pv->param.videoParam->mfx.GopRefDist == 0)
-                {
-                    /*
-                     * GopPicSize is a multiple of GopRefDist.
-                     * Increment the former to disable B-pyramid.
-                     */
-                    pv->param.videoParam->mfx.GopPicSize++;
-                }
-            }
+            /* GopRefDist is B-pyramid compatible or unknown, adjust it */
+            pv->param.videoParam->mfx.GopRefDist = pyramid_ref_dist - 1;
         }
     }
 }
