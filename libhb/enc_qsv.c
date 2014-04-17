@@ -1404,6 +1404,8 @@ static void compute_init_delay(hb_work_private_t *pv, mfxBitstream *bs)
         pv->init_delay[0] = pv->init_pts[1] - pv->init_pts[0];
     }
 
+    hb_log("init_delay: %"PRIu32" bfrm_delay %d", pv->init_delay[0], pv->bfrm_delay);//debug
+
     /* The delay only needs to be set once. */
     pv->init_delay = NULL;
 }
@@ -1470,6 +1472,11 @@ static void qsv_bitstream_slurp(hb_work_private_t *pv, mfxBitstream *bs)
 
         /* don't pollute the log unnecessarily */
         pv->param.gop.b_pyramid = 1;
+    }
+    if ((bs->FrameType & MFX_FRAMETYPE_B) &&
+        (bs->FrameType & MFX_FRAMETYPE_REF))
+    {
+        hb_log("encqsv: we have B-pyramid :-)");//debug
     }
 
     /* check for PTS < DTS */
