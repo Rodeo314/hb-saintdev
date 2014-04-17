@@ -191,6 +191,40 @@ static const char* qsv_h264_level_xlat(int level)
 
 static void qsv_breftype_set(hb_work_private_t *pv)
 {
+    /*
+     * If B-pyramid is not possible (not supported, incompatible profile, etc.)
+     * we don't need to adjust any settings, just sanitize it to off and return.
+     */
+    if (!(pv->qsv_info->capabilities & HB_QSV_CAP_B_REF_PYRAMID))
+    {
+        /* B-pyramid support not implemented */
+        goto no_b_pyramid;
+    }
+    else if (pv->param.videoParam->mfx.GopPicSize &&
+             pv->param.videoParam->mfx.GopPicSize <= 3)
+    {
+        /* GOP size must be at least 4 for B-pyramid */
+        goto no_b_pyramid;
+    }
+    else if (pv->param.videoParam->mfx.GopRefDist &&
+             pv->param.videoParam->mfx.GopRefDist <= 2)
+    {
+        /* We need 2 consecutive B-frames for B-pyramid (GopRefDist >= 3) */
+        goto no_b_pyramid;
+    }
+    else if (pv->qsv_info->codec_id == MFX_CODEC_AVC)
+    {
+        switch (pv->param.videoParam->mfx.CodecProfile)
+        {
+            case MFX_PROFILE_AVC_BASELINE:
+            case MFX_PROFILE_AVC_CONSTRAINED_HIGH:
+            case MFX_PROFILE_AVC_CONSTRAINED_BASELINE:
+                goto no_b_pyramid; // B-frames not allowed by profile
+            default:
+                break;
+        }
+    }
+
     /* handle B-pyramid auto (on for CQP, off otherwise) */
     if (pv->param.gop.b_pyramid < 0)
     {
@@ -204,44 +238,6 @@ static void qsv_breftype_set(hb_work_private_t *pv)
         }
     }
     pv->param.gop.b_pyramid = !!pv->param.gop.b_pyramid;
-
-    /*
-     * If B-pyramid is not possible (not supported, incompatible profile, etc.)
-     * we don't need to adjust any settings, just sanitize it to off and return.
-     */
-    if (!(pv->qsv_info->capabilities & HB_QSV_CAP_B_REF_PYRAMID))
-    {
-        /* B-pyramid support not implemented */
-        pv->param.gop.b_pyramid = 0;
-        return;
-    }
-    else if (pv->param.videoParam->mfx.GopPicSize &&
-             pv->param.videoParam->mfx.GopPicSize <= 3)
-    {
-        /* GOP size must be at least 4 for B-pyramid */
-        pv->param.gop.b_pyramid = 0;
-        return;
-    }
-    else if (pv->param.videoParam->mfx.GopRefDist &&
-             pv->param.videoParam->mfx.GopRefDist <= 2)
-    {
-        /* We need 2 consecutive B-frames for B-pyramid (GopRefDist >= 3) */
-        pv->param.gop.b_pyramid = 0;
-        return;
-    }
-    else if (pv->qsv_info->codec_id == MFX_CODEC_AVC)
-    {
-        switch (pv->param.videoParam->mfx.CodecProfile)
-        {
-            case MFX_PROFILE_AVC_BASELINE:
-            case MFX_PROFILE_AVC_CONSTRAINED_HIGH:
-            case MFX_PROFILE_AVC_CONSTRAINED_BASELINE:
-                pv->param.gop.b_pyramid = 0; // B-frames not allowed by profile
-                return;
-            default:
-                break;
-        }
-    }
 
     if (pv->qsv_info->capabilities & HB_QSV_CAP_OPTION2_BREFTYPE)
     {
@@ -258,7 +254,7 @@ static void qsv_breftype_set(hb_work_private_t *pv)
     else
     {
         /*
-         * We can't control B-pyramid directly, so do it indirectly by
+         * We can't control B-pyramid directly, do it indirectly by
          * adjusting GopRefDist, GopPicSize and NumRefFrame instead.
          */
         int pyramid_ref_dist;
@@ -316,6 +312,12 @@ static void qsv_breftype_set(hb_work_private_t *pv)
             pv->param.videoParam->mfx.GopRefDist = pyramid_ref_dist - 1;
         }
     }
+
+    return; // B-pyramid setup complete
+
+no_b_pyramid:
+    pv->param.gop.b_pyramid          = 0;
+    pv->param.codingOption2.BRefType = MFX_B_REF_OFF;
 }
 
 int qsv_enc_init(hb_work_private_t *pv)
