@@ -189,7 +189,7 @@ static const char* qsv_h264_level_xlat(int level)
     return NULL;
 }
 
-static void qsv_set_breftype(hb_work_private_t *pv)
+static void qsv_breftype_set(hb_work_private_t *pv)
 {
     /* handle B-pyramid auto (on for CQP, off otherwise) */
     if (pv->param.gop.b_pyramid < 0)
@@ -236,8 +236,7 @@ static void qsv_set_breftype(hb_work_private_t *pv)
             case MFX_PROFILE_AVC_BASELINE:
             case MFX_PROFILE_AVC_CONSTRAINED_HIGH:
             case MFX_PROFILE_AVC_CONSTRAINED_BASELINE:
-                // profile disables B-frames altogether
-                pv->param.gop.b_pyramid = 0;
+                pv->param.gop.b_pyramid = 0; // B-frames not allowed by profile
                 return;
             default:
                 break;
@@ -258,6 +257,7 @@ static void qsv_set_breftype(hb_work_private_t *pv)
     }
     else
     {
+        int pyramid_ref_dist;
         /*
          * We can't control B-pyramid directly, so do it indirectly by
          * adjusting GopRefDist, GopPicSize and NumRefFrame instead.
@@ -265,13 +265,13 @@ static void qsv_set_breftype(hb_work_private_t *pv)
          * pyramid_ref_dist is the closest B-pyramid compatible
          * value (multiple of 2, >= 4) to the requested GopRefDist.
          */
-        int  pyramid_ref_dist;
         for (pyramid_ref_dist  = 4;
              pyramid_ref_dist <= pv->param.videoParam->mfx.GopRefDist;
              pyramid_ref_dist *= 2)
         {
             continue;
         }
+
         if (pv->param.gop.b_pyramid)
         {
             /* GopRefDist must be B-pyramid compatible */
@@ -306,7 +306,10 @@ static void qsv_set_breftype(hb_work_private_t *pv)
         else if (pv->param.videoParam->mfx.GopRefDist == 0 ||
                  pv->param.videoParam->mfx.GopRefDist == pyramid_ref_dist)
         {
-            /* GopRefDist is B-pyramid compatible or unknown, adjust it */
+            /*
+             * GopRefDist is either B-pyramid compatible or unknown (and thus
+             * potentially compatible), so adjust it to force-disable B-pyramid.
+             */
             pv->param.videoParam->mfx.GopRefDist = pyramid_ref_dist - 1;
         }
     }
@@ -916,7 +919,7 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
      * - the rate control method
      * - the GOP settings (GopRefDist, GopPicSize)
      */
-    qsv_set_breftype(pv);
+    qsv_breftype_set(pv);
 
     /*
      * init a dummy encode-only session to get the SPS/PPS
