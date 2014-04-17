@@ -1030,9 +1030,8 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
         MFXClose(session);
     }
 
-    /* check whether B-frames are used */
-    int bframes = videoParam.mfx.GopRefDist > 1 && videoParam.mfx.GopPicSize > 2;
-    if (bframes)
+    /* check whether B-frames are used and fixme */
+    if (videoParam.mfx.GopRefDist > 1)
     {
         /* the muxer needs to know to the init_delay */
         switch (pv->qsv_info->codec_id)
@@ -1060,13 +1059,16 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
            videoParam.mfx.GopRefDist, videoParam.mfx.GopPicSize, videoParam.mfx.NumRefFrame);
     if (pv->qsv_info->capabilities & HB_QSV_CAP_B_REF_PYRAMID)
     {
-        hb_log("encqsvInit: BFrames %s BPyramid %s",
-               bframes                            ? "on" : "off",
-               bframes && pv->param.gop.b_pyramid ? "on" : "off");
+        hb_log("encqsvInit: BFrames %d BRefType %s",
+               videoParam.mfx.GopRefDist > 1 ?
+               videoParam.mfx.GopRefDist - 1 : 0,
+               pv->param.gop.b_pyramid ? "pyramid" : "off");
     }
     else
     {
-        hb_log("encqsvInit: BFrames %s", bframes ? "on" : "off");
+        hb_log("encqsvInit: BFrames %d",
+               videoParam.mfx.GopRefDist > 1 ?
+               videoParam.mfx.GopRefDist - 1 : 0);
     }
     if (videoParam.mfx.RateControlMethod == MFX_RATECONTROL_CQP)
     {
