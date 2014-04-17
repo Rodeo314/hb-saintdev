@@ -265,7 +265,7 @@ static void qsv_breftype_set(hb_work_private_t *pv)
          * value (multiple of 2, >= 4) to the requested GopRefDist.
          */
         for (pyramid_ref_dist  = 4;
-             pyramid_ref_dist <= pv->param.videoParam->mfx.GopRefDist;
+             pyramid_ref_dist  < pv->param.videoParam->mfx.GopRefDist;
              pyramid_ref_dist *= 2)
         {
             continue;
