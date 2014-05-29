@@ -151,9 +151,9 @@ int encx265Init(hb_work_object_t *w, hb_job_t *job)
             snprintf(colormatrix, sizeof(colormatrix), "%d", job->color_matrix);
             break;
         default: // detected during scan
-            snprintf(colorprim,   sizeof(colorprim),   "%d", job->title->color_prim);
-            snprintf(transfer,    sizeof(transfer),    "%d", job->title->color_transfer);
-            snprintf(colormatrix, sizeof(colormatrix), "%d", job->title->color_matrix);
+            snprintf(colorprim,   sizeof(colorprim),   "%d", job->title->color.primaries);
+            snprintf(transfer,    sizeof(transfer),    "%d", job->title->color.transfer);
+            snprintf(colormatrix, sizeof(colormatrix), "%d", job->title->color.matrix);
             break;
     }
     if (x265_param_parse(param, "colorprim",   colorprim)   ||

@@ -2007,72 +2007,88 @@ static int decavcodecvInfo( hb_work_object_t *w, hb_work_info_t *info )
     info->level = pv->context->level;
     info->name = pv->context->codec->name;
 
-    switch( pv->context->color_primaries )
+    switch (pv->context->color_primaries)
     {
         case AVCOL_PRI_BT709:
-            info->color_prim = HB_COLR_PRI_BT709;
-            break;
-        case AVCOL_PRI_BT470BG:
-            info->color_prim = HB_COLR_PRI_EBUTECH;
+            info->color.primaries = HB_COLR_PRI_BT709;
             break;
         case AVCOL_PRI_BT470M:
+            info->color.primaries = HB_COLR_PRI_SMPTEC;
+            break;
+        case AVCOL_PRI_BT470BG:
+            info->color.primaries = HB_COLR_PRI_EBUTECH;
+            break;
         case AVCOL_PRI_SMPTE170M:
+            info->color.primaries = HB_COLR_PRI_SMPTEC;
+            break;
         case AVCOL_PRI_SMPTE240M:
-            info->color_prim = HB_COLR_PRI_SMPTEC;
+            info->color.primaries = HB_COLR_PRI_SMPTEC;
             break;
         default:
-        {
-            if( ( info->width >= 1280 || info->height >= 720 ) ||
-                ( info->width >   720 && info->height >  576 ) )
-                // ITU BT.709 HD content
-                info->color_prim = HB_COLR_PRI_BT709;
-            else if( info->rate_base == 1080000 )
-                // ITU BT.601 DVD or SD TV content (PAL)
-                info->color_prim = HB_COLR_PRI_EBUTECH;
-            else
-                // ITU BT.601 DVD or SD TV content (NTSC)
-                info->color_prim = HB_COLR_PRI_SMPTEC;
+            info->color.primaries = HB_COLR_PRI_UNDEF;
             break;
-        }
     }
 
-    switch( pv->context->color_trc )
+    switch (pv->context->color_trc)
     {
+        case AVCOL_TRC_BT709:
+            info->color.transfer = HB_COLR_TRA_BT709;
+            break;
+        case AVCOL_TRC_GAMMA22:
+            info->color.transfer = HB_COLR_TRA_GAMMA22;
+            break;
+        case AVCOL_TRC_GAMMA28:
+            info->color.transfer = HB_COLR_TRA_GAMMA28;
+            break;
+        case 6:
+            info->color.transfer = HB_COLR_TRA_SMPTE170M;
+            break;
         case AVCOL_TRC_SMPTE240M:
-            info->color_transfer = HB_COLR_TRA_SMPTE240M;
+            info->color.transfer = HB_COLR_TRA_SMPTE240M;
             break;
         default:
-            // ITU BT.601, BT.709, anything else
-            info->color_transfer = HB_COLR_TRA_BT709;
+            info->color.transfer = HB_COLR_TRA_UNDEF;
             break;
     }
 
-    switch( pv->context->colorspace )
+    switch (pv->context->colorspace)
     {
+        // RGB is converted via libswscale, which uses an ITU-R BT.601 matrix
+        case AVCOL_SPC_RGB:
+            info->color.matrix = HB_COLR_MAT_SMPTE170M;
+            break;
         case AVCOL_SPC_BT709:
-            info->color_matrix = HB_COLR_MAT_BT709;
+            info->color.matrix = HB_COLR_MAT_BT709;
             break;
         case AVCOL_SPC_FCC:
+            info->color.matrix = HB_COLR_MAT_FCC_NTSC;
+            break;
         case AVCOL_SPC_BT470BG:
+            info->color.matrix = HB_COLR_MAT_BT470BG;
+            break;
         case AVCOL_SPC_SMPTE170M:
-        case AVCOL_SPC_RGB: // libswscale rgb2yuv
-            info->color_matrix = HB_COLR_MAT_SMPTE170M;
+            info->color.matrix = HB_COLR_MAT_SMPTE170M;
             break;
         case AVCOL_SPC_SMPTE240M:
-            info->color_matrix = HB_COLR_MAT_SMPTE240M;
+            info->color.matrix = HB_COLR_MAT_SMPTE240M;
             break;
         default:
-        {
-            if( ( info->width >= 1280 || info->height >= 720 ) ||
-                ( info->width >   720 && info->height >  576 ) )
-                // ITU BT.709 HD content
-                info->color_matrix = HB_COLR_MAT_BT709;
-            else
-                // ITU BT.601 DVD or SD TV content (PAL)
-                // ITU BT.601 DVD or SD TV content (NTSC)
-                info->color_matrix = HB_COLR_MAT_SMPTE170M;
+            info->color.primaries = HB_COLR_MAT_UNDEF;
             break;
-        }
+    }
+
+    switch (pv->context->color_range)
+    {
+        case AVCOL_RANGE_MPEG:
+            info->color.range = HB_COLR_RAN_ITU;
+            break;
+        case AVCOL_RANGE_JPEG:
+            info->color.range = HB_COLR_RAN_FULL;
+            break;
+        case AVCOL_RANGE_UNSPECIFIED:
+        default:
+            info->color.range = HB_COLR_RAN_UNKNOWN;
+            break;
     }
 
     info->video_decode_support = HB_DECODE_SUPPORT_SW;

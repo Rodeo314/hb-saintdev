@@ -275,7 +275,7 @@ static int MP4Init( hb_mux_object_t * m )
     else
     {
         // detected during scan
-        MP4AddColr(m->file, mux_data->track, title->color_prim, title->color_transfer, title->color_matrix);        
+        MP4AddColr(m->file, mux_data->track, title->color.primaries, title->color.transfer, title->color.matrix);
     }
 
     if( job->anamorphic.mode )

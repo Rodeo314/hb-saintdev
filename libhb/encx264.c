@@ -187,9 +187,9 @@ int encx264Init( hb_work_object_t * w, hb_job_t * job )
     else
     {
         // detected during scan
-        param.vui.i_colorprim = job->title->color_prim;
-        param.vui.i_transfer  = job->title->color_transfer;
-        param.vui.i_colmatrix = job->title->color_matrix;
+        param.vui.i_colorprim = job->title->color.primaries;
+        param.vui.i_transfer  = job->title->color.transfer;
+        param.vui.i_colmatrix = job->title->color.matrix;
     }
 
     /* place job->encoder_options in an hb_dict_t for convenience */

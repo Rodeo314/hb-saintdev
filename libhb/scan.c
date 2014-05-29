@@ -859,9 +859,8 @@ skip_preview:
             title->pixel_aspect_width = vid_info.pixel_aspect_width;
             title->pixel_aspect_height = vid_info.pixel_aspect_height;
         }
-        title->color_prim = vid_info.color_prim;
-        title->color_transfer = vid_info.color_transfer;
-        title->color_matrix = vid_info.color_matrix;
+
+        title->color = vid_info.color;
 
         title->video_decode_support = vid_info.video_decode_support;
 

@@ -445,9 +445,9 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
             break;
         default:
             // detected during scan
-            pv->param.videoSignalInfo.ColourPrimaries         = job->title->color_prim;
-            pv->param.videoSignalInfo.TransferCharacteristics = job->title->color_transfer;
-            pv->param.videoSignalInfo.MatrixCoefficients      = job->title->color_matrix;
+            pv->param.videoSignalInfo.ColourPrimaries         = job->title->color.primaries;
+            pv->param.videoSignalInfo.TransferCharacteristics = job->title->color.transfer;
+            pv->param.videoSignalInfo.MatrixCoefficients      = job->title->color.matrix;
             break;
     }
 

@@ -78,6 +78,7 @@ typedef struct hb_dither_s hb_dither_t;
 typedef struct hb_mixdown_s hb_mixdown_t;
 typedef struct hb_encoder_s hb_encoder_t;
 typedef struct hb_container_s hb_container_t;
+typedef struct hb_colorimetry_s hb_colorimetry_t;
 typedef struct hb_job_s  hb_job_t;
 typedef struct hb_title_set_s hb_title_set_t;
 typedef struct hb_title_s hb_title_t;
@@ -243,6 +244,74 @@ struct hb_subtitle_config_s
     char src_filename[256];
     char src_codeset[40];
     int64_t offset;
+};
+
+// Update win/CS/HandBrake.Interop/HandBrakeInterop/HbLib/hb_colorimetry_s.cs when changing this struct
+struct hb_colorimetry_s
+{
+    /*
+     * Color matrix, primaries and transfer characteristics.
+     *
+     * References: https://developer.apple.com/library/mac/technotes/tn2162/_index.html
+     *             Technical Note TN2162
+     *             Uncompressed Y´CbCr Video in QuickTime Files
+     *             The 'nclc' 'colr' ImageDescription Extension: Y´CbCr Color Parameters
+     *
+     *             https://developer.apple.com/library/mac/technotes/tn2227/_index.html
+     *             Technical Note TN2227
+     *             Video Color Management in AV Foundation and QTKit
+     *             'nclc' : A Structured Way to Tag Video Color
+     *
+     * We map values as per the recommendations found in the above documents.
+     */
+    enum
+    {
+        // 0: reserved
+        HB_COLR_PRI_BT709     = 1,
+        HB_COLR_PRI_UNDEF     = 2,
+        HB_COLR_PRI_RESERVED3 = 3,
+        HB_COLR_PRI_FCC_NTSC  = 6, // 4, map to SPMTE C (obsolete)
+        HB_COLR_PRI_EBUTECH   = 5,
+        HB_COLR_PRI_SMPTEC    = 6,
+        HB_COLR_PRI_SMPTE240M = 6, // 7, map to SPMTE C (identical in ITU-T Rec. H.262, 07/1995)
+        // 8-65535: reverved
+    } primaries;
+
+    enum
+    {
+        // 0: reserved
+        HB_COLR_TRA_BT709     = 1,
+        HB_COLR_TRA_UNDEF     = 2,
+        HB_COLR_TRA_RESERVED3 = 3,
+        HB_COLR_TRA_GAMMA22   = 1, // 4, map to BT.709 (obsolete)
+        HB_COLR_TRA_GAMMA28   = 1, // 5, map to BT.709 (obsolete)
+        HB_COLR_TRA_SMPTE170M = 1, // 6, map to BT.709 (identical in ITU-T Rec. H.262, 07/1995)
+        HB_COLR_TRA_SMPTE240M = 7,
+        // 8-65535: reverved
+    } transfer;
+
+    enum
+    {
+        // 0: reserved/RGB
+        HB_COLR_MAT_BT709     = 1,
+        HB_COLR_MAT_UNDEF     = 2,
+        HB_COLR_MAT_RESERVED3 = 3,
+        HB_COLR_MAT_FCC_NTSC  = 6, // 4, map to SMPTE 170M (obsolete)
+        HB_COLR_MAT_BT470BG   = 6, // 5, map to SMPTE 170M (identical in ITU-T Rec. H.262, 07/1995)
+        HB_COLR_MAT_SMPTE170M = 6,
+        HB_COLR_MAT_SMPTE240M = 7,
+        // 8-65535: reverved
+    } matrix;
+
+    /*
+     * Color range (full or limited).
+     */
+    enum
+    {
+        HB_COLR_RAN_UNKNOWN   = 1, // unknown, assume TV range
+        HB_COLR_RAN_ITU       = 1, // TV range, 16..235
+        HB_COLR_RAN_FULL      = 2, // PC range,  0..255
+    } range;
 };
 
 /*******************************************************************************
@@ -474,21 +543,6 @@ struct hb_job_s
     int             color_prim;
     int             color_transfer;
     int             color_matrix;
-// see https://developer.apple.com/quicktime/icefloe/dispatch019.html#colr
-#define HB_COLR_PRI_BT709     1
-#define HB_COLR_PRI_UNDEF     2
-#define HB_COLR_PRI_EBUTECH   5 // use for bt470bg
-#define HB_COLR_PRI_SMPTEC    6 // smpte170m; also use for bt470m and smpte240m
-// 0, 3-4, 7-65535: reserved
-#define HB_COLR_TRA_BT709     1 // also use for bt470m, bt470bg and smpte170m
-#define HB_COLR_TRA_UNDEF     2
-#define HB_COLR_TRA_SMPTE240M 7
-// 0, 3-6, 8-65535: reserved
-#define HB_COLR_MAT_BT709     1
-#define HB_COLR_MAT_UNDEF     2
-#define HB_COLR_MAT_SMPTE170M 6 // also use for fcc and bt470bg
-#define HB_COLR_MAT_SMPTE240M 7
-// 0, 3-5, 8-65535: reserved
 
     hb_list_t     * list_chapter;
 
@@ -891,9 +945,7 @@ struct hb_title_s
     int         height;
     int         pixel_aspect_width;
     int         pixel_aspect_height;
-    int         color_prim;
-    int         color_transfer;
-    int         color_matrix;
+    hb_colorimetry_t color;
     int         rate;
     int         rate_base;
     int         crop[4];
@@ -1008,10 +1060,8 @@ typedef struct hb_work_info_s
             int height;
             int pixel_aspect_width;
             int pixel_aspect_height;
-            int color_prim;
-            int color_transfer;
-            int color_matrix;
             int video_decode_support;
+            hb_colorimetry_t color;
         };
         struct
         {    // info only valid for audio decoders
