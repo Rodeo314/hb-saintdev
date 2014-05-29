@@ -2090,6 +2090,18 @@ static int decavcodecvInfo( hb_work_object_t *w, hb_work_info_t *info )
             info->color.range = HB_COLR_RAN_UNKNOWN;
             break;
     }
+    // some decoders convey the range via the pixel format instead
+    switch (pv->context->pix_fmt)
+    {
+        case AV_PIX_FMT_YUVJ420P:
+        case AV_PIX_FMT_YUVJ422P:
+        case AV_PIX_FMT_YUVJ444P:
+        case AV_PIX_FMT_YUVJ440P:
+            info->color.range = HB_COLR_RAN_FULL;
+            break;
+        default:
+            break;
+    }
 
     info->video_decode_support = HB_DECODE_SUPPORT_SW;
     switch (pv->context->codec_id)
