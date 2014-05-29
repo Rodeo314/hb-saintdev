@@ -2012,6 +2012,9 @@ static int decavcodecvInfo( hb_work_object_t *w, hb_work_info_t *info )
         case AVCOL_PRI_BT709:
             info->color.primaries = HB_COLR_PRI_BT709;
             break;
+        case AVCOL_PRI_UNSPECIFIED:
+            info->color.transfer = HB_COLR_PRI_UNDEF;
+            break;
         case AVCOL_PRI_BT470M:
             info->color.primaries = HB_COLR_PRI_SMPTEC;
             break;
@@ -2024,8 +2027,8 @@ static int decavcodecvInfo( hb_work_object_t *w, hb_work_info_t *info )
         case AVCOL_PRI_SMPTE240M:
             info->color.primaries = HB_COLR_PRI_SMPTEC;
             break;
-        default:
-            info->color.primaries = HB_COLR_PRI_UNDEF;
+        default: // if we don't know how to handle it, pass it through
+            info->color.primaries = pv->context->color_primaries;
             break;
     }
 
@@ -2033,6 +2036,9 @@ static int decavcodecvInfo( hb_work_object_t *w, hb_work_info_t *info )
     {
         case AVCOL_TRC_BT709:
             info->color.transfer = HB_COLR_TRA_BT709;
+            break;
+        case AVCOL_TRC_UNSPECIFIED:
+            info->color.transfer = HB_COLR_TRA_UNDEF;
             break;
         case AVCOL_TRC_GAMMA22:
             info->color.transfer = HB_COLR_TRA_GAMMA22;
@@ -2046,16 +2052,18 @@ static int decavcodecvInfo( hb_work_object_t *w, hb_work_info_t *info )
         case AVCOL_TRC_SMPTE240M:
             info->color.transfer = HB_COLR_TRA_SMPTE240M;
             break;
-        default:
-            info->color.transfer = HB_COLR_TRA_UNDEF;
+        default: // if we don't know how to handle it, pass it through
+            info->color.transfer = pv->context->color_trc;
             break;
     }
 
     switch (pv->context->colorspace)
     {
-        // RGB is converted via libswscale, which uses an ITU-R BT.601 matrix
-        case AVCOL_SPC_RGB:
+        case AVCOL_SPC_RGB: // RGB is converted by swscale with a BT.601 matrix
             info->color.matrix = HB_COLR_MAT_SMPTE170M;
+            break;
+        case AVCOL_SPC_UNSPECIFIED:
+            info->color.transfer = HB_COLR_MAT_UNDEF;
             break;
         case AVCOL_SPC_BT709:
             info->color.matrix = HB_COLR_MAT_BT709;
@@ -2072,8 +2080,8 @@ static int decavcodecvInfo( hb_work_object_t *w, hb_work_info_t *info )
         case AVCOL_SPC_SMPTE240M:
             info->color.matrix = HB_COLR_MAT_SMPTE240M;
             break;
-        default:
-            info->color.primaries = HB_COLR_MAT_UNDEF;
+        default: // if we don't know how to handle it, pass it through
+            info->color.primaries = pv->context->colorspace;
             break;
     }
 
