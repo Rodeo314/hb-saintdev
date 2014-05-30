@@ -29,6 +29,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef USE_QSV
 
 #include "hb.h"
+#include "common.h"
 #include "hbffmpeg.h"
 #include "qsv_memory.h"
 
@@ -95,6 +96,28 @@ int qsv_nv12_to_yuv420(struct SwsContext* sws_context,hb_buffer_t* dst, mfxFrame
     {
         free(accel_dst.Data.Y);
         free(accel_dst.Data.VU);
+    }
+
+    /* Reset output flags just in case. */
+    dst->s.flags = 0;
+
+    /*
+     * Map Media SDK PicStruct flags to hb_buffer_t flags.
+     *
+     * This is only needed by software filters (detelecine, decomb, deinterlace),
+     * so only map the subset they use (progressive, tff and repeat first field).
+     */
+    if (src->Info.PicStruct & MFX_PICSTRUCT_PROGRESSIVE)
+    {
+        dst->s.flags |= PIC_FLAG_PROGRESSIVE_FRAME;
+    }
+    if (src->Info.PicStruct & MFX_PICSTRUCT_FIELD_TFF)
+    {
+        dst->s.flags |= PIC_FLAG_TOP_FIELD_FIRST;
+    }
+    if (src->Info.PicStruct & MFX_PICSTRUCT_FIELD_REPEATED)
+    {
+        dst->s.flags |= PIC_FLAG_REPEAT_FIRST_FIELD;
     }
 
     return ret;
