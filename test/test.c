@@ -2880,9 +2880,26 @@ static int HandleEvents( hb_handle_t * h )
 
             hb_job_set_file( job, output );
 
-            if( color_matrix_code )
+            switch (color_matrix_code)
             {
-                job->color_matrix_code = color_matrix_code;
+                case 1: // ITU BT.601 DVD or SD TV content (NTSC)
+                    job->color.matrix    = HB_COLR_MAT_SMPTE170M;
+                    job->color.transfer  = HB_COLR_TRA_BT709;
+                    job->color.primaries = HB_COLR_PRI_SMPTEC;
+                    break;
+                case 2: // ITU BT.601 DVD or SD TV content (PAL)
+                    job->color.matrix    = HB_COLR_MAT_SMPTE170M;
+                    job->color.transfer  = HB_COLR_TRA_BT709;
+                    job->color.primaries = HB_COLR_PRI_EBUTECH;
+                    break;
+                case 3: // ITU BT.709 HD content
+                    job->color.matrix    = HB_COLR_MAT_SMPTE170M;
+                    job->color.transfer  = HB_COLR_TRA_BT709;
+                    job->color.primaries = HB_COLR_PRI_SMPTEC;
+                    break;
+                default: // detected from source
+                    job->color = title->color;
+                    break;
             }
 
             hb_job_set_encoder_preset (job, x264_preset);

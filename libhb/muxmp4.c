@@ -248,35 +248,13 @@ static int MP4Init( hb_mux_object_t * m )
         hb_error("muxmp4.c: Unsupported video encoder!");
     }
 
-    /* COLR atom for color and gamma correction. Per the notes at:
+    /*
+     * COLR atom for color and gamma correction. Per the notes at:
      * http://developer.apple.com/quicktime/icefloe/dispatch019.html#colr
      * http://forum.doom9.org/showthread.php?t=133982#post1090068
-     * The user can set it from job->color_matrix_code. */
-    if( job->color_matrix_code == 4 )
-    {
-        // Custom
-        MP4AddColr(m->file, mux_data->track, job->color_prim, job->color_transfer, job->color_matrix);        
-    }
-    else if( job->color_matrix_code == 3 )
-    {
-        // ITU BT.709 HD content
-        MP4AddColr(m->file, mux_data->track, HB_COLR_PRI_BT709, HB_COLR_TRA_BT709, HB_COLR_MAT_BT709);
-    }
-    else if( job->color_matrix_code == 2 )
-    {
-        // ITU BT.601 DVD or SD TV content (PAL)
-        MP4AddColr(m->file, mux_data->track, HB_COLR_PRI_EBUTECH, HB_COLR_TRA_BT709, HB_COLR_MAT_SMPTE170M);
-    }
-    else if( job->color_matrix_code == 1 )
-    {
-        // ITU BT.601 DVD or SD TV content (NTSC)
-        MP4AddColr(m->file, mux_data->track, HB_COLR_PRI_SMPTEC, HB_COLR_TRA_BT709, HB_COLR_MAT_SMPTE170M);
-    }
-    else
-    {
-        // detected during scan
-        MP4AddColr(m->file, mux_data->track, title->color.primaries, title->color.transfer, title->color.matrix);
-    }
+     */
+    MP4AddColr(m->file, mux_data->track, job->color.primaries,
+               job->color.transfer,      job->color.matrix);
 
     if( job->anamorphic.mode )
     {

@@ -2990,6 +2990,8 @@ static void job_reset_for_mac_ui( hb_job_t * job, hb_title_t * title )
     job->chapter_end   = hb_list_count( title->list_chapter );
     job->list_chapter = hb_chapter_list_copy( title->list_chapter );
 
+    job->color = title->color;
+
     job->vcodec     = HB_VCODEC_FFMPEG_MPEG4;
     job->vquality   = -1.0;
     job->vbitrate   = 1000;
@@ -3044,6 +3046,8 @@ static void job_setup( hb_job_t * job, hb_title_t * title )
     }
 
     job->keep_ratio = 1;
+
+    job->color = title->color;
 
     job->vcodec     = HB_VCODEC_FFMPEG_MPEG4;
     job->vquality   = -1.0;

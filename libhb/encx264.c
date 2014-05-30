@@ -154,43 +154,10 @@ int encx264Init( hb_work_object_t * w, hb_job_t * job )
 
     param.i_log_level  = X264_LOG_INFO;
 
-    /* set up the VUI color model & gamma to match what the COLR atom
-     * set in muxmp4.c says. See libhb/muxmp4.c for notes. */
-    if( job->color_matrix_code == 4 )
-    {
-        // Custom
-        param.vui.i_colorprim = job->color_prim;
-        param.vui.i_transfer  = job->color_transfer;
-        param.vui.i_colmatrix = job->color_matrix;
-    }
-    else if( job->color_matrix_code == 3 )
-    {
-        // ITU BT.709 HD content
-        param.vui.i_colorprim = HB_COLR_PRI_BT709;
-        param.vui.i_transfer  = HB_COLR_TRA_BT709;
-        param.vui.i_colmatrix = HB_COLR_MAT_BT709;
-    }
-    else if( job->color_matrix_code == 2 )
-    {
-        // ITU BT.601 DVD or SD TV content (PAL)
-        param.vui.i_colorprim = HB_COLR_PRI_EBUTECH;
-        param.vui.i_transfer  = HB_COLR_TRA_BT709;
-        param.vui.i_colmatrix = HB_COLR_MAT_SMPTE170M;
-    }
-    else if( job->color_matrix_code == 1 )
-    {
-        // ITU BT.601 DVD or SD TV content (NTSC)
-        param.vui.i_colorprim = HB_COLR_PRI_SMPTEC;
-        param.vui.i_transfer  = HB_COLR_TRA_BT709;
-        param.vui.i_colmatrix = HB_COLR_MAT_SMPTE170M;
-    }
-    else
-    {
-        // detected during scan
-        param.vui.i_colorprim = job->title->color.primaries;
-        param.vui.i_transfer  = job->title->color.transfer;
-        param.vui.i_colmatrix = job->title->color.matrix;
-    }
+    /* set colorimetry (video signal information) */
+    param.vui.i_colmatrix = job->color.matrix;
+    param.vui.i_transfer  = job->color.transfer;
+    param.vui.i_colorprim = job->color.primaries;
 
     /* place job->encoder_options in an hb_dict_t for convenience */
     hb_dict_t * x264_opts = NULL;
@@ -213,12 +180,10 @@ int encx264Init( hb_work_object_t * w, hb_job_t * job )
     }
     hb_dict_free( &x264_opts );
 
-    /* Reload colorimetry settings in case custom values were set
-     * in the encoder_options string */
-    job->color_matrix_code = 4;
-    job->color_prim = param.vui.i_colorprim;
-    job->color_transfer = param.vui.i_transfer;
-    job->color_matrix = param.vui.i_colmatrix;
+    /* reload colorimetry in case values were set in encoder_options */
+    job->color.matrix    = param.vui.i_colmatrix;
+    job->color.transfer  = param.vui.i_transfer;
+    job->color.primaries = param.vui.i_colorprim;
 
     /* For 25 fps sources, HandBrake's explicit keyints will match the x264 defaults:
      * min-keyint 25 (same as auto), keyint 250. */

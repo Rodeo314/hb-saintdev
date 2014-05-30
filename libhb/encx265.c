@@ -128,36 +128,11 @@ int encx265Init(hb_work_object_t *w, hb_job_t *job)
      * flags, if any, should be set in the x265_param struct).
      */
     char colorprim[11], transfer[11], colormatrix[11];
-    switch (job->color_matrix_code)
-    {
-        case 1: // ITU BT.601 DVD or SD TV content (NTSC)
-            strcpy(colorprim,   "smpte170m");
-            strcpy(transfer,        "bt709");
-            strcpy(colormatrix, "smpte170m");
-            break;
-        case 2: // ITU BT.601 DVD or SD TV content (PAL)
-            strcpy(colorprim,     "bt470bg");
-            strcpy(transfer,        "bt709");
-            strcpy(colormatrix, "smpte170m");
-            break;
-        case 3: // ITU BT.709 HD content
-            strcpy(colorprim,   "bt709");
-            strcpy(transfer,    "bt709");
-            strcpy(colormatrix, "bt709");
-            break;
-        case 4: // custom
-            snprintf(colorprim,   sizeof(colorprim),   "%d", job->color_prim);
-            snprintf(transfer,    sizeof(transfer),    "%d", job->color_transfer);
-            snprintf(colormatrix, sizeof(colormatrix), "%d", job->color_matrix);
-            break;
-        default: // detected during scan
-            snprintf(colorprim,   sizeof(colorprim),   "%d", job->title->color.primaries);
-            snprintf(transfer,    sizeof(transfer),    "%d", job->title->color.transfer);
-            snprintf(colormatrix, sizeof(colormatrix), "%d", job->title->color.matrix);
-            break;
-    }
-    if (x265_param_parse(param, "colorprim",   colorprim)   ||
-        x265_param_parse(param, "transfer",    transfer)    ||
+    snprintf(colormatrix, sizeof(colormatrix), "%d", job->color.matrix);
+    snprintf(transfer,    sizeof(transfer),    "%d", job->color.transfer);
+    snprintf(colorprim,   sizeof(colorprim),   "%d", job->color.primaries);
+    if (x265_param_parse(param, "transfer",    transfer)  ||
+        x265_param_parse(param, "colorprim",   colorprim) ||
         x265_param_parse(param, "colormatrix", colormatrix))
     {
         hb_error("encx265: failed to set VUI color description");
@@ -187,14 +162,10 @@ int encx265Init(hb_work_object_t *w, hb_job_t *job)
     }
     hb_dict_free(&x265_opts);
 
-    /*
-     * Reload colorimetry settings in case custom
-     * values were set in the encoder_options string.
-     */
-    job->color_matrix_code = 4;
-    job->color_prim        = param->vui.colorPrimaries;
-    job->color_transfer    = param->vui.transferCharacteristics;
-    job->color_matrix      = param->vui.matrixCoeffs;
+    /* reload colorimetry in case values were set in encoder_options */
+    job->color.matrix    = param->vui.matrixCoeffs;
+    job->color.primaries = param->vui.colorPrimaries;
+    job->color.transfer  = param->vui.transferCharacteristics;
 
     /*
      * Settings which can't be overriden in the encodeer_options string

@@ -375,18 +375,6 @@ void hb_display_job_info(hb_job_t *job)
                 hb_log( "                subq=2 (if originally greater than 2, else subq unchanged)" );
             }
         }
-
-        if (job->color_matrix_code && (job->vcodec == HB_VCODEC_X264 ||
-                                       job->mux    == HB_MUX_MP4V2))
-        {
-            // color matrix is set:
-            // 1) at the stream    level (x264  only),
-            // 2) at the container level (mp4v2 only)
-            hb_log("     + custom color matrix: %s",
-                   job->color_matrix_code == 1 ? "ITU Bt.601 (NTSC)" :
-                   job->color_matrix_code == 2 ? "ITU Bt.601 (PAL)"  :
-                   job->color_matrix_code == 3 ? "ITU Bt.709 (HD)"   : "Custom");
-        }
     }
 
     if( job->indepth_scan )
