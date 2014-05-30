@@ -1375,7 +1375,11 @@ static int decodeFrame( hb_work_object_t *w, uint8_t *data, int size, int sequen
 
             buf->s.flags = flags;
 
-            hb_log("decodeFrame: buf->s.flags 0x%"PRIX16"", buf->s.flags);
+            if (pv->job)
+            {
+                static int t1 = 0;
+                hb_log("TIM - %06d - 1: flags 0x%"PRIX16"", ++t1, buf->s.flags);
+            }
 
             if ( pv->new_chap && buf->s.start >= pv->chap_time )
             {

@@ -98,7 +98,8 @@ int qsv_nv12_to_yuv420(struct SwsContext* sws_context,hb_buffer_t* dst, mfxFrame
         free(accel_dst.Data.VU);
     }
 
-    hb_log("qsv_nv12_to_yuv420: dst->s.flags(1) 0x%"PRIX16"", dst->s.flags);
+    static int t2 = 0;
+    hb_log("TIM - %06d - 2: flags 0x%"PRIX16"", ++t2, dst->s.flags);
 
     /* Reset output flags just in case. */
     dst->s.flags = 0;
@@ -122,7 +123,8 @@ int qsv_nv12_to_yuv420(struct SwsContext* sws_context,hb_buffer_t* dst, mfxFrame
         dst->s.flags |= PIC_FLAG_REPEAT_FIRST_FIELD;
     }
 
-    hb_log("qsv_nv12_to_yuv420: dst->s.flags(2) 0x%"PRIX16"", dst->s.flags);
+    static int t3 = 0;
+    hb_log("TIM - %06d - 3: flags 0x%"PRIX16"", ++t3, dst->s.flags);
 
     return ret;
 }
