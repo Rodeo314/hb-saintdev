@@ -2124,42 +2124,6 @@ static int decavcodecvInfo( hb_work_object_t *w, hb_work_info_t *info )
             break;
     }
 
-    switch (pv->context->color_range)
-    {
-        case AVCOL_RANGE_MPEG:
-            info->color.range = HB_COLR_RAN_ITU;
-            break;
-        case AVCOL_RANGE_JPEG:
-            info->color.range = HB_COLR_RAN_FULL;
-            break;
-        case AVCOL_RANGE_UNSPECIFIED:
-        default:
-            info->color.range = HB_COLR_RAN_UNKNOWN;
-            break;
-    }
-
-    /*
-     * Check the pixel format and sanitize the above settings:
-     *
-     * - some decoders convey the range via the pixel format
-     *
-     * - non-YUV formats get converted with libswscale,
-     *   which unconditionally uses a BT.601 color matrix.
-     */
-    switch (pv->context->pix_fmt)
-    {
-        case AV_PIX_FMT_YUVJ420P:
-        case AV_PIX_FMT_YUVJ422P:
-        case AV_PIX_FMT_YUVJ444P:
-        case AV_PIX_FMT_YUVJ440P:
-            info->color.range = HB_COLR_RAN_FULL;
-            break;
-        default:
-            break;
-    }
-    // FIXME: determine whether the signaled matrix is applicable
-    // or if swscale will use its own matrix; sanitize if necessary
-
     /*
      * Many sources are not flagged at all, so we guess
      * default values based on frame rate and resolution.
@@ -2196,6 +2160,44 @@ static int decavcodecvInfo( hb_work_object_t *w, hb_work_info_t *info )
             info->color.transfer  = HB_COLR_TRA_BT709;
             info->color.matrix    = HB_COLR_MAT_SMPTE170M;
         }
+    }
+
+    /*
+     * The input color characteristics may no longer
+     * be applicable after colorspace conversion.
+     */
+    const AVPixFmtDescriptor *desc = av_pix_fmt_desc_get(pv->context->pix_fmt);
+    if (desc != NULL && (desc->flags & AV_PIX_FMT_FLAG_RGB))
+    {
+        // input isn't YUV, so the matrix depends on libswscale
+        info->color.matrix = HB_COLR_MAT_SMPTE170M;
+    }
+
+    /* The color range is conveyed via either the pix_fmt or the context */
+    switch (pv->context->pix_fmt)
+    {
+        case AV_PIX_FMT_YUVJ420P:
+        case AV_PIX_FMT_YUVJ422P:
+        case AV_PIX_FMT_YUVJ444P:
+        case AV_PIX_FMT_YUVJ440P:
+            info->color.range = HB_COLR_RAN_FULL;
+            break;
+
+        default:
+            switch (pv->context->color_range)
+            {
+                case AVCOL_RANGE_MPEG:
+                    info->color.range = HB_COLR_RAN_ITU;
+                    break;
+                case AVCOL_RANGE_JPEG:
+                    info->color.range = HB_COLR_RAN_FULL;
+                    break;
+                case AVCOL_RANGE_UNSPECIFIED:
+                default:
+                    info->color.range = HB_COLR_RAN_UNKNOWN;
+                    break;
+            }
+            break;
     }
 
     info->video_decode_support = HB_DECODE_SUPPORT_SW;
