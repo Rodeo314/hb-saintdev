@@ -292,7 +292,7 @@ struct hb_colorimetry_s
 
     enum
     {
-        // 0: reserved/RGB
+        HB_COLR_MAT_GBR       = 0,
         HB_COLR_MAT_BT709     = 1,
         HB_COLR_MAT_UNDEF     = 2,
         HB_COLR_MAT_RESERVED3 = 3,

@@ -2059,8 +2059,8 @@ static int decavcodecvInfo( hb_work_object_t *w, hb_work_info_t *info )
 
     switch (pv->context->colorspace)
     {
-        case AVCOL_SPC_RGB: // RGB is converted by swscale with a BT.601 matrix
-            info->color.matrix = HB_COLR_MAT_SMPTE170M;
+        case AVCOL_SPC_RGB:
+            info->color.matrix = HB_COLR_MAT_GBR;
             break;
         case AVCOL_SPC_UNSPECIFIED:
             info->color.transfer = HB_COLR_MAT_UNDEF;
