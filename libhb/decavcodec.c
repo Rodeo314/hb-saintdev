@@ -2016,7 +2016,7 @@ static int decavcodecvInfo( hb_work_object_t *w, hb_work_info_t *info )
             info->color.transfer = HB_COLR_PRI_UNDEF;
             break;
         case AVCOL_PRI_BT470M:
-            info->color.primaries = HB_COLR_PRI_SMPTEC;
+            info->color.primaries = HB_COLR_PRI_FCC_NTSC;
             break;
         case AVCOL_PRI_BT470BG:
             info->color.primaries = HB_COLR_PRI_EBUTECH;
@@ -2025,7 +2025,7 @@ static int decavcodecvInfo( hb_work_object_t *w, hb_work_info_t *info )
             info->color.primaries = HB_COLR_PRI_SMPTEC;
             break;
         case AVCOL_PRI_SMPTE240M:
-            info->color.primaries = HB_COLR_PRI_SMPTEC;
+            info->color.primaries = HB_COLR_PRI_SMPTE240M;
             break;
         default: // if we don't know how to handle it, pass it through
             info->color.primaries = pv->context->color_primaries;
