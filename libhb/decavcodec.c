@@ -1980,29 +1980,6 @@ static void compute_frame_duration( hb_work_private_t *pv )
     }
 }
 
-/*
- * Many sources are not flagged at all, so we guess
- * default values based on frame rate and resolution.
- *
- * FIXME: this should maybe only be done if all 3 values are undefined?
- */
-static int guess_colorimetry(hb_work_info_t *info)
-{
-    if (info->width > 1920 || info->height > 1088)
-    {
-        return 3; // assume content is ITU BT.2020 UHD
-    }
-    if (info->width > 1024 || info->height >  576)
-    {
-        return 2; // assume content is ITU BT.709 HD
-    }
-    if (info->rate_base == 1080000)
-    {
-        return 1; // assume content is ITU BT.601 PAL
-    }
-    return 0; // assume content is ITU BT.601 NTSC
-}
-
 static int decavcodecvInfo( hb_work_object_t *w, hb_work_info_t *info )
 {
     hb_work_private_t *pv = w->private_data;
@@ -2030,29 +2007,13 @@ static int decavcodecvInfo( hb_work_object_t *w, hb_work_info_t *info )
     info->level = pv->context->level;
     info->name = pv->context->codec->name;
 
-    // FIXME: this is only applicable if the input is YUV...
     switch (pv->context->color_primaries)
     {
         case AVCOL_PRI_BT709:
             info->color.primaries = HB_COLR_PRI_BT709;
             break;
         case AVCOL_PRI_UNSPECIFIED:
-            switch (guess_colorimetry(info))
-            {
-                case 0:
-                    info->color.primaries = HB_COLR_PRI_BT601_525;
-                    break;
-                case 1:
-                    info->color.primaries = HB_COLR_PRI_BT601_625;
-                    break;
-                case 2:
-                    info->color.primaries = HB_COLR_PRI_BT709;
-                    break;
-                case 3://fixme: what's a typical value for Ultra HD?
-                default:
-                    info->color.primaries = HB_COLR_PRI_UNDEF;
-                    break;
-            }
+            info->color.primaries = HB_COLR_PRI_UNDEF;
             break;
         case AVCOL_PRI_BT470M:
             info->color.primaries = HB_COLR_PRI_BT470M;
@@ -2083,18 +2044,7 @@ static int decavcodecvInfo( hb_work_object_t *w, hb_work_info_t *info )
             info->color.transfer = HB_COLR_TRA_BT709;
             break;
         case AVCOL_TRC_UNSPECIFIED:
-            switch (guess_colorimetry(info))
-            {
-                case 0:
-                case 1:
-                case 2:
-                    info->color.transfer = HB_COLR_TRA_BT709;
-                    break;
-                case 3://fixme: what's a typical value for Ultra HD?
-                default:
-                    info->color.transfer = HB_COLR_TRA_UNDEF;
-                    break;
-            }
+            info->color.transfer = HB_COLR_TRA_UNDEF;
             break;
         case AVCOL_TRC_GAMMA22:
             info->color.transfer = HB_COLR_TRA_BT470M;
@@ -2143,20 +2093,7 @@ static int decavcodecvInfo( hb_work_object_t *w, hb_work_info_t *info )
             info->color.matrix = HB_COLR_MAT_GBR;
             break;
         case AVCOL_SPC_UNSPECIFIED:
-            switch (guess_colorimetry(info))
-            {
-                case 0:
-                case 1:
-                    info->color.matrix = HB_COLR_MAT_SMPTE170M;
-                    break;
-                case 2:
-                    info->color.matrix = HB_COLR_MAT_BT709;
-                    break;
-                case 3://fixme: what's a typical value for Ultra HD?
-                default:
-                    info->color.matrix = HB_COLR_MAT_UNDEF;
-                    break;
-            }
+            info->color.matrix = HB_COLR_MAT_UNDEF;
             break;
         case AVCOL_SPC_BT709:
             info->color.matrix = HB_COLR_MAT_BT709;
@@ -2200,7 +2137,15 @@ static int decavcodecvInfo( hb_work_object_t *w, hb_work_info_t *info )
             info->color.range = HB_COLR_RAN_UNKNOWN;
             break;
     }
-    // some decoders convey the range via the pixel format instead
+
+    /*
+     * Check the pixel format and sanitize the above settings:
+     *
+     * - some decoders convey the range via the pixel format
+     *
+     * - non-YUV formats get converted with libswscale,
+     *   which unconditionally uses a BT.601 color matrix.
+     */
     switch (pv->context->pix_fmt)
     {
         case AV_PIX_FMT_YUVJ420P:
@@ -2211,6 +2156,46 @@ static int decavcodecvInfo( hb_work_object_t *w, hb_work_info_t *info )
             break;
         default:
             break;
+    }
+    // FIXME: determine whether the signaled matrix is applicable
+    // or if swscale will use its own matrix; sanitize if necessary
+
+    /*
+     * Many sources are not flagged at all, so we guess
+     * default values based on frame rate and resolution.
+     */
+    if (pv->context->color_primaries == AVCOL_PRI_UNSPECIFIED &&
+        pv->context->color_trc       == AVCOL_TRC_UNSPECIFIED &&
+        pv->context->colorspace      == AVCOL_SPC_UNSPECIFIED)
+    {
+        if (info->width > 1920 || info->height > 1088)
+        {
+            // fixme: what's a good value for Ultra HD?
+            info->color.primaries = HB_COLR_PRI_UNDEF;
+            info->color.transfer  = HB_COLR_TRA_UNDEF;
+            info->color.matrix    = HB_COLR_MAT_UNDEF;
+        }
+        else if (info->width > 1024 || info->height >  576)
+        {
+            // assume content follows ITU-T Rec. BT.709-5
+            info->color.primaries = HB_COLR_PRI_BT709;
+            info->color.transfer  = HB_COLR_TRA_BT709;
+            info->color.matrix    = HB_COLR_MAT_BT709;
+        }
+        else if (info->rate_base == 1080000)
+        {
+            // assume content follows ITU-T Rec. BT.601-6 625 (PAL)
+            info->color.primaries = HB_COLR_PRI_BT601_625;
+            info->color.transfer  = HB_COLR_TRA_BT709;
+            info->color.matrix    = HB_COLR_MAT_SMPTE170M;
+        }
+        else
+        {
+            // assume content follows ITU-T Rec. BT.601-6 525 (NTSC)
+            info->color.primaries = HB_COLR_PRI_BT601_525;
+            info->color.transfer  = HB_COLR_TRA_BT709;
+            info->color.matrix    = HB_COLR_MAT_SMPTE170M;
+        }
     }
 
     info->video_decode_support = HB_DECODE_SUPPORT_SW;
