@@ -1988,11 +1988,11 @@ static void compute_frame_duration( hb_work_private_t *pv )
  */
 static int guess_colorimetry(hb_work_info_t *info)
 {
-    if (info->width >  1920 || info->height > 1088)
+    if (info->width > 1920 || info->height > 1088)
     {
         return 3; // assume content is ITU BT.2020 UHD
     }
-    if (info->width >= 1280 || info->height >  576)
+    if (info->width > 1024 || info->height >  576)
     {
         return 2; // assume content is ITU BT.709 HD
     }
