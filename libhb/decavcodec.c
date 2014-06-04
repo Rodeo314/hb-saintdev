@@ -2120,7 +2120,7 @@ static int decavcodecvInfo( hb_work_object_t *w, hb_work_info_t *info )
             info->color.matrix = HB_COLR_MAT_BT2020CL;
             break;
         default: // if we don't know how to handle it, pass it through
-            info->color.primaries = pv->context->colorspace;
+            info->color.matrix = pv->context->colorspace;
             break;
     }
 
