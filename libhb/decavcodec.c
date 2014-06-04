@@ -2046,7 +2046,7 @@ static int decavcodecvInfo( hb_work_object_t *w, hb_work_info_t *info )
         case AVCOL_TRC_GAMMA28:
             info->color.transfer = HB_COLR_TRA_BT470BG;
             break;
-        case 6:
+        case AVCOL_TRC_SMPTE170M:
             info->color.transfer = HB_COLR_TRA_SMPTE170M;
             break;
         case AVCOL_TRC_SMPTE240M:
