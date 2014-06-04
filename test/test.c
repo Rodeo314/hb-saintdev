@@ -2893,9 +2893,9 @@ static int HandleEvents( hb_handle_t * h )
                     job->color.primaries = HB_COLR_PRI_EBUTECH;
                     break;
                 case 3: // ITU BT.709 HD content
-                    job->color.matrix    = HB_COLR_MAT_SMPTE170M;
+                    job->color.matrix    = HB_COLR_MAT_BT709;
                     job->color.transfer  = HB_COLR_TRA_BT709;
-                    job->color.primaries = HB_COLR_PRI_SMPTEC;
+                    job->color.primaries = HB_COLR_PRI_BT709;
                     break;
                 default: // detected from source
                     job->color = title->color;
