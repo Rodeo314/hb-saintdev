@@ -416,10 +416,19 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     pv->param.videoParam->AsyncDepth = job->qsv.async_depth;
 
     // enable and set colorimetry (video signal information)
+    if (job->use_input_color)
+    {
+        pv->param.videoSignalInfo.MatrixCoefficients      = job->title->color.matrix;
+        pv->param.videoSignalInfo.TransferCharacteristics = job->title->color.transfer;
+        pv->param.videoSignalInfo.ColourPrimaries         = job->title->color.primaries;
+    }
+    else
+    {
+        pv->param.videoSignalInfo.MatrixCoefficients      = job->color.matrix;
+        pv->param.videoSignalInfo.TransferCharacteristics = job->color.transfer;
+        pv->param.videoSignalInfo.ColourPrimaries         = job->color.primaries;
+    }
     pv->param.videoSignalInfo.ColourDescriptionPresent = 1;
-    pv->param.videoSignalInfo.MatrixCoefficients       = job->color.matrix;
-    pv->param.videoSignalInfo.TransferCharacteristics  = job->color.transfer;
-    pv->param.videoSignalInfo.ColourPrimaries          = job->color.primaries;
 
     // parse user-specified encoder options, if present
     if (job->encoder_options != NULL && *job->encoder_options)

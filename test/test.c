@@ -2883,22 +2883,25 @@ static int HandleEvents( hb_handle_t * h )
             switch (color_matrix_code)
             {
                 case 1: // ITU BT.601 DVD or SD TV content (NTSC)
+                    job->use_input_color = 0;
                     job->color.matrix    = HB_COLR_MAT_SMPTE170M;
                     job->color.transfer  = HB_COLR_TRA_BT709;
                     job->color.primaries = HB_COLR_PRI_BT601_525;
                     break;
                 case 2: // ITU BT.601 DVD or SD TV content (PAL)
+                    job->use_input_color = 0;
                     job->color.matrix    = HB_COLR_MAT_SMPTE170M;
                     job->color.transfer  = HB_COLR_TRA_BT709;
                     job->color.primaries = HB_COLR_PRI_BT601_625;
                     break;
                 case 3: // ITU BT.709 HD content
+                    job->use_input_color = 0;
                     job->color.matrix    = HB_COLR_MAT_BT709;
                     job->color.transfer  = HB_COLR_TRA_BT709;
                     job->color.primaries = HB_COLR_PRI_BT709;
                     break;
                 default: // detected from source
-                    job->color = title->color;
+                    job->use_input_color = 1;
                     break;
             }
 

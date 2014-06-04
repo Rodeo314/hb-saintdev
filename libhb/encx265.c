@@ -128,9 +128,18 @@ int encx265Init(hb_work_object_t *w, hb_job_t *job)
      * flags, if any, should be set in the x265_param struct).
      */
     char colorprim[11], transfer[11], colormatrix[11];
-    snprintf(colormatrix, sizeof(colormatrix), "%d", job->color.matrix);
-    snprintf(transfer,    sizeof(transfer),    "%d", job->color.transfer);
-    snprintf(colorprim,   sizeof(colorprim),   "%d", job->color.primaries);
+    if (job->use_input_color)
+    {
+        snprintf(colormatrix, sizeof(colormatrix), "%d", job->title->color.matrix);
+        snprintf(transfer,    sizeof(transfer),    "%d", job->title->color.transfer);
+        snprintf(colorprim,   sizeof(colorprim),   "%d", job->title->color.primaries);
+    }
+    else
+    {
+        snprintf(colormatrix, sizeof(colormatrix), "%d", job->color.matrix);
+        snprintf(transfer,    sizeof(transfer),    "%d", job->color.transfer);
+        snprintf(colorprim,   sizeof(colorprim),   "%d", job->color.primaries);
+    }
     if (x265_param_parse(param, "transfer",    transfer)  ||
         x265_param_parse(param, "colorprim",   colorprim) ||
         x265_param_parse(param, "colormatrix", colormatrix))

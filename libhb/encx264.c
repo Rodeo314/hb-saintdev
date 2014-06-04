@@ -155,9 +155,18 @@ int encx264Init( hb_work_object_t * w, hb_job_t * job )
     param.i_log_level  = X264_LOG_INFO;
 
     /* set colorimetry (video signal information) */
-    param.vui.i_colmatrix = job->color.matrix;
-    param.vui.i_transfer  = job->color.transfer;
-    param.vui.i_colorprim = job->color.primaries;
+    if (job->use_input_color)
+    {
+        param.vui.i_colmatrix = job->title->color.matrix;
+        param.vui.i_transfer  = job->title->color.transfer;
+        param.vui.i_colorprim = job->title->color.primaries;
+    }
+    else
+    {
+        param.vui.i_colmatrix = job->color.matrix;
+        param.vui.i_transfer  = job->color.transfer;
+        param.vui.i_colorprim = job->color.primaries;
+    }
 
     /* place job->encoder_options in an hb_dict_t for convenience */
     hb_dict_t * x264_opts = NULL;

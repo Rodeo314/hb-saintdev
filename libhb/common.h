@@ -551,6 +551,7 @@ struct hb_job_s
     char           *encoder_level;
     int             areBframes;
 
+    int use_input_color; // use input colorimetry (1) or user-specified value (0)
     hb_colorimetry_t color;
 
     hb_list_t     * list_chapter;
