@@ -1980,6 +1980,29 @@ static void compute_frame_duration( hb_work_private_t *pv )
     }
 }
 
+/*
+ * Many sources are not flagged at all, so we guess
+ * default values based on frame rate and resolution.
+ *
+ * FIXME: this should maybe only be done if all 3 values are undefined?
+ */
+static int guess_colorimetry(hb_work_info_t *info)
+{
+    if (info->width >  1920 || info->height > 1088)
+    {
+        return 3; // assume content is ITU BT.2020 UHD
+    }
+    if (info->width >= 1280 || info->height >  576)
+    {
+        return 2; // assume content is ITU BT.709 HD
+    }
+    if (info->rate_base == 1080000)
+    {
+        return 1; // assume content is ITU BT.601 PAL
+    }
+    return 0; // assume content is ITU BT.601 NTSC
+}
+
 static int decavcodecvInfo( hb_work_object_t *w, hb_work_info_t *info )
 {
     hb_work_private_t *pv = w->private_data;
@@ -2007,13 +2030,29 @@ static int decavcodecvInfo( hb_work_object_t *w, hb_work_info_t *info )
     info->level = pv->context->level;
     info->name = pv->context->codec->name;
 
+    // FIXME: this is only applicable if the input is YUV...
     switch (pv->context->color_primaries)
     {
         case AVCOL_PRI_BT709:
             info->color.primaries = HB_COLR_PRI_BT709;
             break;
         case AVCOL_PRI_UNSPECIFIED:
-            info->color.transfer = HB_COLR_PRI_UNDEF;
+            switch (guess_colorimetry(info))
+            {
+                case 0:
+                    info->color.primaries = HB_COLR_PRI_BT601_525;
+                    break;
+                case 1:
+                    info->color.primaries = HB_COLR_PRI_BT601_625;
+                    break;
+                case 2:
+                    info->color.primaries = HB_COLR_PRI_BT709;
+                    break;
+                case 3://fixme: what's a typical value for Ultra HD?
+                default:
+                    info->color.primaries = HB_COLR_PRI_UNDEF;
+                    break;
+            }
             break;
         case AVCOL_PRI_BT470M:
             info->color.primaries = HB_COLR_PRI_BT470M;
@@ -2044,7 +2083,18 @@ static int decavcodecvInfo( hb_work_object_t *w, hb_work_info_t *info )
             info->color.transfer = HB_COLR_TRA_BT709;
             break;
         case AVCOL_TRC_UNSPECIFIED:
-            info->color.transfer = HB_COLR_TRA_UNDEF;
+            switch (guess_colorimetry(info))
+            {
+                case 0:
+                case 1:
+                case 2:
+                    info->color.transfer = HB_COLR_TRA_BT709;
+                    break;
+                case 3://fixme: what's a typical value for Ultra HD?
+                default:
+                    info->color.transfer = HB_COLR_TRA_UNDEF;
+                    break;
+            }
             break;
         case AVCOL_TRC_GAMMA22:
             info->color.transfer = HB_COLR_TRA_BT470M;
@@ -2093,7 +2143,20 @@ static int decavcodecvInfo( hb_work_object_t *w, hb_work_info_t *info )
             info->color.matrix = HB_COLR_MAT_GBR;
             break;
         case AVCOL_SPC_UNSPECIFIED:
-            info->color.transfer = HB_COLR_MAT_UNDEF;
+            switch (guess_colorimetry(info))
+            {
+                case 0:
+                case 1:
+                    info->color.matrix = HB_COLR_MAT_SMPTE170M;
+                    break;
+                case 2:
+                    info->color.matrix = HB_COLR_MAT_BT709;
+                    break;
+                case 3://fixme: what's a typical value for Ultra HD?
+                default:
+                    info->color.matrix = HB_COLR_MAT_UNDEF;
+                    break;
+            }
             break;
         case AVCOL_SPC_BT709:
             info->color.matrix = HB_COLR_MAT_BT709;
