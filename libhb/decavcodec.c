@@ -2175,7 +2175,7 @@ static int decavcodecvInfo( hb_work_object_t *w, hb_work_info_t *info )
             info->color.transfer  = HB_COLR_TRA_UNDEF;
             info->color.matrix    = HB_COLR_MAT_UNDEF;
         }
-        else if (info->width > 1024 || info->height >  576)
+        else if (info->width > 1024 || info->height > 576)
         {
             // assume content follows ITU-T Rec. BT.709-5
             info->color.primaries = HB_COLR_PRI_BT709;
