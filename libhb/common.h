@@ -263,6 +263,8 @@ struct hb_colorimetry_s
      *             'nclc' : A Structured Way to Tag Video Color
      *
      * We map values as per the recommendations found in the above documents.
+     *
+     * When possible, names are consistent with ITU-T H.262, H.264 and H.265.
      */
     enum
     {
@@ -270,11 +272,11 @@ struct hb_colorimetry_s
         HB_COLR_PRI_BT709     = 1,
         HB_COLR_PRI_UNDEF     = 2,
         HB_COLR_PRI_RESERVED3 = 3,
-        HB_COLR_PRI_FCC_NTSC  = 6, // 4, map to SPMTE C (obsolete)
-        HB_COLR_PRI_EBUTECH   = 5,
-        HB_COLR_PRI_SMPTEC    = 6,
-        HB_COLR_PRI_SMPTE240M = 6, // 7, map to SPMTE C (identical in ITU-T Rec. H.262, 07/1995)
-        // 8-65535: reverved
+        HB_COLR_PRI_BT470M    = 6, // 4, map to BT.601 525 (obsolete)
+        HB_COLR_PRI_BT601_625 = 5,
+        HB_COLR_PRI_BT601_525 = 6,
+        HB_COLR_PRI_SMPTE240M = 6, // 7, map to BT.601 525 (identical)
+        // 8-65535: reserved
     } primaries;
 
     enum
@@ -283,11 +285,11 @@ struct hb_colorimetry_s
         HB_COLR_TRA_BT709     = 1,
         HB_COLR_TRA_UNDEF     = 2,
         HB_COLR_TRA_RESERVED3 = 3,
-        HB_COLR_TRA_GAMMA22   = 1, // 4, map to BT.709 (obsolete)
-        HB_COLR_TRA_GAMMA28   = 1, // 5, map to BT.709 (obsolete)
-        HB_COLR_TRA_SMPTE170M = 1, // 6, map to BT.709 (identical in ITU-T Rec. H.262, 07/1995)
+        HB_COLR_TRA_BT470M    = 1, // 4, map to BT.709 (obsolete)
+        HB_COLR_TRA_BT470BG   = 1, // 5, map to BT.709 (obsolete)
+        HB_COLR_TRA_SMPTE170M = 1, // 6, map to BT.709 (identical)
         HB_COLR_TRA_SMPTE240M = 7,
-        // 8-65535: reverved
+        // 8-65535: reserved
     } transfer;
 
     enum
@@ -296,11 +298,11 @@ struct hb_colorimetry_s
         HB_COLR_MAT_BT709     = 1,
         HB_COLR_MAT_UNDEF     = 2,
         HB_COLR_MAT_RESERVED3 = 3,
-        HB_COLR_MAT_FCC_NTSC  = 6, // 4, map to SMPTE 170M (obsolete)
-        HB_COLR_MAT_BT470BG   = 6, // 5, map to SMPTE 170M (identical in ITU-T Rec. H.262, 07/1995)
+        HB_COLR_MAT_FCC       = 6, // 4, map to SMPTE 170M (obsolete)
+        HB_COLR_MAT_BT470BG   = 6, // 5, map to SMPTE 170M (identical)
         HB_COLR_MAT_SMPTE170M = 6,
         HB_COLR_MAT_SMPTE240M = 7,
-        // 8-65535: reverved
+        // 8-65535: reserved
     } matrix;
 
     /*
