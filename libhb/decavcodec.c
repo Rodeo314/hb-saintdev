@@ -2027,6 +2027,12 @@ static int decavcodecvInfo( hb_work_object_t *w, hb_work_info_t *info )
         case AVCOL_PRI_SMPTE240M:
             info->color.primaries = HB_COLR_PRI_SMPTE240M;
             break;
+        case AVCOL_PRI_FILM:
+            info->color.primaries = HB_COLR_PRI_FILM;
+            break;
+        case AVCOL_PRI_BT2020:
+            info->color.primaries = HB_COLR_PRI_BT2020;
+            break;
         default: // if we don't know how to handle it, pass it through
             info->color.primaries = pv->context->color_primaries;
             break;
@@ -2051,6 +2057,30 @@ static int decavcodecvInfo( hb_work_object_t *w, hb_work_info_t *info )
             break;
         case AVCOL_TRC_SMPTE240M:
             info->color.transfer = HB_COLR_TRA_SMPTE240M;
+            break;
+        case AVCOL_TRC_LINEAR:
+            info->color.transfer = HB_COLR_TRA_LINEAR;
+            break;
+        case AVCOL_TRC_LOG:
+            info->color.transfer = HB_COLR_TRA_LOG;
+            break;
+        case AVCOL_TRC_LOG_SQRT:
+            info->color.transfer = HB_COLR_TRA_LOG_SQRT;
+            break;
+        case AVCOL_TRC_IEC61966_2_4:
+            info->color.transfer = HB_COLR_TRA_61966_2_4;
+            break;
+        case AVCOL_TRC_BT1361_ECG:
+            info->color.transfer = HB_COLR_TRA_BT1361ECG;
+            break;
+        case AVCOL_TRC_IEC61966_2_1:
+            info->color.transfer = HB_COLR_TRA_61966_2_1;
+            break;
+        case AVCOL_TRC_BT2020_10:
+            info->color.transfer = HB_COLR_TRA_BT2020_10;
+            break;
+        case AVCOL_TRC_BT2020_12:
+            info->color.transfer = HB_COLR_TRA_BT2020_12;
             break;
         default: // if we don't know how to handle it, pass it through
             info->color.transfer = pv->context->color_trc;
@@ -2079,6 +2109,15 @@ static int decavcodecvInfo( hb_work_object_t *w, hb_work_info_t *info )
             break;
         case AVCOL_SPC_SMPTE240M:
             info->color.matrix = HB_COLR_MAT_SMPTE240M;
+            break;
+        case AVCOL_SPC_YCOCG:
+            info->color.matrix = HB_COLR_MAT_YCGCO;
+            break;
+        case AVCOL_SPC_BT2020_NCL:
+            info->color.matrix = HB_COLR_MAT_BT2020NCL;
+            break;
+        case AVCOL_SPC_BT2020_CL:
+            info->color.matrix = HB_COLR_MAT_BT2020CL;
             break;
         default: // if we don't know how to handle it, pass it through
             info->color.primaries = pv->context->colorspace;

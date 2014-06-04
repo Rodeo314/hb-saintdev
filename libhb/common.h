@@ -276,7 +276,8 @@ struct hb_colorimetry_s
         HB_COLR_PRI_BT601_625 = 5,
         HB_COLR_PRI_BT601_525 = 6,
         HB_COLR_PRI_SMPTE240M = 6, // 7, map to BT.601 525 (identical)
-        // 8-65535: reserved
+        HB_COLR_PRI_FILM      = 8,
+        HB_COLR_PRI_BT2020    = 9,
     } primaries;
 
     enum
@@ -289,7 +290,14 @@ struct hb_colorimetry_s
         HB_COLR_TRA_BT470BG   = 1, // 5, map to BT.709 (obsolete)
         HB_COLR_TRA_SMPTE170M = 1, // 6, map to BT.709 (identical)
         HB_COLR_TRA_SMPTE240M = 7,
-        // 8-65535: reserved
+        HB_COLR_TRA_LINEAR    = 8,
+        HB_COLR_TRA_LOG       = 9,
+        HB_COLR_TRA_LOG_SQRT  = 10,
+        HB_COLR_TRA_61966_2_4 = 11,
+        HB_COLR_TRA_BT1361ECG = 12,
+        HB_COLR_TRA_61966_2_1 = 13,
+        HB_COLR_TRA_BT2020_10 = 14,
+        HB_COLR_TRA_BT2020_12 = 15,
     } transfer;
 
     enum
@@ -302,7 +310,9 @@ struct hb_colorimetry_s
         HB_COLR_MAT_BT470BG   = 6, // 5, map to SMPTE 170M (identical)
         HB_COLR_MAT_SMPTE170M = 6,
         HB_COLR_MAT_SMPTE240M = 7,
-        // 8-65535: reserved
+        HB_COLR_MAT_YCGCO     = 8,
+        HB_COLR_MAT_BT2020NCL = 9,
+        HB_COLR_MAT_BT2020CL  = 10,
     } matrix;
 
     /*
