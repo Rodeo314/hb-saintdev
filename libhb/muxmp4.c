@@ -250,7 +250,7 @@ static int MP4Init( hb_mux_object_t * m )
 
     /*
      * COLR atom for color and gamma correction. Per the notes at:
-     * http://developer.apple.com/quicktime/icefloe/dispatch019.html#colr
+     * https://developer.apple.com/library/mac/technotes/tn2162/_index.html
      * http://forum.doom9.org/showthread.php?t=133982#post1090068
      */
     MP4AddColr(m->file, mux_data->track, job->color.primaries,
