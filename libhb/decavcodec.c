@@ -2124,53 +2124,6 @@ static int decavcodecvInfo( hb_work_object_t *w, hb_work_info_t *info )
             break;
     }
 
-    const AVPixFmtDescriptor *apfd = av_pix_fmt_desc_get(pv->context->pix_fmt);
-    if (apfd != NULL && (apfd->flags & AV_PIX_FMT_FLAG_RGB))
-    {
-        /*
-         * For non-YUV input, the color characteristics depend on libswscale.
-         */
-        info->color.matrix = HB_COLR_MAT_SMPTE170M;
-        // fixme: what about transfer function and color primaries?
-    }
-    else if (pv->context->color_primaries == AVCOL_PRI_UNSPECIFIED &&
-             pv->context->color_trc       == AVCOL_TRC_UNSPECIFIED &&
-             pv->context->colorspace      == AVCOL_SPC_UNSPECIFIED)
-    {
-        /*
-         * Many sources are not flagged at all, so we guess
-         * default values based on frame rate and resolution.
-         */
-        if (info->width > 1920 || info->height > 1088)
-        {
-            // assume content follows ITU-T Rec. BT.2020
-            info->color.primaries = HB_COLR_PRI_BT2020;
-            info->color.transfer  = HB_COLR_TRA_BT2020_10;
-            info->color.matrix    = HB_COLR_MAT_BT2020NCL;
-        }
-        else if (info->width > 1024 || info->height > 576)
-        {
-            // assume content follows ITU-T Rec. BT.709-5
-            info->color.primaries = HB_COLR_PRI_BT709;
-            info->color.transfer  = HB_COLR_TRA_BT709;
-            info->color.matrix    = HB_COLR_MAT_BT709;
-        }
-        else if (info->rate_base == 1080000)
-        {
-            // assume content follows ITU-T Rec. BT.601-6 625 (PAL)
-            info->color.primaries = HB_COLR_PRI_BT601_625;
-            info->color.transfer  = HB_COLR_TRA_BT709;
-            info->color.matrix    = HB_COLR_MAT_SMPTE170M;
-        }
-        else
-        {
-            // assume content follows ITU-T Rec. BT.601-6 525 (NTSC)
-            info->color.primaries = HB_COLR_PRI_BT601_525;
-            info->color.transfer  = HB_COLR_TRA_BT709;
-            info->color.matrix    = HB_COLR_MAT_SMPTE170M;
-        }
-    }
-
     /* The color range is conveyed via either the pix_fmt or the context */
     switch (pv->context->pix_fmt)
     {
@@ -2196,6 +2149,86 @@ static int decavcodecvInfo( hb_work_object_t *w, hb_work_info_t *info )
                     break;
             }
             break;
+    }
+
+    const AVPixFmtDescriptor *descriptor = av_pix_fmt_desc_get(pv->context->pix_fmt);
+    if (descriptor != NULL)
+    {
+        if (descriptor->flags & AV_PIX_FMT_FLAG_RGB)
+        {
+            /*
+             * For non-YUV input, the color characteristics depend on swscale.
+             */
+            // fixme: what about transfer function and color primaries?
+            info->color.matrix = HB_COLR_MAT_SMPTE170M;
+        }
+        else if (info->color.primaries == HB_COLR_PRI_UNDEF &&
+                 info->color.transfer  == HB_COLR_TRA_UNDEF &&
+                 info->color.matrix    == HB_COLR_MAT_UNDEF)
+        {
+            /*
+             * Many sources are not flagged at all, so we guess
+             * default values based on frame rate and resolution.
+             *
+             * Note: we only guess it for TV broadcasts and home media, as the
+             *       relevant specifications define default values to be used
+             *       when the information is not available in the bitstream.
+             */
+            if ((info->color.range == HB_COLR_RAN_ITU) &&
+                (pv->context->codec_id == AV_CODEC_ID_VC1        ||
+                 pv->context->codec_id == AV_CODEC_ID_H264       ||
+                 pv->context->codec_id == AV_CODEC_ID_HEVC       ||
+                 pv->context->codec_id == AV_CODEC_ID_MPEG1VIDEO ||
+                 pv->context->codec_id == AV_CODEC_ID_MPEG2VIDEO))
+            {
+                switch (descriptor->comp[0].depth_minus1 + 1)
+                {
+                    case 12:
+                        if (info->width > 1920 || info->height > 1088)
+                        {
+                            // assume ITU-T Rec. BT.2020 (12-bit) colorimetry
+                            info->color.primaries = HB_COLR_PRI_BT2020;
+                            info->color.transfer  = HB_COLR_TRA_BT2020_12;
+                            info->color.matrix    = HB_COLR_MAT_BT2020NCL;
+                        }
+                        break;
+                    case 10:
+                        if (info->width > 1920 || info->height > 1088)
+                        {
+                            // assume ITU-T Rec. BT.2020 (10-bit) colorimetry
+                            info->color.primaries = HB_COLR_PRI_BT2020;
+                            info->color.transfer  = HB_COLR_TRA_BT2020_10;
+                            info->color.matrix    = HB_COLR_MAT_BT2020NCL;
+                        }
+                        break;
+                    case 8:
+                        if (info->width > 1024 || info->height > 576)
+                        {
+                            // assume ITU-T Rec. BT.709-5 colorimetry
+                            info->color.primaries = HB_COLR_PRI_BT709;
+                            info->color.transfer  = HB_COLR_TRA_BT709;
+                            info->color.matrix    = HB_COLR_MAT_BT709;
+                        }
+                        else if (info->rate_base == 1080000)
+                        {
+                            // assume ITU-T Rec. BT.601-7 (625-line) colorimetry
+                            info->color.primaries = HB_COLR_PRI_BT601_625;
+                            info->color.transfer  = HB_COLR_TRA_BT709;
+                            info->color.matrix    = HB_COLR_MAT_SMPTE170M;
+                        }
+                        else
+                        {
+                            // assume ITU-T Rec. BT.601-7 (525-line) colorimetry
+                            info->color.primaries = HB_COLR_PRI_BT601_525;
+                            info->color.transfer  = HB_COLR_TRA_BT709;
+                            info->color.matrix    = HB_COLR_MAT_SMPTE170M;
+                        }
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
     }
 
     info->video_decode_support = HB_DECODE_SUPPORT_SW;
