@@ -170,6 +170,7 @@
     <Compile Include="HbLib\iso639_lang_t.cs" />
     <Compile Include="HbLib\hb_job_s.cs" />
     <Compile Include="HbLib\hb_title_s.cs" />
+    <Compile Include="HbLib\hb_colorimetry_s.cs" />
     <Compile Include="HbLib\NativeConstants.cs" />
     <Compile Include="Interfaces\IHandBrakeInstance.cs" />
     <Compile Include="Helpers\InteropUtilities.cs" />

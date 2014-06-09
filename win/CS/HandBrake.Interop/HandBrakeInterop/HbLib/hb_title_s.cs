@@ -69,6 +69,8 @@ namespace HandBrake.Interop.HbLib
 		/// uint64_t->unsigned int
 		public ulong duration;
 
+		public hb_colorimetry_s color;
+
 		/// double
 		public double aspect;
 
@@ -88,10 +90,6 @@ namespace HandBrake.Interop.HbLib
 
 		/// int
 		public int pixel_aspect_height;
-
-		public int color_prim;
-		public int color_transfer; 
-		public int color_matrix; 
 
 		/// int
 		public int rate;

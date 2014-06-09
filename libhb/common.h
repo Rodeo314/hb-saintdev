@@ -948,6 +948,7 @@ struct hb_title_s
     /* Exact duration (in 1/90000s) */
     uint64_t    duration;
 
+    hb_colorimetry_t color;
     double      aspect;             // aspect ratio for the title's video
     double      container_aspect;   // aspect ratio from container (0 if none)
     int         has_resolution_change;
@@ -955,7 +956,6 @@ struct hb_title_s
     int         height;
     int         pixel_aspect_width;
     int         pixel_aspect_height;
-    hb_colorimetry_t color;
     int         rate;
     int         rate_base;
     int         crop[4];
