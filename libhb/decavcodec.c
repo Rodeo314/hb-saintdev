@@ -2124,14 +2124,23 @@ static int decavcodecvInfo( hb_work_object_t *w, hb_work_info_t *info )
             break;
     }
 
-    /*
-     * Many sources are not flagged at all, so we guess
-     * default values based on frame rate and resolution.
-     */
-    if (pv->context->color_primaries == AVCOL_PRI_UNSPECIFIED &&
-        pv->context->color_trc       == AVCOL_TRC_UNSPECIFIED &&
-        pv->context->colorspace      == AVCOL_SPC_UNSPECIFIED)
+    const AVPixFmtDescriptor *apfd = av_pix_fmt_desc_get(pv->context->pix_fmt);
+    if (apfd != NULL && (apfd->flags & AV_PIX_FMT_FLAG_RGB))
     {
+        /*
+         * For non-YUV input, the color characteristics depend on libswscale.
+         */
+        info->color.matrix = HB_COLR_MAT_SMPTE170M;
+        // fixme: what about transfer function and color primaries?
+    }
+    else if (pv->context->color_primaries == AVCOL_PRI_UNSPECIFIED &&
+             pv->context->color_trc       == AVCOL_TRC_UNSPECIFIED &&
+             pv->context->colorspace      == AVCOL_SPC_UNSPECIFIED)
+    {
+        /*
+         * Many sources are not flagged at all, so we guess
+         * default values based on frame rate and resolution.
+         */
         if (info->width > 1920 || info->height > 1088)
         {
             // fixme: what's a good value for Ultra HD?
@@ -2160,17 +2169,6 @@ static int decavcodecvInfo( hb_work_object_t *w, hb_work_info_t *info )
             info->color.transfer  = HB_COLR_TRA_BT709;
             info->color.matrix    = HB_COLR_MAT_SMPTE170M;
         }
-    }
-
-    /*
-     * The input color characteristics may no longer
-     * be applicable after colorspace conversion.
-     */
-    const AVPixFmtDescriptor *desc = av_pix_fmt_desc_get(pv->context->pix_fmt);
-    if (desc != NULL && (desc->flags & AV_PIX_FMT_FLAG_RGB))
-    {
-        // input isn't YUV, so the matrix depends on libswscale
-        info->color.matrix = HB_COLR_MAT_SMPTE170M;
     }
 
     /* The color range is conveyed via either the pix_fmt or the context */
