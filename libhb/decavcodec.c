@@ -2143,10 +2143,10 @@ static int decavcodecvInfo( hb_work_object_t *w, hb_work_info_t *info )
          */
         if (info->width > 1920 || info->height > 1088)
         {
-            // fixme: what's a good value for Ultra HD?
-            info->color.primaries = HB_COLR_PRI_UNDEF;
-            info->color.transfer  = HB_COLR_TRA_UNDEF;
-            info->color.matrix    = HB_COLR_MAT_UNDEF;
+            // assume content follows ITU-T Rec. BT.2020
+            info->color.primaries = HB_COLR_PRI_BT2020;
+            info->color.transfer  = HB_COLR_TRA_BT2020_10;
+            info->color.matrix    = HB_COLR_MAT_BT2020NCL;
         }
         else if (info->width > 1024 || info->height > 576)
         {
