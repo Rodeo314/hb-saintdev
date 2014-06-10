@@ -123,6 +123,8 @@ static char * x264_tune     = NULL;
 static char * advanced_opts = NULL;
 static char * h264_profile  = NULL;
 static char * h264_level    = NULL;
+static char ** input_colorimetry = NULL;
+static int     input_range       = -1;
 static int    maxHeight     = 0;
 static int    maxWidth      = 0;
 static int    turbo_opts_enabled = 0;
@@ -132,7 +134,6 @@ static char * preset_name   = 0;
 static int    cfr           = 0;
 static int    mp4_optimize  = 0;
 static int    ipod_atom     = 0;
-static int    color_matrix_code = 0;
 static int    preview_count = 10;
 static int    store_previews = 0;
 static int    start_at_preview = 0;
@@ -2880,29 +2881,32 @@ static int HandleEvents( hb_handle_t * h )
 
             hb_job_set_file( job, output );
 
-            switch (color_matrix_code)
+            if (input_colorimetry != NULL)
             {
-                case 1: // ITU BT.601 DVD or SD TV content (NTSC)
+                if (job->use_input_color)
+                {
+                    // job->color is unset
+                    job->color = job->title->color;
                     job->use_input_color = 0;
-                    job->color.matrix    = HB_COLR_MAT_SMPTE170M;
-                    job->color.transfer  = HB_COLR_TRA_BT709;
-                    job->color.primaries = HB_COLR_PRI_BT601_525;
-                    break;
-                case 2: // ITU BT.601 DVD or SD TV content (PAL)
+                }
+
+                //fixme
+                for (i = 0; input_colorimetry[i] != NULL; i++)
+                {
+                    fprintf(stderr, "input_colorimetry[%d]: %s\n", i, input_colorimetry[i])
+                }
+            }
+
+            if (input_range != -1)
+            {
+                if (job->use_input_color)
+                {
+                    // job->color is unset
+                    job->color = job->title->color;
                     job->use_input_color = 0;
-                    job->color.matrix    = HB_COLR_MAT_SMPTE170M;
-                    job->color.transfer  = HB_COLR_TRA_BT709;
-                    job->color.primaries = HB_COLR_PRI_BT601_625;
-                    break;
-                case 3: // ITU BT.709 HD content
-                    job->use_input_color = 0;
-                    job->color.matrix    = HB_COLR_MAT_BT709;
-                    job->color.transfer  = HB_COLR_TRA_BT709;
-                    job->color.primaries = HB_COLR_PRI_BT709;
-                    break;
-                default: // detected from source
-                    job->use_input_color = 1;
-                    break;
+                }
+
+                //fixme
             }
 
             hb_job_set_encoder_preset (job, x264_preset);
@@ -3427,9 +3431,12 @@ static void ShowHelp()
     "    --modulus               Set the number you want the scaled pixel dimensions\n"
     "      <number>              to divide cleanly by. Does not affect strict\n"
     "                            anamorphic mode, which is always mod 2 (default: 16)\n"
-    "    -M, --color-matrix      Set the color space signaled by the output\n"
-    "                            Values: 709, pal, ntsc, 601 (same as ntsc)\n"
-    "                            (default: detected from source)\n"
+    "    --input-colorimetry     Override the detected input color characteristics\n"
+    "               <string>     Comma-separated: <primaries>,<transfer>,<matrix>\n"
+    "                            Primaries: \n"//fixme
+    "                            Transfer:  \n"//fixme
+    "                            Matrix:    \n"//fixme
+    "    --input-range <string>  Override the detected input color range (tv or pc)\n"
     "\n"
 
     "### Filters---------------------------------------------------------\n\n"
@@ -3691,6 +3698,8 @@ static int ParseOptions( int argc, char ** argv )
     #define QSV_BASELINE         295
     #define QSV_ASYNC_DEPTH      296
     #define QSV_IMPLEMENTATION   297
+    #define INPUT_COLORIMETRY    298
+    #define INPUT_RANGE          299
 
     for( ;; )
     {
@@ -3765,6 +3774,8 @@ static int ParseOptions( int argc, char ** argv )
             { "height",      required_argument, NULL,    'l' },
             { "crop",        required_argument, NULL,    'n' },
             { "loose-crop",  optional_argument, NULL, LOOSE_CROP },
+            { "input-colorimetry", required_argument, NULL, INPUT_COLORIMETRY, },
+            { "input-range", required_argument, NULL, INPUT_RANGE, },
 
             // mapping of legacy option names for backwards compatibility
             { "qsv-preset",           required_argument, NULL, ENCODER_PRESET,       },
@@ -3802,7 +3813,6 @@ static int ParseOptions( int argc, char ** argv )
             { "preset-list", no_argument,       NULL,    'z' },
 
             { "aname",       required_argument, NULL,    'A' },
-            { "color-matrix",required_argument, NULL,    'M' },
             { "previews",    required_argument, NULL,    PREVIEWS },
             { "start-at-preview", required_argument, NULL, START_AT_PREVIEW },
             { "start-at",    required_argument, NULL,    START_AT },
@@ -4376,17 +4386,24 @@ static int ParseOptions( int argc, char ** argv )
             case AUDIO_FALLBACK:
                 acodec_fallback = strdup( optarg );
                 break;
-            case 'M':
-                if( optarg != NULL )
+            case INPUT_COLORIMETRY:
+                input_colorimetry = str_split(optarg, ',');
+                break;
+            case INPUT_RANGE:
+                if (strcasecmp(optarg, "tv"))
                 {
-                    if( !strcmp( optarg, "601" ) ||
-                        !strcmp( optarg, "ntsc" ) )
-                        color_matrix_code = 1;
-                    else if( !strcmp( optarg, "pal" ) )
-                        color_matrix_code = 2;
-                    else if( !strcmp( optarg, "709" ) )
-                        color_matrix_code = 3;
-                } break;
+                    input_range = HB_COLR_RAN_ITU;
+                }
+                else if (strcasecmp(optarg, "pc"))
+                {
+                    input_range = HB_COLR_RAN_FULL;
+                }
+                else
+                {
+                    fprintf(stderr, "invalid --input-range '%s'\n", optarg);
+                    return -1;
+                }
+                break;
             case MIN_DURATION:
                 min_title_duration = strtol( optarg, NULL, 0 );
                 break;
