@@ -195,8 +195,8 @@ static hb_buffer_t* crop_scale( hb_filter_private_t * pv, hb_buffer_t * in )
             
             pv->context = hb_sws_get_context(in->f.width  - (pv->crop[2] + pv->crop[3]),
                                              in->f.height - (pv->crop[0] + pv->crop[1]),
-                                             in->f.fmt, out->f.width, out->f.height,
-                                             out->f.fmt, SWS_LANCZOS|SWS_ACCURATE_RND);
+                                             in->f.fmt,  HB_COLR_RAN_ITU/*fixme*/, out->f.width, out->f.height,
+                                             out->f.fmt, HB_COLR_RAN_ITU/*fixme*/, SWS_LANCZOS|SWS_ACCURATE_RND);
             pv->width_in  = in->f.width;
             pv->height_in = in->f.height;
             pv->pix_fmt   = in->f.fmt;

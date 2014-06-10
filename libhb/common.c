@@ -3045,8 +3045,6 @@ static void job_setup( hb_job_t * job, hb_title_t * title )
 
     job->keep_ratio = 1;
 
-    job->use_input_color = 1;
-
     job->vcodec     = HB_VCODEC_FFMPEG_MPEG4;
     job->vquality   = -1.0;
     job->vbitrate   = 1000;

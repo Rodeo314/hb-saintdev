@@ -29,7 +29,7 @@ uint64_t hb_ff_mixdown_xlat(int hb_mixdown, int *downmix_mode);
 void     hb_ff_set_sample_fmt(AVCodecContext *, AVCodec *, enum AVSampleFormat);
 
 struct SwsContext*
-hb_sws_get_context(int srcW, int srcH, enum AVPixelFormat srcFormat,
-                   int dstW, int dstH, enum AVPixelFormat dstFormat,
+hb_sws_get_context(int srcW, int srcH, enum AVPixelFormat srcFormat, int srcRange,
+                   int dstW, int dstH, enum AVPixelFormat dstFormat, int dstRange,
                    int flags);
 int hb_avpicture_fill(AVPicture *pic, hb_buffer_t *buf);

@@ -280,12 +280,12 @@ static int hb_qsv_filter_pre_init( hb_filter_object_t * filter,
     // PIX_FMT_YUV420P,   ///< planar YUV 4:2:0, 12bpp, (1 Cr & Cb sample per 2x2 Y samples) , 3 planes: Y, U, V
     // PIX_FMT_NV12,      ///< planar YUV 4:2:0, 12bpp, 1 plane for Y and 1 plane for the UV components, which are interleaved (first byte U and the following byte V)
     pv->sws_context_from_nv12 = hb_sws_get_context(
-                        pv->job->title->width, pv->job->title->height, AV_PIX_FMT_NV12,
-                        pv->job->title->width, pv->job->title->height, AV_PIX_FMT_YUV420P,
+                        pv->job->title->width, pv->job->title->height, AV_PIX_FMT_NV12,    HB_COLR_RAN_ITU/*fixme*/,
+                        pv->job->title->width, pv->job->title->height, AV_PIX_FMT_YUV420P, HB_COLR_RAN_ITU/*fixme*/,
                         SWS_LANCZOS|SWS_ACCURATE_RND);
     pv->sws_context_to_nv12 = hb_sws_get_context(
-                        pv->job->title->width, pv->job->title->height, AV_PIX_FMT_YUV420P,
-                        pv->job->title->width, pv->job->title->height, AV_PIX_FMT_NV12,
+                        pv->job->title->width, pv->job->title->height, AV_PIX_FMT_YUV420P, HB_COLR_RAN_ITU/*fixme*/,
+                        pv->job->title->width, pv->job->title->height, AV_PIX_FMT_NV12,    HB_COLR_RAN_ITU/*fixme*/,
                         SWS_LANCZOS|SWS_ACCURATE_RND);
     return 0;
 }

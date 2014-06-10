@@ -172,57 +172,55 @@ int hb_avpicture_fill(AVPicture *pic, hb_buffer_t *buf)
     return ret;
 }
 
-static int handle_jpeg(enum AVPixelFormat *format)
+static int handle_jpeg(enum AVPixelFormat *format, int input_colr_range)
 {
     switch (*format)
     {
-        case AV_PIX_FMT_YUVJ420P: *format = AV_PIX_FMT_YUV420P; return 1;
-        case AV_PIX_FMT_YUVJ422P: *format = AV_PIX_FMT_YUV422P; return 1;
-        case AV_PIX_FMT_YUVJ444P: *format = AV_PIX_FMT_YUV444P; return 1;
-        case AV_PIX_FMT_YUVJ440P: *format = AV_PIX_FMT_YUV440P; return 1;
-        default:                                                return 0;
+        case AV_PIX_FMT_YUVJ420P: *format = AV_PIX_FMT_YUV420P; return HB_COLR_RAN_FULL;
+        case AV_PIX_FMT_YUVJ422P: *format = AV_PIX_FMT_YUV422P; return HB_COLR_RAN_FULL;
+        case AV_PIX_FMT_YUVJ444P: *format = AV_PIX_FMT_YUV444P; return HB_COLR_RAN_FULL;
+        case AV_PIX_FMT_YUVJ440P: *format = AV_PIX_FMT_YUV440P; return HB_COLR_RAN_FULL;
+        default:                                                return input_colr_range;
     }
 }
 
 struct SwsContext*
-hb_sws_get_context(int srcW, int srcH, enum AVPixelFormat srcFormat,
-                   int dstW, int dstH, enum AVPixelFormat dstFormat,
+hb_sws_get_context(int srcW, int srcH, enum AVPixelFormat srcFormat, int srcRange,
+                   int dstW, int dstH, enum AVPixelFormat dstFormat, int dstRange,
                    int flags)
 {
-    struct SwsContext * ctx;
+    struct SwsContext *ctx    = sws_alloc_context();
+    const int *yuv2rgb_coeffs = sws_getCoefficients(SWS_CS_DEFAULT);
 
-    ctx = sws_alloc_context();
-    if ( ctx )
+    if (ctx != NULL)
     {
-        int srcRange, dstRange;
+        srcRange = handle_jpeg(&srcFormat, srcRange);
+        dstRange = handle_jpeg(&dstFormat, dstRange);
 
-        srcRange = handle_jpeg(&srcFormat);
-        dstRange = handle_jpeg(&dstFormat);
-        /* enable this when implemented in Libav
-        flags |= SWS_FULL_CHR_H_INT | SWS_FULL_CHR_H_INP;
+        /*
+         * enable this when implemented in Libav
+         * flags |= SWS_FULL_CHR_H_INT | SWS_FULL_CHR_H_INP;
          */
 
-        av_opt_set_int(ctx, "srcw", srcW, 0);
-        av_opt_set_int(ctx, "srch", srcH, 0);
-        av_opt_set_int(ctx, "src_range", srcRange, 0);
+        av_opt_set_int(ctx, "srcw",       srcW,      0);
+        av_opt_set_int(ctx, "srch",       srcH,      0);
         av_opt_set_int(ctx, "src_format", srcFormat, 0);
-        av_opt_set_int(ctx, "dstw", dstW, 0);
-        av_opt_set_int(ctx, "dsth", dstH, 0);
-        av_opt_set_int(ctx, "dst_range", dstRange, 0);
+        av_opt_set_int(ctx, "dstw",       dstW,      0);
+        av_opt_set_int(ctx, "dsth",       dstH,      0);
         av_opt_set_int(ctx, "dst_format", dstFormat, 0);
-        av_opt_set_int(ctx, "sws_flags", flags, 0);
+        av_opt_set_int(ctx, "sws_flags",  flags,     0);
 
-        sws_setColorspaceDetails( ctx, 
-                      sws_getCoefficients( SWS_CS_DEFAULT ), // src colorspace
-                      srcRange, // src range 0 = MPG, 1 = JPG
-                      sws_getCoefficients( SWS_CS_DEFAULT ), // dst colorspace
-                      dstRange, // dst range 0 = MPG, 1 = JPG
-                      0,         // brightness
-                      1 << 16,   // contrast
-                      1 << 16 ); // saturation
+        sws_setColorspaceDetails(ctx,
+                                 yuv2rgb_coeffs, srcRange == HB_COLR_RAN_FULL,
+                                 yuv2rgb_coeffs, dstRange == HB_COLR_RAN_FULL,
+                                 0,         // brightness
+                                 1 << 16,   // contrast
+                                 1 << 16); // saturation
 
-        if (sws_init_context(ctx, NULL, NULL) < 0) {
-            fprintf(stderr, "Cannot initialize resampling context\n");
+        int ret = sws_init_context(ctx, NULL, NULL);
+        if (ret < 0)
+        {
+            hb_error("hb_sws_get_context: sws_init_context failed (%d)", ret);
             sws_freeContext(ctx);
             ctx = NULL;
         } 
@@ -786,10 +784,11 @@ void hb_get_preview( hb_handle_t * h, hb_job_t * job, int picture,
 
     // Get scaling context
     context = hb_sws_get_context(title->width  - (job->crop[2] + job->crop[3]),
-                             title->height - (job->crop[0] + job->crop[1]),
-                             AV_PIX_FMT_YUV420P,
-                             job->width, job->height, AV_PIX_FMT_RGB32,
-                             swsflags);
+                                 title->height - (job->crop[0] + job->crop[1]),
+                                 AV_PIX_FMT_YUV420P, 0,//fixme
+                                 job->width, job->height,
+                                 AV_PIX_FMT_RGB32,   0,//fixme
+                                 swsflags);
 
     // Scale
     sws_scale(context,

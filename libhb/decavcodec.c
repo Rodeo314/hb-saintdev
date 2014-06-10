@@ -821,8 +821,9 @@ static uint8_t *copy_plane( uint8_t *dst, uint8_t* src, int dstride, int sstride
 static hb_buffer_t *copy_frame( hb_work_private_t *pv )
 {
     AVCodecContext *context = pv->context;
-    int w, h;
-    if ( ! pv->job )
+    int w, h, srcRange;
+
+    if (pv->job == NULL)
     {
         // HandBrake's video pipeline uses yuv420 color.  This means all
         // dimensions must be even.  So we must adjust the dimensions
@@ -834,6 +835,15 @@ static hb_buffer_t *copy_frame( hb_work_private_t *pv )
     {
         w = pv->job->title->width;
         h = pv->job->title->height;
+    }
+
+    if (pv->job != NULL && pv->job->custom_color_range)
+    {
+        srcRange = pv->job->color.range;
+    }
+    else
+    {
+        srcRange = HB_COLR_RAN_ITU;//fixme
     }
 
 #ifdef USE_HWD
@@ -899,10 +909,11 @@ static hb_buffer_t *copy_frame( hb_work_private_t *pv )
             {
                 if (pv->sws_context != NULL)
                     sws_freeContext(pv->sws_context);
+
                 pv->sws_context = hb_sws_get_context(context->width,
                                                      context->height,
-                                                     context->pix_fmt,
-                                                     w, h, AV_PIX_FMT_YUV420P,
+                                                     context->pix_fmt, srcRange,
+                                                     w, h, AV_PIX_FMT_YUV420P, 0,
                                                      SWS_LANCZOS|SWS_ACCURATE_RND);
                 pv->sws_width   = context->width;
                 pv->sws_height  = context->height;

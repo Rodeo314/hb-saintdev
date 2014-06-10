@@ -2883,14 +2883,13 @@ static int HandleEvents( hb_handle_t * h )
 
             if (input_colorimetry != NULL)
             {
-                if (job->use_input_color)
+                if (!job->custom_colorimetry)
                 {
                     // job->color not initialized yet
-                    job->color.primaries = job->title->color.primaries;
-                    job->color.transfer  = job->title->color.transfer;
-                    job->color.matrix    = job->title->color.matrix;
-                    job->color.range     = HB_COLR_RAN_ITU; // we always convert input to TV range
-                    job->use_input_color = 0;
+                    job->custom_colorimetry = 1;
+                    job->color.primaries    = job->title->color.primaries;
+                    job->color.transfer     = job->title->color.transfer;
+                    job->color.matrix       = job->title->color.matrix;
                 }
 
                 //fixme
@@ -2902,16 +2901,8 @@ static int HandleEvents( hb_handle_t * h )
 
             if (input_range != -1)
             {
-                if (job->use_input_color)
-                {
-                    // job->color is unset
-                    job->color.primaries = job->title->color.primaries;
-                    job->color.transfer  = job->title->color.transfer;
-                    job->color.matrix    = job->title->color.matrix;
-                    job->use_input_color = 0;
-                }
-
-                //fixme
+                job->custom_color_range = 1;
+                job->color.range        = input_range;
             }
 
             hb_job_set_encoder_preset (job, x264_preset);
