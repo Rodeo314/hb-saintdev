@@ -2896,7 +2896,7 @@ static int HandleEvents( hb_handle_t * h )
                 //fixme
                 for (i = 0; input_colorimetry[i] != NULL; i++)
                 {
-                    fprintf(stderr, "input_colorimetry[%d]: %s\n", i, input_colorimetry[i]);
+                    fprintf(stderr, "input_colorimetry[%d]: '%s'\n", i, input_colorimetry[i]);
                 }
             }
 
