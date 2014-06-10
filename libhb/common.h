@@ -268,10 +268,10 @@ struct hb_colorimetry_s
      */
     enum
     {
-        // 0: reserved
+        HB_COLR_PRI_RESERVED0 = 2, // 0, map to undef      (reserved)
         HB_COLR_PRI_BT709     = 1,
         HB_COLR_PRI_UNDEF     = 2,
-        HB_COLR_PRI_RESERVED3 = 3,
+        HB_COLR_PRI_RESERVED3 = 2, // 3, map to undef      (reserved)
         HB_COLR_PRI_BT470M    = 6, // 4, map to BT.601 525 (obsolete)
         HB_COLR_PRI_BT601_625 = 5,
         HB_COLR_PRI_BT601_525 = 6,
@@ -282,10 +282,10 @@ struct hb_colorimetry_s
 
     enum
     {
-        // 0: reserved
+        HB_COLR_TRA_RESERVED0 = 2, // 0, map to undef  (reserved)
         HB_COLR_TRA_BT709     = 1,
         HB_COLR_TRA_UNDEF     = 2,
-        HB_COLR_TRA_RESERVED3 = 3,
+        HB_COLR_TRA_RESERVED3 = 2, // 3, map to undef  (reserved)
         HB_COLR_TRA_BT470M    = 1, // 4, map to BT.709 (obsolete)
         HB_COLR_TRA_BT470BG   = 1, // 5, map to BT.709 (obsolete)
         HB_COLR_TRA_SMPTE170M = 1, // 6, map to BT.709 (identical)
@@ -305,7 +305,7 @@ struct hb_colorimetry_s
         HB_COLR_MAT_GBR       = 0,
         HB_COLR_MAT_BT709     = 1,
         HB_COLR_MAT_UNDEF     = 2,
-        HB_COLR_MAT_RESERVED3 = 3,
+        HB_COLR_MAT_RESERVED3 = 2, // 3, map to undef      (reserved)
         HB_COLR_MAT_FCC       = 6, // 4, map to SMPTE 170M (obsolete)
         HB_COLR_MAT_BT470BG   = 6, // 5, map to SMPTE 170M (identical)
         HB_COLR_MAT_SMPTE170M = 6,
@@ -320,9 +320,9 @@ struct hb_colorimetry_s
      */
     enum
     {
-        HB_COLR_RAN_UNKNOWN   = 1, // unknown, assume TV range
         HB_COLR_RAN_ITU       = 1, // TV range, 16..235
         HB_COLR_RAN_FULL      = 2, // PC range,  0..255
+        HB_COLR_RAN_UNKNOWN   = 1, // assume TV range as per H.264, H.265 specs
     } range;
 };
 

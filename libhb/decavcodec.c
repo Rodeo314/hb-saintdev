@@ -2009,11 +2009,17 @@ static int decavcodecvInfo( hb_work_object_t *w, hb_work_info_t *info )
 
     switch (pv->context->color_primaries)
     {
+        case 0:
+            info->color.primaries = HB_COLR_PRI_RESERVED0;
+            break;
         case AVCOL_PRI_BT709:
             info->color.primaries = HB_COLR_PRI_BT709;
             break;
         case AVCOL_PRI_UNSPECIFIED:
             info->color.primaries = HB_COLR_PRI_UNDEF;
+            break;
+        case 3:
+            info->color.primaries = HB_COLR_PRI_RESERVED3;
             break;
         case AVCOL_PRI_BT470M:
             info->color.primaries = HB_COLR_PRI_BT470M;
@@ -2040,11 +2046,17 @@ static int decavcodecvInfo( hb_work_object_t *w, hb_work_info_t *info )
 
     switch (pv->context->color_trc)
     {
+        case 0:
+            info->color.transfer = HB_COLR_TRA_RESERVED0;
+            break;
         case AVCOL_TRC_BT709:
             info->color.transfer = HB_COLR_TRA_BT709;
             break;
         case AVCOL_TRC_UNSPECIFIED:
             info->color.transfer = HB_COLR_TRA_UNDEF;
+            break;
+        case 3:
+            info->color.transfer = HB_COLR_TRA_RESERVED3;
             break;
         case AVCOL_TRC_GAMMA22:
             info->color.transfer = HB_COLR_TRA_BT470M;
@@ -2092,11 +2104,14 @@ static int decavcodecvInfo( hb_work_object_t *w, hb_work_info_t *info )
         case AVCOL_SPC_RGB:
             info->color.matrix = HB_COLR_MAT_GBR;
             break;
+        case AVCOL_SPC_BT709:
+            info->color.matrix = HB_COLR_MAT_BT709;
+            break;
         case AVCOL_SPC_UNSPECIFIED:
             info->color.matrix = HB_COLR_MAT_UNDEF;
             break;
-        case AVCOL_SPC_BT709:
-            info->color.matrix = HB_COLR_MAT_BT709;
+        case 3:
+            info->color.matrix = HB_COLR_MAT_RESERVED3;
             break;
         case AVCOL_SPC_FCC:
             info->color.matrix = HB_COLR_MAT_FCC;
