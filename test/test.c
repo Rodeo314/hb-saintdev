@@ -2885,8 +2885,11 @@ static int HandleEvents( hb_handle_t * h )
             {
                 if (job->use_input_color)
                 {
-                    // job->color is unset
-                    job->color = job->title->color;
+                    // job->color not initialized yet
+                    job->color.primaries = job->title->color.primaries;
+                    job->color.transfer  = job->title->color.transfer;
+                    job->color.matrix    = job->title->color.matrix;
+                    job->color.range     = HB_COLR_RAN_ITU; // we always convert input to TV range
                     job->use_input_color = 0;
                 }
 
@@ -2902,7 +2905,9 @@ static int HandleEvents( hb_handle_t * h )
                 if (job->use_input_color)
                 {
                     // job->color is unset
-                    job->color = job->title->color;
+                    job->color.primaries = job->title->color.primaries;
+                    job->color.transfer  = job->title->color.transfer;
+                    job->color.matrix    = job->title->color.matrix;
                     job->use_input_color = 0;
                 }
 
