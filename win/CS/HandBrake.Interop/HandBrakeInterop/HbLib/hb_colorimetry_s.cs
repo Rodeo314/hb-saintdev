@@ -31,6 +31,7 @@ namespace HandBrake.Interop.HbLib
 
 	public enum hb_colorimetry_s_primaries
 	{
+		HB_COLR_PRI_RESERVED0 = 2,
 		HB_COLR_PRI_BT709     = 1,
 		HB_COLR_PRI_UNDEF     = 2,
 		HB_COLR_PRI_RESERVED3 = 3,
@@ -44,6 +45,7 @@ namespace HandBrake.Interop.HbLib
 
 	public enum hb_colorimetry_s_transfer
 	{
+		hb_COLR_TRA_RESERVED0 = 2,
 		HB_COLR_TRA_BT709     = 1,
 		HB_COLR_TRA_UNDEF     = 2,
 		HB_COLR_TRA_RESERVED3 = 3,
