@@ -2157,9 +2157,8 @@ static int decavcodecvInfo( hb_work_object_t *w, hb_work_info_t *info )
         if (descriptor->flags & AV_PIX_FMT_FLAG_RGB)
         {
             /*
-             * For non-YUV input, the color characteristics depend on swscale.
+             * For non-YUV input, libswscale alwyas uses the same color matrix.
              */
-            // fixme: what about transfer function and color primaries?
             info->color.matrix = HB_COLR_MAT_SMPTE170M;
         }
         else if (info->color.primaries == HB_COLR_PRI_UNDEF &&
@@ -2186,7 +2185,7 @@ static int decavcodecvInfo( hb_work_object_t *w, hb_work_info_t *info )
                     case 12:
                         if (info->width > 1920 || info->height > 1088)
                         {
-                            // assume ITU-T Rec. BT.2020 (12-bit) colorimetry
+                            // assume ITU-T Rec. BT.2020-0 (12-bit) colorimetry
                             info->color.primaries = HB_COLR_PRI_BT2020;
                             info->color.transfer  = HB_COLR_TRA_BT2020_12;
                             info->color.matrix    = HB_COLR_MAT_BT2020NCL;
@@ -2195,7 +2194,7 @@ static int decavcodecvInfo( hb_work_object_t *w, hb_work_info_t *info )
                     case 10:
                         if (info->width > 1920 || info->height > 1088)
                         {
-                            // assume ITU-T Rec. BT.2020 (10-bit) colorimetry
+                            // assume ITU-T Rec. BT.2020-0 (10-bit) colorimetry
                             info->color.primaries = HB_COLR_PRI_BT2020;
                             info->color.transfer  = HB_COLR_TRA_BT2020_10;
                             info->color.matrix    = HB_COLR_MAT_BT2020NCL;
