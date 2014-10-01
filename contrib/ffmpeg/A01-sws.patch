@@ -1,0 +1,13 @@
+diff --git a/libswscale/utils.c b/libswscale/utils.c
+index ea5f368..afc62c6 100644
+--- a/libswscale/utils.c
++++ b/libswscale/utils.c
+@@ -791,6 +791,8 @@ int sws_setColorspaceDetails(struct SwsContext *c, const int inv_table[4],
+     memcpy(c->srcColorspaceTable, inv_table, sizeof(int) * 4);
+     memcpy(c->dstColorspaceTable, table, sizeof(int) * 4);
+ 
++    av_log(NULL, AV_LOG_ERROR, "sws_setColorspaceDetails()\n");
++
+     c->brightness = brightness;
+     c->contrast   = contrast;
+     c->saturation = saturation;
