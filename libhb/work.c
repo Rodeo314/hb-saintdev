@@ -824,8 +824,13 @@ static void do_job(hb_job_t *job)
                         break;
 
                     // then, validated filters
-                    case HB_FILTER_ROTATE: // TODO: use Media SDK for this
+                    case HB_FILTER_DETELECINE:
+                    case HB_FILTER_DECOMB:
+                    case HB_FILTER_DEBLOCK:
+                    case HB_FILTER_HQDN3D:
+                    case HB_FILTER_NLMEANS:
                     case HB_FILTER_RENDER_SUB:
+                    case HB_FILTER_ROTATE:
                         num_cpu_filters++;
                         break;
 
