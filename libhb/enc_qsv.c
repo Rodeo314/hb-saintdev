@@ -762,7 +762,7 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
 
     // set VBV here (this will be overridden for CQP and ignored for LA)
     // only set BufferSizeInKB, InitialDelayInKB and MaxKbps if we have
-    // them - otheriwse Media SDK will pick values for us automatically
+    // them - otherwise Media SDK will pick values for us automatically
     if (pv->param.rc.vbv_buffer_size > 0)
     {
         if (pv->param.rc.vbv_buffer_init > 1.0)
@@ -778,7 +778,7 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     }
     if (pv->param.rc.vbv_max_bitrate > 0)
     {
-        pv->param.videoParam->mfx.MaxKbps = pv->param.rc.vbv_max_bitrate;
+        pv->param.videoParam->mfx.MaxKbps = FFMAX(pv->param.rc.vbv_max_bitrate, job->vbitrate);
     }
 
     // set rate control paremeters
@@ -817,6 +817,26 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
             pv->param.videoParam->mfx.TargetKbps        = job->vbitrate;
             // ignored, but some drivers will change AsyncDepth because of it
             pv->param.codingOption2.ExtBRC = MFX_CODINGOPTION_OFF;
+
+            // introduced in API 1.11
+            if (pv->qsv_info->capabilities & HB_QSV_CAP_OPTION3)
+            {
+                /*
+                 * FIXME:
+                 * - is there a relation between bufsize and WinBRCSize/WinBRCMaxAvgKbps ratio?
+                 * - is there a relation between the optimal WinBRCSize and LookAheadDepth?
+                 * - what if only vbv-bufsize is provided?
+                 */
+                if (pv->param.rc.vbv_max_bitrate > 0)
+                {
+                    if (pv->qsv_info->capabilities & HB_QSV_CAP_RATECONTROL_LAhrd)
+                    {
+                        pv->param.videoParam->mfx.RateControlMethod = MFX_RATECONTROL_LA_HRD;
+                    }
+                    pv->param.codingOption3.WinBRCMaxAvgKbps = FFMAX(pv->param.rc.vbv_max_bitrate, job->vbitrate);
+                    pv->param.codingOption3.WinBRCSize       = pv->param.codingOption2.LookAheadDepth;
+                }
+            }
         }
         else
         {
@@ -924,6 +944,7 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     mfxSession session = (mfxSession)0;
     mfxExtCodingOption  option1_buf, *option1 = &option1_buf;
     mfxExtCodingOption2 option2_buf, *option2 = &option2_buf;
+    mfxExtCodingOption3 option3_buf, *option3 = &option3_buf;
     mfxExtCodingOptionSPSPPS sps_pps_buf, *sps_pps = &sps_pps_buf;
     version.Major = HB_QSV_MINVERSION_MAJOR;
     version.Minor = HB_QSV_MINVERSION_MINOR;
@@ -975,10 +996,17 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     memset(option2, 0, sizeof(mfxExtCodingOption2));
     option2->Header.BufferId = MFX_EXTBUFF_CODING_OPTION2;
     option2->Header.BufferSz = sizeof(mfxExtCodingOption2);
-    if (pv->qsv_info->capabilities & HB_QSV_CAP_MSDK_API_1_6)
+    if (pv->qsv_info->capabilities & HB_QSV_CAP_OPTION2)
     {
-        // attach to get the final output mfxExtCodingOption2 settings
         videoParam.ExtParam[videoParam.NumExtParam++] = (mfxExtBuffer*)option2;
+    }
+    // introduced in API 1.11
+    memset(option3, 0, sizeof(mfxExtCodingOption3));
+    option3->Header.BufferId = MFX_EXTBUFF_CODING_OPTION3;
+    option3->Header.BufferSz = sizeof(mfxExtCodingOption3);
+    if (pv->qsv_info->capabilities & HB_QSV_CAP_OPTION3)
+    {
+        videoParam.ExtParam[videoParam.NumExtParam++] = (mfxExtBuffer*)option3;
     }
     err = MFXVideoENCODE_GetVideoParam(session, &videoParam);
     MFXVideoENCODE_Close(session);
@@ -1092,8 +1120,19 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
         switch (videoParam.mfx.RateControlMethod)
         {
             case MFX_RATECONTROL_LA:
-                hb_log("encqsvInit: RateControlMethod LA TargetKbps %"PRIu16" LookAheadDepth %"PRIu16"",
-                       videoParam.mfx.TargetKbps, option2->LookAheadDepth);
+            case MFX_RATECONTROL_LA_HRD:
+                if (option3->WinBRCSize)
+                {
+                    hb_log("encqsvInit: RateControlMethod %s TargetKbps %"PRIu16" LookAheadDepth %"PRIu16" WinBRCMaxAvgKbps %"PRIu16" WinBRCSize %"PRIu16"",
+                           videoParam.mfx.RateControlMethod == MFX_RATECONTROL_LA_HRD ? "LA_HRD" : "LA",
+                           videoParam.mfx.TargetKbps, option2->LookAheadDepth, option3->WinBRCMaxAvgKbps, option3->WinBRCSize);
+                }
+                else
+                {
+                    hb_log("encqsvInit: RateControlMethod %s TargetKbps %"PRIu16" LookAheadDepth %"PRIu16"",
+                           videoParam.mfx.RateControlMethod == MFX_RATECONTROL_LA_HRD ? "LA_HRD" : "LA",
+                           videoParam.mfx.TargetKbps, option2->LookAheadDepth);
+                }
                 break;
             case MFX_RATECONTROL_LA_ICQ:
                 hb_log("encqsvInit: RateControlMethod LA_ICQ ICQQuality %"PRIu16" LookAheadDepth %"PRIu16"",

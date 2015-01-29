@@ -258,8 +258,12 @@ static int query_capabilities(mfxSession session, mfxVersion version, hb_qsv_inf
         /* API-specific features that can't be queried */
         if (HB_CHECK_MFX_VERSION(version, 1, 6))
         {
-            // API >= 1.6 (mfxBitstream::DecodeTimeStamp, mfxExtCodingOption2)
             info->capabilities |= HB_QSV_CAP_MSDK_API_1_6;
+            info->capabilities |= HB_QSV_CAP_OPTION2;
+        }
+        if (HB_CHECK_MFX_VERSION(version, 1, 11))
+        {
+            info->capabilities |= HB_QSV_CAP_OPTION3;
         }
 
         /*
@@ -299,6 +303,23 @@ static int query_capabilities(mfxSession session, mfxVersion version, hb_qsv_inf
                     videoParam.mfx.RateControlMethod   == MFX_RATECONTROL_LA)
                 {
                     info->capabilities |= HB_QSV_CAP_RATECONTROL_LAi;
+                }
+
+                // and finally check for LA + HRD support
+                if (HB_CHECK_MFX_VERSION(version, 1, 11))
+                {
+                    init_video_param(&inputParam);
+                    inputParam.mfx.CodecId           = info->codec_id;
+                    inputParam.mfx.RateControlMethod = MFX_RATECONTROL_LA_HRD;
+
+                    memset(&videoParam, 0, sizeof(mfxVideoParam));
+                    videoParam.mfx.CodecId = inputParam.mfx.CodecId;
+
+                    if (MFXVideoENCODE_Query(session, &inputParam, &videoParam) >= MFX_ERR_NONE &&
+                        videoParam.mfx.RateControlMethod == MFX_RATECONTROL_LA_HRD)
+                    {
+                        info->capabilities |= HB_QSV_CAP_RATECONTROL_LAhrd;
+                    }
                 }
             }
         }
@@ -546,6 +567,10 @@ static void log_capabilities(int log_level, uint64_t caps, const char *prefix)
         if (caps & HB_QSV_CAP_RATECONTROL_LAi)
         {
             strcat(buffer, "+i");
+        }
+        if (caps & HB_QSV_CAP_RATECONTROL_LAhrd)
+        {
+            strcat(buffer, "+hrd");
         }
         if (caps & HB_QSV_CAP_OPTION2_LA_DOWNS)
         {
@@ -1489,6 +1514,17 @@ int hb_qsv_param_default(hb_qsv_param_t *param, mfxVideoParam *videoParam,
         param->codingOption2.LookAheadDS     = MFX_LOOKAHEAD_DS_OFF;
         param->codingOption2.NumMbPerSlice   = 0;
 
+        // introduced in API 1.11
+        memset(&param->codingOption3, 0, sizeof(mfxExtCodingOption3));
+        param->codingOption3.Header.BufferId  = MFX_EXTBUFF_CODING_OPTION3;
+        param->codingOption3.Header.BufferSz  = sizeof(mfxExtCodingOption3);
+        param->codingOption3.NumSliceI        = 0;
+        param->codingOption3.NumSliceP        = 0;
+        param->codingOption3.NumSliceB        = 0;
+        param->codingOption3.WinBRCMaxAvgKbps = 0;
+        param->codingOption3.WinBRCSize       = 0;
+        param->codingOption3.QVBRQuality      = 0;
+
         // GOP & rate control
         param->gop.b_pyramid          = -1; // set automatically
         param->gop.gop_pic_size       = -1; // set automatically
@@ -1531,9 +1567,13 @@ int hb_qsv_param_default(hb_qsv_param_t *param, mfxVideoParam *videoParam,
         param->videoParam->ExtParam                                   = param->ExtParamArray;
         param->videoParam->ExtParam[param->videoParam->NumExtParam++] = (mfxExtBuffer*)&param->codingOption;
         param->videoParam->ExtParam[param->videoParam->NumExtParam++] = (mfxExtBuffer*)&param->videoSignalInfo;
-        if (info->capabilities & HB_QSV_CAP_MSDK_API_1_6)
+        if (info->capabilities & HB_QSV_CAP_OPTION2)
         {
             param->videoParam->ExtParam[param->videoParam->NumExtParam++] = (mfxExtBuffer*)&param->codingOption2;
+        }
+        if (info->capabilities & HB_QSV_CAP_OPTION3)
+        {
+            param->videoParam->ExtParam[param->videoParam->NumExtParam++] = (mfxExtBuffer*)&param->codingOption3;
         }
     }
     else
