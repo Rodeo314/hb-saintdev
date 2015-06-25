@@ -89,8 +89,8 @@ int hb_qsv_video_encoder_is_enabled(int encoder)
     {
         case HB_VCODEC_QSV_H264:
             return hb_qsv_info_avc != NULL && hb_qsv_info_avc->available;
-//        case HB_VCODEC_QSV_H265:
-//            return hb_qsv_info_hevc != NULL && hb_qsv_info_hevc->available;
+        case HB_VCODEC_QSV_H265:
+            return hb_qsv_info_hevc != NULL && hb_qsv_info_hevc->available;
         default:
             return 0;
     }
