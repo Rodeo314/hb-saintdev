@@ -226,6 +226,16 @@ static void qsv_handle_breftype(hb_work_private_t *pv)
                 break;
         }
     }
+    else if (pv->qsv_info->codec_id == MFX_CODEC_HEVC)
+    {
+        switch (pv->param.videoParam->mfx.CodecProfile)
+        {
+            case MFX_PROFILE_HEVC_MAINSP:
+                goto unsupported; // B-frames not allowed by profile
+            default:
+                break;
+        }
+    }
 
     /* Handle B-pyramid auto (on for CQP, off otherwise) */
     if (pv->param.gop.b_pyramid < 0)
@@ -310,6 +320,166 @@ static void qsv_handle_breftype(hb_work_private_t *pv)
 unsupported:
     pv->param.gop.b_pyramid          = 0;
     pv->param.codingOption2.BRefType = MFX_B_REF_OFF;
+}
+
+static int qsv_hevc_make_header(hb_work_object_t *w, mfxSession session)
+{
+    size_t len;
+    int ret = 0;
+    uint8_t *buf, *end;
+    mfxBitstream bitstream;
+    hb_buffer_t *bitstream_buf;
+    mfxStatus status;
+    mfxSyncPoint syncPoint;
+    mfxFrameSurface1 frameSurface1;
+    hb_work_private_t *pv = w->private_data;
+
+    memset(&bitstream,     0, sizeof(mfxBitstream));
+    memset(&syncPoint,     0, sizeof(mfxSyncPoint));
+    memset(&frameSurface1, 0, sizeof(mfxFrameSurface1));
+
+    /* The bitstream buffer should be able to hold any encoded frame */
+    bitstream_buf = hb_video_buffer_init(pv->job->width, pv->job->height);
+    if (bitstream_buf == NULL)
+    {
+        hb_log("qsv_hevc_make_header: hb_buffer_init failed");
+        ret = -1;
+        goto end;
+    }
+    bitstream.Data      = bitstream_buf->data;
+    bitstream.MaxLength = bitstream_buf->size;
+
+    /* We only need to encode one frame, so we only need one surface */
+    mfxU16 Height            = pv->param.videoParam->mfx.FrameInfo.Height;
+    mfxU16 Width             = pv->param.videoParam->mfx.FrameInfo.Width;
+    frameSurface1.Info       = pv->param.videoParam->mfx.FrameInfo;
+    frameSurface1.Data.VU    = av_mallocz(Width * Height / 2);
+    frameSurface1.Data.Y     = av_mallocz(Width * Height);
+    frameSurface1.Data.Pitch = Width;
+
+    /* Encode our only frame */
+    do
+    {
+        status = MFXVideoENCODE_EncodeFrameAsync(session, NULL, &frameSurface1,
+                                                 &bitstream, &syncPoint);
+
+        if (status == MFX_WRN_DEVICE_BUSY)
+        {
+            av_usleep(1000);
+        }
+    }
+    while (status == MFX_WRN_DEVICE_BUSY);
+
+    if (status < MFX_ERR_NONE && status != MFX_ERR_MORE_DATA)
+    {
+        hb_log("qsv_hevc_make_header: MFXVideoENCODE_EncodeFrameAsync failed (%d)", status);
+        ret = -1;
+        goto end;
+    }
+
+    /* We may already have some output */
+    if (syncPoint)
+    {
+        do
+        {
+            status = MFXVideoCORE_SyncOperation(session, syncPoint, 100);
+        }
+        while (status == MFX_WRN_IN_EXECUTION);
+
+        if (status != MFX_ERR_NONE)
+        {
+            hb_log("qsv_hevc_make_header: MFXVideoCORE_SyncOperation failed (%d)", status);
+            ret = -1;
+            goto end;
+        }
+    }
+
+    /*
+     * If there is an encoding delay (because of e.g. lookahead),
+     * we may need to flush the encoder to get the output frame.
+     */
+    do
+    {
+        status = MFXVideoENCODE_EncodeFrameAsync(session, NULL, NULL,
+                                                 &bitstream, &syncPoint);
+
+        if (status == MFX_WRN_DEVICE_BUSY)
+        {
+            av_usleep(1000);
+        }
+    }
+    while (status >= MFX_ERR_NONE);
+
+    if (status != MFX_ERR_MORE_DATA)
+    {
+        hb_log("qsv_hevc_make_header: MFXVideoENCODE_EncodeFrameAsync failed (%d)", status);
+        ret = -1;
+        goto end;
+    }
+
+    /* If we didn't have any output before, now we should */
+    if (syncPoint)
+    {
+        do
+        {
+            status = MFXVideoCORE_SyncOperation(session, syncPoint, 100);
+        }
+        while (status == MFX_WRN_IN_EXECUTION);
+
+        if (status != MFX_ERR_NONE)
+        {
+            hb_log("qsv_hevc_make_header: MFXVideoCORE_SyncOperation failed (%d)", status);
+            ret = -1;
+            goto end;
+        }
+    }
+
+    if (!bitstream.DataLength)
+    {
+        hb_log("qsv_hevc_make_header: no output data found");
+        ret = -1;
+        goto end;
+    }
+
+    /* Include any parameter sets and SEI NAL units in the headers. */
+    len = bitstream.DataLength;
+    buf = bitstream.Data + bitstream.DataOffset;
+    end = bitstream.Data + bitstream.DataOffset + bitstream.DataLength;
+    w->config->h265.headers_length = 0;
+
+    while ((buf = hb_annexb_find_next_nalu(buf, &len)) != NULL)
+    {
+        switch ((buf[0] >> 1) & 0x3f)
+        {
+            case 32: // VPS_NUT
+            case 33: // SPS_NUT
+            case 34: // PPS_NUT
+            case 39: // PREFIX_SEI_NUT
+            case 40: // SUFFIX_SEI_NUT
+                break;
+            default:
+                len = end - buf;
+                continue;
+        }
+
+        size_t size = hb_nal_unit_write_annexb(NULL, buf, len) + w->config->h265.headers_length;
+        if (sizeof(w->config->h265.headers) < size)
+        {
+            /* Will never happen in practice */
+            hb_log("qsv_hevc_make_header: header too large (size: %lu, max: %lu)",
+                   size, sizeof(w->config->h265.headers));
+        }
+
+        w->config->h265.headers_length += hb_nal_unit_write_annexb(w->config->h265.headers +
+                                                                   w->config->h265.headers_length, buf, len);
+        len = end - buf;
+    }
+
+end:
+    hb_buffer_close(&bitstream_buf);
+    av_free(frameSurface1.Data.VU);
+    av_free(frameSurface1.Data.Y);
+    return ret;
 }
 
 int qsv_enc_init(hb_work_private_t *pv)
@@ -664,8 +834,8 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     job->qsv.enc_info.pic_struct   = pv->param.videoParam->mfx.FrameInfo.PicStruct;
     job->qsv.enc_info.is_init_done = 1;
 
-    // encode to H.264 and set FrameInfo
-    pv->param.videoParam->mfx.CodecId                 = MFX_CODEC_AVC;
+    // set codec, profile/level and FrameInfo
+    pv->param.videoParam->mfx.CodecId                 = pv->qsv_info->codec_id;
     pv->param.videoParam->mfx.CodecLevel              = MFX_LEVEL_UNKNOWN;
     pv->param.videoParam->mfx.CodecProfile            = MFX_PROFILE_UNKNOWN;
     pv->param.videoParam->mfx.FrameInfo.FourCC        = MFX_FOURCC_NV12;
@@ -1024,8 +1194,16 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
         videoParam.ExtParam[videoParam.NumExtParam++] = (mfxExtBuffer*)option2;
     }
     err = MFXVideoENCODE_GetVideoParam(session, &videoParam);
-    MFXVideoENCODE_Close(session);
-    if (err == MFX_ERR_NONE)
+    if (err != MFX_ERR_NONE)
+    {
+        hb_error("encqsvInit: MFXVideoENCODE_GetVideoParam failed (%d)", err);
+        hb_qsv_unload_plugins(&pv->loaded_plugins, session, version);
+        MFXClose(session);
+        return -1;
+    }
+
+    /* We have the final encoding parameters, now get the headers for muxing */
+    if (pv->qsv_info->codec_id == MFX_CODEC_AVC)
     {
         // remove 32-bit NAL prefix (0x00 0x00 0x00 0x01)
         w->config->h264.sps_length = sps_pps->SPSBufSize - 4;
@@ -1035,13 +1213,20 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
         memmove(w->config->h264.pps, w->config->h264.pps + 4,
                 w->config->h264.pps_length);
     }
-    else
+    else if (pv->qsv_info->codec_id == MFX_CODEC_HEVC)
     {
-        hb_error("encqsvInit: MFXVideoENCODE_GetVideoParam failed (%d)", err);
-        hb_qsv_unload_plugins(&pv->loaded_plugins, session, version);
-        MFXClose(session);
-        return -1;
+        if (qsv_hevc_make_header(w, session) < 0)
+        {
+            hb_error("encqsvInit: qsv_hevc_make_header failed");
+            hb_qsv_unload_plugins(&pv->loaded_plugins, session, version);
+            MFXVideoENCODE_Close(session);
+            MFXClose(session);
+            return -1;
+        }
     }
+
+    /* We don't need this encode session once we have the header */
+    MFXVideoENCODE_Close(session);
 
 #ifdef HB_DRIVER_FIX_33
     if (la_workaround)
@@ -1071,6 +1256,7 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
         switch (pv->qsv_info->codec_id)
         {
             case MFX_CODEC_AVC:
+            case MFX_CODEC_HEVC:
                 pv->init_delay = &w->config->h264.init_delay;
                 break;
             default: // unreachable
@@ -1531,16 +1717,31 @@ static int qsv_frame_is_key(mfxU16 FrameType)
 
 static void qsv_bitstream_slurp(hb_work_private_t *pv, mfxBitstream *bs)
 {
-    /*
-     * we need to convert the encoder's Annex B output
-     * to an MP4-compatible format (ISO/IEC 14496-15).
-     */
-    hb_buffer_t *buf = hb_nal_bitstream_annexb_to_mp4(bs->Data + bs->DataOffset,
-                                                      bs->DataLength);
-    if (buf == NULL)
+    hb_buffer_t *buf;
+
+    if (pv->qsv_info->codec_id == MFX_CODEC_AVC)
     {
-        hb_error("encqsv: hb_nal_bitstream_annexb_to_mp4 failed");
-        goto fail;
+        /*
+         * We provided the muxer with the parameter sets in an MP4-compatible
+         * format (ISO/IEC 14496-15). We need to convert the bitstream to the
+         * same format to match the extradata.
+         */
+        if ((buf = hb_nal_bitstream_annexb_to_mp4(bs->Data + bs->DataOffset,
+                                                  bs->DataLength)) == NULL)
+        {
+            hb_error("encqsv: hb_nal_bitstream_annexb_to_mp4 failed");
+            goto fail;
+        }
+    }
+    else
+    {
+        /* Both extradata and bitstream are in Annex B format. */
+        if ((buf = hb_buffer_init(bs->DataLength)) == NULL)
+        {
+            hb_error("encqsv: hb_buffer_init failed");
+            goto fail;
+        }
+        memcpy(buf->data, bs->Data + bs->DataOffset, bs->DataLength);
     }
     bs->DataLength = bs->DataOffset = 0;
     bs->MaxLength  = pv->job->qsv.ctx->enc_space->p_buf_max_size;
