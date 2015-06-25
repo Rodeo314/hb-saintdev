@@ -1067,6 +1067,7 @@ static int avformatMux(hb_mux_object_t *m, hb_mux_data_t *track, hb_buffer_t *bu
     pkt.duration = duration;
 
     if (track->type == MUX_TYPE_VIDEO && ((job->vcodec & HB_VCODEC_H264_MASK) ||
+                                          (job->vcodec & HB_VCODEC_H265_MASK) ||
                                           (job->vcodec & HB_VCODEC_FFMPEG_MASK)))
     {
         if (buf->s.frametype == HB_FRAME_IDR)
