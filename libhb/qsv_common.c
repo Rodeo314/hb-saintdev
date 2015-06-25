@@ -18,6 +18,7 @@
 #include "hb_dict.h"
 #include "qsv_common.h"
 #include "h264_common.h"
+#include "h265_common.h"
 
 // QSV info for each codec
 static hb_qsv_info_t *hb_qsv_info_avc       = NULL;
@@ -1395,6 +1396,8 @@ const char* const* hb_qsv_profile_get_names(int encoder)
     {
         case HB_VCODEC_QSV_H264:
             return hb_h264_profile_names;
+        case HB_VCODEC_QSV_H265:
+            return hb_h265_profile_names;
         default:
             return NULL;
     }
@@ -1406,6 +1409,8 @@ const char* const* hb_qsv_level_get_names(int encoder)
     {
         case HB_VCODEC_QSV_H264:
             return hb_h264_level_names;
+        case HB_VCODEC_QSV_H265:
+            return hb_h265_level_names;
         default:
             return NULL;
     }
