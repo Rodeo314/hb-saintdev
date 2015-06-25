@@ -210,7 +210,14 @@ static int query_capabilities(mfxSession session, mfxVersion version, hb_qsv_inf
             memset(&videoParam, 0, sizeof(mfxVideoParam));
             videoParam.mfx.CodecId = inputParam.mfx.CodecId;
 
-            if (MFXVideoENCODE_Query(session, &inputParam, &videoParam) >= MFX_ERR_NONE &&
+            /*
+             * Since we only query encoder capabilities here, we don't want to
+             * see MFX_WRN_PARTIAL_ACCELERATION; this usually means a fallback
+             * software implementation is being used instead of the hardware.
+             */
+            status = MFXVideoENCODE_Query(session, &inputParam, &videoParam);
+            if (status >= MFX_ERR_NONE &&
+                status != MFX_WRN_PARTIAL_ACCELERATION &&
                 videoParam.mfx.CodecId == info->codec_id)
             {
                 info->available = 1;
