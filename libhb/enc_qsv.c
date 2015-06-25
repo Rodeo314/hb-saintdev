@@ -33,6 +33,8 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "qsv_common.h"
 #include "qsv_memory.h"
 #include "h264_common.h"
+#include "h265_common.h"
+#include "x265.h"//fixme
 
 /*
  * The frame info struct remembers information about each frame across calls to
@@ -434,10 +436,39 @@ static int qsv_hevc_make_header(hb_work_object_t *w, mfxSession session)
         }
     }
 
-    if (!bitstream.DataLength)
+    if (!bitstream.DataLength)//fixme
     {
         hb_log("qsv_hevc_make_header: no output data found");
-        ret = -1;
+//        ret = -1;
+//        goto end;
+
+        /* This is fun */
+        x265_nal *nal;
+        uint32_t nnal;
+        x265_cleanup();
+        x265_param *param = x265_param_alloc();
+        x265_param_default_preset(param, NULL, NULL);
+
+        param->fpsNum       = pv->job->vrate.num;
+        param->fpsDenom     = pv->job->vrate.den;
+        param->sourceWidth  = pv->job->width;
+        param->sourceHeight = pv->job->height;
+
+        x265_encoder *x265 = x265_encoder_open(param);
+        ret = x265_encoder_headers(x265, &nal, &nnal);
+        if (ret < 0)
+        {
+            hb_error("qsv_hevc_make_header: x265_encoder_headers failed (%d)", ret);
+            goto end;
+        }
+        if (ret > sizeof(w->config->h265.headers))
+        {
+            hb_error("qsv_hevc_make_header: bitstream headers too large (%d)", ret);
+            ret = -1;
+            goto end;
+        }
+        memcpy(w->config->h265.headers, nal->payload, ret);
+        w->config->h265.headers_length = ret;
         goto end;
     }
 
