@@ -58,7 +58,7 @@ void encqsvClose(hb_work_object_t*);
 hb_work_object_t hb_encqsv =
 {
     WORK_ENCQSV,
-    "H.264/AVC encoder (Intel QSV)",
+    "Quick Sync Video encoder (Intel Media SDK)",
     encqsvInit,
     encqsvWork,
     encqsvClose
