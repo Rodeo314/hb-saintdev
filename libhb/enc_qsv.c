@@ -216,7 +216,7 @@ static void qsv_handle_breftype(hb_work_private_t *pv)
         /* We need 2 consecutive B-frames for B-pyramid (GopRefDist >= 3) */
         goto unsupported;
     }
-    else if (pv->qsv_info->codec_id == MFX_CODEC_AVC)
+    else if (pv->param.videoParam->mfx.CodecId == MFX_CODEC_AVC)
     {
         switch (pv->param.videoParam->mfx.CodecProfile)
         {
@@ -228,7 +228,7 @@ static void qsv_handle_breftype(hb_work_private_t *pv)
                 break;
         }
     }
-    else if (pv->qsv_info->codec_id == MFX_CODEC_HEVC)
+    else if (pv->param.videoParam->mfx.CodecId == MFX_CODEC_HEVC)
     {
         switch (pv->param.videoParam->mfx.CodecProfile)
         {
@@ -1214,14 +1214,16 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     memset(option1, 0, sizeof(mfxExtCodingOption));
     option1->Header.BufferId = MFX_EXTBUFF_CODING_OPTION;
     option1->Header.BufferSz = sizeof(mfxExtCodingOption);
-    videoParam.ExtParam[videoParam.NumExtParam++] = (mfxExtBuffer*)option1;
+    if (pv->qsv_info->capabilities & HB_QSV_CAP_OPTION1)
+    {
+        videoParam.ExtParam[videoParam.NumExtParam++] = (mfxExtBuffer*)option1;
+    }
     // introduced in API 1.6
     memset(option2, 0, sizeof(mfxExtCodingOption2));
     option2->Header.BufferId = MFX_EXTBUFF_CODING_OPTION2;
     option2->Header.BufferSz = sizeof(mfxExtCodingOption2);
-    if (pv->qsv_info->capabilities & HB_QSV_CAP_MSDK_API_1_6)
+    if (pv->qsv_info->capabilities & HB_QSV_CAP_OPTION2)
     {
-        // attach to get the final output mfxExtCodingOption2 settings
         videoParam.ExtParam[videoParam.NumExtParam++] = (mfxExtBuffer*)option2;
     }
     err = MFXVideoENCODE_GetVideoParam(session, &videoParam);
@@ -1234,7 +1236,7 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     }
 
     /* We have the final encoding parameters, now get the headers for muxing */
-    if (pv->qsv_info->codec_id == MFX_CODEC_AVC)
+    if (videoParam.mfx.CodecId == MFX_CODEC_AVC)
     {
         // remove 32-bit NAL prefix (0x00 0x00 0x00 0x01)
         w->config->h264.sps_length = sps_pps->SPSBufSize - 4;
@@ -1244,7 +1246,7 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
         memmove(w->config->h264.pps, w->config->h264.pps + 4,
                 w->config->h264.pps_length);
     }
-    else if (pv->qsv_info->codec_id == MFX_CODEC_HEVC)
+    else if (videoParam.mfx.CodecId == MFX_CODEC_HEVC)
     {
         if (qsv_hevc_make_header(w, session) < 0)
         {
@@ -1284,7 +1286,7 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     if (videoParam.mfx.GopRefDist > 1)
     {
         /* the muxer needs to know to the init_delay */
-        switch (pv->qsv_info->codec_id)
+        switch (videoParam.mfx.CodecId)
         {
             case MFX_CODEC_AVC:
             case MFX_CODEC_HEVC:
@@ -1416,10 +1418,16 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
                      videoParam.mfx.FrameInfo.PicStruct);
             return -1;
     }
-    if (option1->CAVLC != MFX_CODINGOPTION_OFF)
+    if (pv->qsv_info->capabilities & HB_QSV_CAP_OPTION1)
     {
-        hb_log("encqsvInit: CAVLC %s",
-               hb_qsv_codingoption_get_name(option1->CAVLC));
+        if (videoParam.mfx.CodecId == MFX_CODEC_AVC)
+        {
+            if (option1->CAVLC != MFX_CODINGOPTION_OFF)
+            {
+                hb_log("encqsvInit: CAVLC %s",
+                       hb_qsv_codingoption_get_name(option1->CAVLC));
+            }
+        }
     }
     if (pv->qsv_info->capabilities & HB_QSV_CAP_OPTION2_EXTBRC)
     {
@@ -1750,7 +1758,7 @@ static void qsv_bitstream_slurp(hb_work_private_t *pv, mfxBitstream *bs)
 {
     hb_buffer_t *buf;
 
-    if (pv->qsv_info->codec_id == MFX_CODEC_AVC)
+    if (pv->param.videoParam->mfx.CodecId == MFX_CODEC_AVC)
     {
         /*
          * We provided the muxer with the parameter sets in an MP4-compatible
