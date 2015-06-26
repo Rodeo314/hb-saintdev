@@ -1306,6 +1306,10 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     // log code path and main output settings
     hb_log("encqsvInit: using %s path",
            pv->is_sys_mem ? "encode-only" : "full QSV");
+    hb_log("encqsvInit: %s %s profile @ level %s",
+           hb_qsv_codec_name  (videoParam.mfx.CodecId),
+           hb_qsv_profile_name(videoParam.mfx.CodecId, videoParam.mfx.CodecProfile),
+           hb_qsv_level_name  (videoParam.mfx.CodecId, videoParam.mfx.CodecLevel));
     hb_log("encqsvInit: TargetUsage %"PRIu16" AsyncDepth %"PRIu16"",
            videoParam.mfx.TargetUsage, videoParam.AsyncDepth);
     hb_log("encqsvInit: GopRefDist %"PRIu16" GopPicSize %"PRIu16" NumRefFrame %"PRIu16"",
@@ -1464,9 +1468,6 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
                 break;
         }
     }
-    hb_log("encqsvInit: H.264 profile %s @ level %s",
-           qsv_h264_profile_xlat(videoParam.mfx.CodecProfile),
-           qsv_h264_level_xlat  (videoParam.mfx.CodecLevel));
 
     // AsyncDepth has now been set and/or modified by Media SDK
     pv->max_async_depth = videoParam.AsyncDepth;

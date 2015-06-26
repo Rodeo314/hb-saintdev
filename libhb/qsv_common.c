@@ -33,6 +33,65 @@ static hb_qsv_info_t qsv_hardware_info_avc  = { .available = 0, .codec_id = MFX_
 static hb_qsv_info_t qsv_software_info_hevc = { .available = 0, .codec_id = MFX_CODEC_HEVC, .implementation = MFX_IMPL_SOFTWARE, };
 static hb_qsv_info_t qsv_hardware_info_hevc = { .available = 0, .codec_id = MFX_CODEC_HEVC, .implementation = MFX_IMPL_HARDWARE_ANY|MFX_IMPL_VIA_ANY, };
 
+// QSV-supported profile and level lists (not all exposed to the user)
+hb_triplet_t hb_qsv_h264_profiles[] =
+{
+    { "Baseline",             "baseline",       MFX_PROFILE_AVC_BASELINE,             },
+    { "Main",                 "main",           MFX_PROFILE_AVC_MAIN,                 },
+    { "Extended",             "extended",       MFX_PROFILE_AVC_EXTENDED,             },
+    { "High",                 "high",           MFX_PROFILE_AVC_HIGH,                 },
+    { "High 4:2:2",           "high422",        MFX_PROFILE_AVC_HIGH_422,             },
+    { "Constrained Baseline", "baseline|set1",  MFX_PROFILE_AVC_CONSTRAINED_BASELINE, },
+    { "Constrained High",     "high|set4|set5", MFX_PROFILE_AVC_CONSTRAINED_HIGH,     },
+    { "Progressive High",     "high|set4",      MFX_PROFILE_AVC_PROGRESSIVE_HIGH,     },
+    { NULL,                                                                           },
+};
+static hb_triplet_t hb_qsv_h265_profiles[] =
+{
+    { "Main",               "main",             MFX_PROFILE_HEVC_MAIN,   },
+    { "Main 10",            "main10",           MFX_PROFILE_HEVC_MAIN10, },
+    { "Main Still Picture", "mainstillpicture", MFX_PROFILE_HEVC_MAINSP, },
+    { NULL,                                                              },
+};
+static hb_triplet_t hb_qsv_h264_levels[] =
+{
+    { "1.0", "1.0", MFX_LEVEL_AVC_1,  },
+    { "1b",  "1b",  MFX_LEVEL_AVC_1b, },
+    { "1.1", "1.1", MFX_LEVEL_AVC_11, },
+    { "1.2", "1.2", MFX_LEVEL_AVC_12, },
+    { "1.3", "1.3", MFX_LEVEL_AVC_13, },
+    { "2.0", "2.0", MFX_LEVEL_AVC_2,  },
+    { "2.1", "2.1", MFX_LEVEL_AVC_21, },
+    { "2.2", "2.2", MFX_LEVEL_AVC_22, },
+    { "3.0", "3.0", MFX_LEVEL_AVC_3,  },
+    { "3.1", "3.1", MFX_LEVEL_AVC_31, },
+    { "3.2", "3.2", MFX_LEVEL_AVC_32, },
+    { "4.0", "4.0", MFX_LEVEL_AVC_4,  },
+    { "4.1", "4.1", MFX_LEVEL_AVC_41, },
+    { "4.2", "4.2", MFX_LEVEL_AVC_42, },
+    { "5.0", "5.0", MFX_LEVEL_AVC_5,  },
+    { "5.1", "5.1", MFX_LEVEL_AVC_51, },
+    { "5.2", "5.2", MFX_LEVEL_AVC_52, },
+    { NULL,                           },
+};
+static hb_triplet_t hb_qsv_h265_levels[] =
+{
+    { "1.0", "1.0", MFX_LEVEL_HEVC_1,  },
+    { "2.0", "2.0", MFX_LEVEL_HEVC_2,  },
+    { "2.1", "2.1", MFX_LEVEL_HEVC_21, },
+    { "3.0", "3.0", MFX_LEVEL_HEVC_3,  },
+    { "3.1", "3.1", MFX_LEVEL_HEVC_31, },
+    { "4.0", "4.0", MFX_LEVEL_HEVC_4,  },
+    { "4.1", "4.1", MFX_LEVEL_HEVC_41, },
+    { "5.0", "5.0", MFX_LEVEL_HEVC_5,  },
+    { "5.1", "5.1", MFX_LEVEL_HEVC_51, },
+    { "5.2", "5.2", MFX_LEVEL_HEVC_52, },
+    { "6.0", "6.0", MFX_LEVEL_HEVC_6,  },
+    { "6.1", "6.1", MFX_LEVEL_HEVC_61, },
+    { "6.2", "6.2", MFX_LEVEL_HEVC_62, },
+    { NULL,                            },
+};
+
 // check available Intel Media SDK version against a minimum
 #define HB_CHECK_MFX_VERSION(MFX_VERSION, MAJOR, MINOR) \
     (MFX_VERSION.Major == MAJOR  && MFX_VERSION.Minor >= MINOR)
@@ -1702,6 +1761,95 @@ int hb_qsv_param_default(hb_qsv_param_t *param, mfxVideoParam *videoParam,
         return -1;
     }
     return 0;
+}
+
+hb_triplet_t* hb_triplet4value(hb_triplet_t *triplets, const int value)
+{
+    for (int i = 0; triplets[i].name != NULL; i++)
+    {
+        if (triplets[i].value == value)
+        {
+            return &triplets[i];
+        }
+    }
+    return NULL;
+}
+
+hb_triplet_t* hb_triplet4name(hb_triplet_t *triplets, const char *name)
+{
+    for (int i = 0; triplets[i].name != NULL; i++)
+    {
+        if (!strcasecmp(triplets[i].name, name))
+        {
+            return &triplets[i];
+        }
+    }
+    return NULL;
+}
+
+hb_triplet_t* hb_triplet4key(hb_triplet_t *triplets, const char *key)
+{
+    for (int i = 0; triplets[i].name != NULL; i++)
+    {
+        if (!strcasecmp(triplets[i].key, key))
+        {
+            return &triplets[i];
+        }
+    }
+    return NULL;
+}
+
+const char* hb_qsv_codec_name(uint32_t codec_id)
+{
+    switch (codec_id)
+    {
+        case MFX_CODEC_AVC:
+            return "H.264/AVC";
+
+        case MFX_CODEC_HEVC:
+            return "H.265/HEVC";
+
+        default:
+            return NULL;
+    }
+}
+
+const char* hb_qsv_profile_name(uint32_t codec_id, uint16_t profile_id)
+{
+    hb_triplet_t *profile = NULL;
+    switch (codec_id)
+    {
+        case MFX_CODEC_AVC:
+            profile = hb_triplet4value(hb_qsv_h264_profiles, profile_id);
+            break;
+
+        case MFX_CODEC_HEVC:
+            profile = hb_triplet4value(hb_qsv_h265_profiles, profile_id);
+            break;
+
+        default:
+            break;
+    }
+    return profile != NULL ? profile->name : NULL;
+}
+
+const char* hb_qsv_level_name(uint32_t codec_id, uint16_t level_id)
+{
+    hb_triplet_t *level = NULL;
+    switch (codec_id)
+    {
+        case MFX_CODEC_AVC:
+            level = hb_triplet4value(hb_qsv_h264_levels, level_id);
+            break;
+
+        case MFX_CODEC_HEVC:
+            level = hb_triplet4value(hb_qsv_h265_levels, level_id);
+            break;
+
+        default:
+            break;
+    }
+    return level != NULL ? level->name : NULL;
 }
 
 const char* hb_qsv_frametype_name(uint16_t qsv_frametype)
