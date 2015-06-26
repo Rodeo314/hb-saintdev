@@ -706,25 +706,39 @@ static void log_capabilities(int log_level, uint64_t caps, const char *prefix)
     {
         strcat(buffer, " icq");
     }
-    if (caps & HB_QSV_CAP_OPTION2_MBBRC)
+    if (caps & HB_QSV_CAP_VUI_VSINFO)
     {
-            strcat(buffer, " mbbrc");
+        strcat(buffer, " vsinfo");
     }
-    if (caps & HB_QSV_CAP_OPTION2_EXTBRC)
+    if (caps & HB_QSV_CAP_OPTION1)
     {
-        strcat(buffer, " extbrc");
+        strcat(buffer, " opt1");
     }
-    if (caps & HB_QSV_CAP_OPTION2_TRELLIS)
+    if (caps & HB_QSV_CAP_OPTION2)
     {
-        strcat(buffer, " trellis");
-    }
-    if (caps & HB_QSV_CAP_OPTION2_IB_ADAPT)
-    {
-        strcat(buffer, " ib_adapt");
-    }
-    if (caps & HB_QSV_CAP_OPTION2_NMPSLICE)
-    {
-        strcat(buffer, " nmpslice");
+        {
+            strcat(buffer, " opt2");
+        }
+        if (caps & HB_QSV_CAP_OPTION2_MBBRC)
+        {
+            strcat(buffer, "+mbbrc");
+        }
+        if (caps & HB_QSV_CAP_OPTION2_EXTBRC)
+        {
+            strcat(buffer, "+extbrc");
+        }
+        if (caps & HB_QSV_CAP_OPTION2_TRELLIS)
+        {
+            strcat(buffer, "+trellis");
+        }
+        if (caps & HB_QSV_CAP_OPTION2_IB_ADAPT)
+        {
+            strcat(buffer, "+ib_adapt");
+        }
+        if (caps & HB_QSV_CAP_OPTION2_NMPSLICE)
+        {
+            strcat(buffer, "+nmpslice");
+        }
     }
 
     hb_deep_log(log_level, "%s%s", prefix,
