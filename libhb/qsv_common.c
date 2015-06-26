@@ -1190,13 +1190,20 @@ int hb_qsv_param_parse(hb_qsv_param_t *param, hb_qsv_info_t *info,
     }
     else if (!strcasecmp(key, "cavlc") || !strcasecmp(key, "cabac"))
     {
-        switch (info->codec_id)
+        if (info->capabilities & HB_QSV_CAP_OPTION1)
         {
-            case MFX_CODEC_AVC:
-                ivalue = hb_qsv_atobool(value, &error);
-                break;
-            default:
-                return HB_QSV_PARAM_UNSUPPORTED;
+            switch (info->codec_id)
+            {
+                case MFX_CODEC_AVC:
+                    ivalue = hb_qsv_atobool(value, &error);
+                    break;
+                default:
+                    return HB_QSV_PARAM_UNSUPPORTED;
+            }
+        }
+        else
+        {
+            return HB_QSV_PARAM_UNSUPPORTED;
         }
         if (!error)
         {
@@ -1209,13 +1216,23 @@ int hb_qsv_param_parse(hb_qsv_param_t *param, hb_qsv_info_t *info,
     }
     else if (!strcasecmp(key, "videoformat"))
     {
-        switch (info->codec_id)
+        if (info->capabilities & HB_QSV_CAP_VUI_VSINFO)
         {
-            case MFX_CODEC_AVC:
-                ivalue = hb_qsv_atoindex(hb_h264_vidformat_names, value, &error);
-                break;
-            default:
-                return HB_QSV_PARAM_UNSUPPORTED;
+            switch (info->codec_id)
+            {
+                case MFX_CODEC_AVC:
+                    ivalue = hb_qsv_atoindex(hb_h264_vidformat_names, value, &error);
+                    break;
+                case MFX_CODEC_HEVC:
+                    ivalue = hb_qsv_atoindex(hb_h265_vidformat_names, value, &error);
+                    break;
+                default:
+                    return HB_QSV_PARAM_UNSUPPORTED;
+            }
+        }
+        else
+        {
+            return HB_QSV_PARAM_UNSUPPORTED;
         }
         if (!error)
         {
@@ -1224,13 +1241,23 @@ int hb_qsv_param_parse(hb_qsv_param_t *param, hb_qsv_info_t *info,
     }
     else if (!strcasecmp(key, "fullrange"))
     {
-        switch (info->codec_id)
+        if (info->capabilities & HB_QSV_CAP_VUI_VSINFO)
         {
-            case MFX_CODEC_AVC:
-                ivalue = hb_qsv_atoindex(hb_h264_fullrange_names, value, &error);
-                break;
-            default:
-                return HB_QSV_PARAM_UNSUPPORTED;
+            switch (info->codec_id)
+            {
+                case MFX_CODEC_AVC:
+                    ivalue = hb_qsv_atoindex(hb_h264_fullrange_names, value, &error);
+                    break;
+                case MFX_CODEC_HEVC:
+                    ivalue = hb_qsv_atoindex(hb_h265_fullrange_names, value, &error);
+                    break;
+                default:
+                    return HB_QSV_PARAM_UNSUPPORTED;
+            }
+        }
+        else
+        {
+            return HB_QSV_PARAM_UNSUPPORTED;
         }
         if (!error)
         {
@@ -1239,13 +1266,23 @@ int hb_qsv_param_parse(hb_qsv_param_t *param, hb_qsv_info_t *info,
     }
     else if (!strcasecmp(key, "colorprim"))
     {
-        switch (info->codec_id)
+        if (info->capabilities & HB_QSV_CAP_VUI_VSINFO)
         {
-            case MFX_CODEC_AVC:
-                ivalue = hb_qsv_atoindex(hb_h264_colorprim_names, value, &error);
-                break;
-            default:
-                return HB_QSV_PARAM_UNSUPPORTED;
+            switch (info->codec_id)
+            {
+                case MFX_CODEC_AVC:
+                    ivalue = hb_qsv_atoindex(hb_h264_colorprim_names, value, &error);
+                    break;
+                case MFX_CODEC_HEVC:
+                    ivalue = hb_qsv_atoindex(hb_h265_colorprim_names, value, &error);
+                    break;
+                default:
+                    return HB_QSV_PARAM_UNSUPPORTED;
+            }
+        }
+        else
+        {
+            return HB_QSV_PARAM_UNSUPPORTED;
         }
         if (!error)
         {
@@ -1255,13 +1292,23 @@ int hb_qsv_param_parse(hb_qsv_param_t *param, hb_qsv_info_t *info,
     }
     else if (!strcasecmp(key, "transfer"))
     {
-        switch (info->codec_id)
+        if (info->capabilities & HB_QSV_CAP_VUI_VSINFO)
         {
-            case MFX_CODEC_AVC:
-                ivalue = hb_qsv_atoindex(hb_h264_transfer_names, value, &error);
-                break;
-            default:
-                return HB_QSV_PARAM_UNSUPPORTED;
+            switch (info->codec_id)
+            {
+                case MFX_CODEC_AVC:
+                    ivalue = hb_qsv_atoindex(hb_h264_transfer_names, value, &error);
+                    break;
+                case MFX_CODEC_HEVC:
+                    ivalue = hb_qsv_atoindex(hb_h265_transfer_names, value, &error);
+                    break;
+                default:
+                    return HB_QSV_PARAM_UNSUPPORTED;
+            }
+        }
+        else
+        {
+            return HB_QSV_PARAM_UNSUPPORTED;
         }
         if (!error)
         {
@@ -1271,13 +1318,23 @@ int hb_qsv_param_parse(hb_qsv_param_t *param, hb_qsv_info_t *info,
     }
     else if (!strcasecmp(key, "colormatrix"))
     {
-        switch (info->codec_id)
+        if (info->capabilities & HB_QSV_CAP_VUI_VSINFO)
         {
-            case MFX_CODEC_AVC:
-                ivalue = hb_qsv_atoindex(hb_h264_colmatrix_names, value, &error);
-                break;
-            default:
-                return HB_QSV_PARAM_UNSUPPORTED;
+            switch (info->codec_id)
+            {
+                case MFX_CODEC_AVC:
+                    ivalue = hb_qsv_atoindex(hb_h264_colmatrix_names, value, &error);
+                    break;
+                case MFX_CODEC_HEVC:
+                    ivalue = hb_qsv_atoindex(hb_h265_colmatrix_names, value, &error);
+                    break;
+                default:
+                    return HB_QSV_PARAM_UNSUPPORTED;
+            }
+        }
+        else
+        {
+            return HB_QSV_PARAM_UNSUPPORTED;
         }
         if (!error)
         {
