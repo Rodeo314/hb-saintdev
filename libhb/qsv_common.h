@@ -171,6 +171,11 @@ typedef struct
 }
 hb_triplet_t;
 
+extern hb_triplet_t hb_qsv_h264_profiles[];
+extern hb_triplet_t hb_qsv_h265_profiles[];
+extern hb_triplet_t hb_qsv_h264_levels[];
+extern hb_triplet_t hb_qsv_h265_levels[];
+
 hb_triplet_t* hb_triplet4value(hb_triplet_t *triplets, const int  value);
 hb_triplet_t* hb_triplet4name (hb_triplet_t *triplets, const char *name);
 hb_triplet_t* hb_triplet4key  (hb_triplet_t *triplets, const char *key);

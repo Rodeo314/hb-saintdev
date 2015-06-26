@@ -46,14 +46,14 @@ hb_triplet_t hb_qsv_h264_profiles[] =
     { "Progressive High",     "high|set4",      MFX_PROFILE_AVC_PROGRESSIVE_HIGH,     },
     { NULL,                                                                           },
 };
-static hb_triplet_t hb_qsv_h265_profiles[] =
+hb_triplet_t hb_qsv_h265_profiles[] =
 {
     { "Main",               "main",             MFX_PROFILE_HEVC_MAIN,   },
     { "Main 10",            "main10",           MFX_PROFILE_HEVC_MAIN10, },
     { "Main Still Picture", "mainstillpicture", MFX_PROFILE_HEVC_MAINSP, },
     { NULL,                                                              },
 };
-static hb_triplet_t hb_qsv_h264_levels[] =
+hb_triplet_t hb_qsv_h264_levels[] =
 {
     { "1.0", "1.0", MFX_LEVEL_AVC_1,  },
     { "1b",  "1b",  MFX_LEVEL_AVC_1b, },
@@ -74,7 +74,7 @@ static hb_triplet_t hb_qsv_h264_levels[] =
     { "5.2", "5.2", MFX_LEVEL_AVC_52, },
     { NULL,                           },
 };
-static hb_triplet_t hb_qsv_h265_levels[] =
+hb_triplet_t hb_qsv_h265_levels[] =
 {
     { "1.0", "1.0", MFX_LEVEL_HEVC_1,  },
     { "2.0", "2.0", MFX_LEVEL_HEVC_2,  },

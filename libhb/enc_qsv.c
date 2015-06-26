@@ -887,47 +887,60 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     if (job->encoder_profile != NULL && *job->encoder_profile &&
         strcasecmp(job->encoder_profile, "auto"))
     {
-        if (!strcasecmp(job->encoder_profile, "baseline"))
+        hb_triplet_t *profile = NULL;
+        switch (pv->param.videoParam->mfx.CodecId)
         {
-            pv->param.videoParam->mfx.CodecProfile = MFX_PROFILE_AVC_BASELINE;
+            case MFX_CODEC_AVC:
+                profile = hb_triplet4key(hb_qsv_h264_profiles, job->encoder_profile);
+                break;
+            case MFX_CODEC_HEVC:
+                profile = hb_triplet4key(hb_qsv_h265_profiles, job->encoder_profile);
+                break;
+            default:
+                break;
         }
-        else if (!strcasecmp(job->encoder_profile, "main"))
-        {
-            pv->param.videoParam->mfx.CodecProfile = MFX_PROFILE_AVC_MAIN;
-        }
-        else if (!strcasecmp(job->encoder_profile, "high"))
-        {
-            pv->param.videoParam->mfx.CodecProfile = MFX_PROFILE_AVC_HIGH;
-        }
-        else
+        if (profile == NULL)
         {
             hb_error("encqsvInit: bad profile %s", job->encoder_profile);
             return -1;
         }
+        pv->param.videoParam->mfx.CodecProfile = profile->value;
     }
     if (job->encoder_level != NULL && *job->encoder_level &&
         strcasecmp(job->encoder_level, "auto"))
     {
-        int err;
-        int i = hb_qsv_atoindex(hb_h264_level_names, job->encoder_level, &err);
-        if (err || i >= (sizeof(hb_h264_level_values) /
-                         sizeof(hb_h264_level_values[0])))
+        hb_triplet_t *level = NULL;
+        switch (pv->param.videoParam->mfx.CodecId)
+        {
+            case MFX_CODEC_AVC:
+                level = hb_triplet4key(hb_qsv_h264_levels, job->encoder_level);
+                break;
+            case MFX_CODEC_HEVC:
+                level = hb_triplet4key(hb_qsv_h265_levels, job->encoder_level);
+                break;
+            default:
+                break;
+        }
+        if (level == NULL)
         {
             hb_error("encqsvInit: bad level %s", job->encoder_level);
             return -1;
         }
-        else if (pv->qsv_info->capabilities & HB_QSV_CAP_MSDK_API_1_6)
+        if (pv->param.videoParam->mfx.CodecId == MFX_CODEC_AVC)
         {
-            pv->param.videoParam->mfx.CodecLevel = HB_QSV_CLIP3(MFX_LEVEL_AVC_1,
-                                                                MFX_LEVEL_AVC_52,
-                                                                hb_h264_level_values[i]);
+            if (pv->qsv_info->capabilities & HB_QSV_CAP_MSDK_API_1_6)
+            {
+                pv->param.videoParam->mfx.CodecLevel = FFMIN(MFX_LEVEL_AVC_52, level->value);
+            }
+            else
+            {
+                // Media SDK API < 1.6, MFX_LEVEL_AVC_52 unsupported
+                pv->param.videoParam->mfx.CodecLevel = FFMIN(MFX_LEVEL_AVC_51, level->value);
+            }
         }
         else
         {
-            // Media SDK API < 1.6, MFX_LEVEL_AVC_52 unsupported
-            pv->param.videoParam->mfx.CodecLevel = HB_QSV_CLIP3(MFX_LEVEL_AVC_1,
-                                                                MFX_LEVEL_AVC_51,
-                                                                hb_h264_level_values[i]);
+            pv->param.videoParam->mfx.CodecLevel = level->value;
         }
     }
 
