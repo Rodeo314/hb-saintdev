@@ -1120,7 +1120,7 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
      * init a dummy encode-only session to get the SPS/PPS
      * and the final output settings sanitized by Media SDK
      * this is fine since the actual encode will use the same
-     * values for all parameters relevant to the H.264 bitstream
+     * values for all parameters relevant to the output bitstream
      */
     mfxStatus err;
     mfxVersion version;
