@@ -36,7 +36,6 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "qsv_memory.h"
 #include "h264_common.h"
 #include "h265_common.h"
-#include "x265.h"//fixme
 
 /*
  * The frame info struct remembers information about each frame across calls to
