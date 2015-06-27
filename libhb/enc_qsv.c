@@ -718,8 +718,7 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     // set AsyncDepth to match that of decode and VPP
     pv->param.videoParam->AsyncDepth = job->qsv.async_depth;
 
-    // enable and set colorimetry (video signal information)
-    pv->param.videoSignalInfo.ColourDescriptionPresent = 1;
+    // set and enable colorimetry (video signal information)
     switch (job->color_matrix_code)
     {
         case 4:
@@ -753,6 +752,7 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
             pv->param.videoSignalInfo.MatrixCoefficients      = job->title->color_matrix;
             break;
     }
+    pv->param.videoSignalInfo.ColourDescriptionPresent = 1;
 
     // parse user-specified encoder options, if present
     if (job->encoder_options != NULL && *job->encoder_options)
