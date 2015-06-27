@@ -28,6 +28,8 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef USE_QSV
 
+#include "libavutil/time.h"
+
 #include "hb.h"
 #include "nal_units.h"
 #include "qsv_common.h"
