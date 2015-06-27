@@ -1190,7 +1190,10 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     sps_pps->PPSId           = 0;
     sps_pps->PPSBuffer       = w->config->h264.pps;
     sps_pps->PPSBufSize      = sizeof(w->config->h264.pps);
-    videoParam.ExtParam[videoParam.NumExtParam++] = (mfxExtBuffer*)sps_pps;
+    if (pv->param.videoParam->mfx.CodecId == MFX_CODEC_AVC)
+    {
+        videoParam.ExtParam[videoParam.NumExtParam++] = (mfxExtBuffer*)sps_pps;
+    }
     // introduced in API 1.0
     memset(option1, 0, sizeof(mfxExtCodingOption));
     option1->Header.BufferId = MFX_EXTBUFF_CODING_OPTION;
