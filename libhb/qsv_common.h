@@ -162,6 +162,8 @@ float hb_qsv_atof    (const char *str, int *err);
 int hb_qsv_param_default_preset(hb_qsv_param_t *param, mfxVideoParam *videoParam, hb_qsv_info_t *info, const char *preset);
 int hb_qsv_param_default       (hb_qsv_param_t *param, mfxVideoParam *videoParam, hb_qsv_info_t *info);
 int hb_qsv_param_parse         (hb_qsv_param_t *param,                            hb_qsv_info_t *info, const char *key, const char *value);
+int hb_qsv_profile_parse       (hb_qsv_param_t *param,                            hb_qsv_info_t *info, const char *profile_key);
+int hb_qsv_level_parse         (hb_qsv_param_t *param,                            hb_qsv_info_t *info, const char *level_key);
 
 typedef struct
 {
@@ -170,11 +172,6 @@ typedef struct
     const int value;
 }
 hb_triplet_t;
-
-extern hb_triplet_t hb_qsv_h264_profiles[];
-extern hb_triplet_t hb_qsv_h265_profiles[];
-extern hb_triplet_t hb_qsv_h264_levels[];
-extern hb_triplet_t hb_qsv_h265_levels[];
 
 hb_triplet_t* hb_triplet4value(hb_triplet_t *triplets, const int  value);
 hb_triplet_t* hb_triplet4name (hb_triplet_t *triplets, const char *name);
