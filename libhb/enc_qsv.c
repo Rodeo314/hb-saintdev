@@ -1148,7 +1148,7 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
     /* We have the final encoding parameters, now get the headers for muxing */
     if (videoParam.mfx.CodecId == MFX_CODEC_AVC)
     {
-        // remove 32-bit NAL prefix (0x00 0x00 0x00 0x01)
+        // remove 4-byte Annex B NAL unit prefix (0x00 0x00 0x00 0x01)
         w->config->h264.sps_length = sps_pps->SPSBufSize - 4;
         memmove(w->config->h264.sps, w->config->h264.sps + 4,
                 w->config->h264.sps_length);
