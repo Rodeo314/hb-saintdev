@@ -28,8 +28,6 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef USE_QSV
 
-#include "libavutil/time.h"
-
 #include "hb.h"
 #include "nal_units.h"
 #include "qsv_common.h"
@@ -347,7 +345,7 @@ static int qsv_hevc_make_header(hb_work_object_t *w, mfxSession session)
         }
         if (status == MFX_WRN_DEVICE_BUSY)
         {
-            av_usleep(1000);
+            av_qsv_sleep(1);
         }
     }
     while (status >= MFX_ERR_NONE);
@@ -377,7 +375,7 @@ static int qsv_hevc_make_header(hb_work_object_t *w, mfxSession session)
             }
             if (status == MFX_WRN_DEVICE_BUSY)
             {
-                av_usleep(1000);
+                av_qsv_sleep(1);
             }
         }
         while (status >= MFX_ERR_NONE);
@@ -792,15 +790,32 @@ int encqsvInit(hb_work_object_t *w, hb_job_t *job)
                       job->par.num, job->par.den, UINT16_MAX);
 
     // some encoding parameters are used by filters to configure their output
+    switch (pv->qsv_info->codec_id)
+    {
+        case MFX_CODEC_HEVC:
+            job->qsv.enc_info.align_width  = AV_QSV_ALIGN32(job->width);
+            job->qsv.enc_info.align_height = AV_QSV_ALIGN32(job->height);
+            break;
+
+        case MFX_CODEC_AVC:
+        default:
+            job->qsv.enc_info.align_width  = AV_QSV_ALIGN16(job->width);
+            job->qsv.enc_info.align_height = AV_QSV_ALIGN16(job->height);
+            break;
+    }
     if (pv->param.videoParam->mfx.FrameInfo.PicStruct != MFX_PICSTRUCT_PROGRESSIVE)
     {
-        job->qsv.enc_info.align_height = AV_QSV_ALIGN32(job->height);
+        // additional alignment may be required
+        switch (pv->qsv_info->codec_id)
+        {
+            case MFX_CODEC_AVC:
+                job->qsv.enc_info.align_height = AV_QSV_ALIGN32(job->qsv.enc_info.align_height);
+                break;
+
+            default:
+                break;
+        }
     }
-    else
-    {
-        job->qsv.enc_info.align_height = AV_QSV_ALIGN16(job->height);
-    }
-    job->qsv.enc_info.align_width  = AV_QSV_ALIGN16(job->width);
     job->qsv.enc_info.pic_struct   = pv->param.videoParam->mfx.FrameInfo.PicStruct;
     job->qsv.enc_info.is_init_done = 1;
 
