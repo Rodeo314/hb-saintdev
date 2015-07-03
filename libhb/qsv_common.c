@@ -315,8 +315,7 @@ static int query_capabilities(mfxSession session, mfxVersion version, hb_qsv_inf
                  */
                 if ((status = MFXVideoENCODE_Init(session, &videoParam)) >= MFX_ERR_NONE)
                 {
-//                    if (status != MFX_WRN_PARTIAL_ACCELERATION)
-                        info->available = 1;
+                    info->available = 1;
                 }
                 else if (info->codec_id == MFX_CODEC_AVC)
                 {
